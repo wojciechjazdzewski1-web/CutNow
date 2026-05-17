@@ -6,9 +6,9 @@
   <p class="text-slate-600 mb-6">Adres <code class="bg-slate-100 px-2 py-1 rounded">{{ sciezka }}</code> nie został znaleziony.</p>
   <div class="flex flex-col sm:flex-row gap-3 justify-center">
     <a href="{{ url_for('strona_glowna') }}" class="rounded-xl bg-brand-600 text-white px-5 py-3 font-semibold hover:bg-brand-700">Strona główna</a>
-    <a href="{{ url_for('rezerwacja_publiczna') }}" class="rounded-xl border border-slate-300 px-5 py-3 font-semibold hover:bg-slate-50">Terminy dla klientów</a>
+    <a href="{{ url_for('rezerwacja_publiczna', salon_slug=domyslny_slug) }}" class="rounded-xl border border-slate-300 px-5 py-3 font-semibold hover:bg-slate-50">Terminy dla klientów</a>
     {% if not widok_klienta %}
-      <a href="{{ url_for('panel') }}" class="rounded-xl border border-slate-300 px-5 py-3 font-semibold hover:bg-slate-50">Panel właściciela</a>
+      <a href="{{ url_for('panel_lista') }}" class="rounded-xl border border-slate-300 px-5 py-3 font-semibold hover:bg-slate-50">Panel właściciela</a>
     {% endif %}
   </div>
 </div>

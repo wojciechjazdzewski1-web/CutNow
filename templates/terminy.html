@@ -2,7 +2,7 @@
 {% block title %}Wolne terminy — CutNow{% endblock %}
 
 {% block content %}
-<a href="{{ url_for('panel') }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6 transition-colors">
+<a href="{{ url_for('panel', salon_slug=salon_slug) }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6 transition-colors">
   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
   Wróć do panelu
 </a>
@@ -65,7 +65,7 @@
             {% endfor %}
           </div>
           <p class="text-xs text-slate-400 mt-2">
-            <a href="{{ url_for('panel_rezerwacje') }}" class="text-brand-600 hover:underline">Zobacz szczegóły w rezerwacjach</a>
+            <a href="{{ url_for('panel_rezerwacje', salon_slug=salon_slug) }}" class="text-brand-600 hover:underline">Zobacz szczegóły w rezerwacjach</a>
           </p>
         </div>
       {% endif %}
@@ -78,7 +78,7 @@
       <ul class="space-y-2 text-sm">
         {% for data_key, lista in wszystkie_terminy.items()|sort %}
           <li>
-            <a href="{{ url_for('wolne_terminy', data=data_key) }}"
+            <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=data_key) }}"
               class="flex justify-between rounded-lg px-3 py-2 hover:bg-brand-50 {% if data_key == wybrana_data %}bg-brand-50 text-brand-800 font-medium{% else %}text-slate-700{% endif %}">
               <span>{{ data_key }}</span>
               <span class="text-slate-500">{{ lista|length }}</span>

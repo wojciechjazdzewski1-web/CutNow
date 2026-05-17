@@ -14,17 +14,20 @@
   </h1>
 
   <p class="text-lg text-slate-600 mb-10 leading-relaxed">
-    CutNow pomaga właścicielom salonu ustawić godziny pracy i oznaczyć wolne terminy na każdy dzień — wszystko w jednym prostym panelu.
+    CutNow pomaga obsługiwać wiele salonów naraz: każdy fryzjer dostaje osobny link, własny panel i własne rezerwacje.
   </p>
 
   <div class="flex flex-col sm:flex-row gap-3 justify-center">
-    <a href="{{ url_for('panel') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-3.5 text-white font-semibold shadow-lg shadow-brand-500/30 hover:from-brand-500 hover:to-brand-600 transition-all hover:-translate-y-0.5">
-      Otwórz panel salonu
+    <a href="{{ url_for('panel_lista') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-3.5 text-white font-semibold shadow-lg shadow-brand-500/30 hover:from-brand-500 hover:to-brand-600 transition-all hover:-translate-y-0.5">
+      Otwórz panel salonów
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
     </a>
-    <a href="{{ url_for('podglad_klienta') }}" class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3.5 font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-      Terminy dla klientów
-    </a>
+    {% if salony %}
+      {% set pierwszy_slug = salony.keys()|list|first %}
+      <a href="{{ url_for('rezerwacja_publiczna', salon_slug=pierwszy_slug) }}" class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3.5 font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+        Przykładowa rezerwacja
+      </a>
+    {% endif %}
   </div>
 </section>
 

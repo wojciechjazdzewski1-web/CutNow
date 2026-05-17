@@ -9,7 +9,7 @@
     <p class="text-slate-600 mt-2">Wybierz termin i zarezerwuj wizytę w kilka sekund</p>
   </div>
 
-  <form method="get" action="{{ url_for('rezerwacja_publiczna') }}" class="mb-6 flex gap-3">
+  <form method="get" action="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="mb-6 flex gap-3">
     <input type="date" name="data" value="{{ wybrana_data }}"
       class="flex-1 rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none">
     <button type="submit" class="rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-semibold px-5 py-3 transition-colors">
@@ -33,7 +33,7 @@
       {% if terminy %}
         <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
           {% for t in terminy %}
-            <a href="{{ url_for('rezerwacja_formularz', data=wybrana_data, godzina=t) }}"
+            <a href="{{ url_for('rezerwacja_formularz', salon_slug=salon_slug, data=wybrana_data, godzina=t) }}"
               class="rounded-xl border-2 border-brand-200 bg-brand-50 text-brand-800 font-semibold py-3 text-center hover:bg-brand-100 hover:border-brand-500 transition-colors">
               {{ t }}
             </a>

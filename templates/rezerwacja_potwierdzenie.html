@@ -35,7 +35,7 @@
     {% endif %}
   </div>
 
-  <a href="{{ url_for('rezerwacja_publiczna') }}" class="inline-flex rounded-xl border border-slate-300 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">
+  <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="inline-flex rounded-xl border border-slate-300 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">
     Wróć na stronę rezerwacji
   </a>
 </div>
