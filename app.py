@@ -13,6 +13,8 @@ import uuid
 from datetime import date, datetime
 from email.message import EmailMessage
 from pathlib import Path
+from urllib import request as urlrequest
+from urllib.error import URLError
 from urllib.parse import urlparse
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
@@ -30,6 +32,8 @@ SMTP_PORT = int(os.environ.get("SMTP_PORT", "587").strip() or "587")
 SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "").strip()
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "").replace(" ", "").strip()
 SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USERNAME or "powiadomienia@cutnow.local").strip()
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
+RESEND_FROM = os.environ.get("RESEND_FROM", SMTP_FROM).strip()
 
 DNI_TYGODNIA = [
     ("poniedzialek", "Poniedziałek"),
@@ -242,7 +246,42 @@ def parsuj_upload_zdjec(pliki) -> list[str]:
 
 
 def email_skonfigurowany() -> bool:
-    return bool(SMTP_HOST and SMTP_USERNAME and SMTP_PASSWORD and SMTP_FROM)
+    return bool(RESEND_API_KEY and RESEND_FROM) or bool(
+        SMTP_HOST and SMTP_USERNAME and SMTP_PASSWORD and SMTP_FROM
+    )
+
+
+def wyslij_email_przez_resend(odbiorca: str, temat: str, tresc: str) -> bool:
+    if not (RESEND_API_KEY and RESEND_FROM):
+        return False
+
+    payload = json.dumps(
+        {
+            "from": RESEND_FROM,
+            "to": [odbiorca],
+            "subject": temat,
+            "text": tresc,
+        }
+    ).encode("utf-8")
+    req = urlrequest.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+
+    try:
+        with urlrequest.urlopen(req, timeout=10) as response:
+            if 200 <= response.status < 300:
+                return True
+            app.logger.warning("Resend zwrócił status HTTP %s", response.status)
+            return False
+    except URLError as exc:
+        app.logger.warning("Nie udało się wysłać e-maila przez Resend: %s", exc)
+        return False
 
 
 def wyslij_email_powiadomienie(salon: dict, rezerwacja: dict, salon_slug: str) -> bool:
@@ -263,6 +302,9 @@ Uwagi: {rezerwacja.get('uwagi') or '-'}
 Panel rezerwacji:
 {link_panelu}
 """
+
+    if wyslij_email_przez_resend(odbiorca, temat, tresc):
+        return True
 
     msg = EmailMessage()
     msg["Subject"] = temat
