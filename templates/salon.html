@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Nazwa salonu — CutNow{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('panel') }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6 transition-colors">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+  Wróć do panelu
+</a>
+
+<div class="max-w-lg">
+  <h1 class="text-2xl font-bold text-slate-900 mb-2">Nazwa salonu</h1>
+  <p class="text-slate-600 mb-8">Ta nazwa będzie widoczna w panelu i w podglądzie dla klientów.</p>
+
+  <form method="post" class="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
+    <div>
+      <label for="nazwa_salonu" class="block text-sm font-medium text-slate-700 mb-2">Nazwa</label>
+      <input type="text" id="nazwa_salonu" name="nazwa_salonu" value="{{ dane.nazwa_salonu }}"
+        required
+        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow"
+        placeholder="np. Salon Elegance">
+    </div>
+    <button type="submit" class="w-full rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3 transition-colors">
+      Zapisz nazwę
+    </button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+# Opcjonalny plik „Blueprint” — Render może utworzyć serwis automatycznie z repo.
+services:
+  - type: web
+    name: cutnow
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:application --bind 0.0.0.0:$PORT --workers 1 --timeout 120
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PANEL_PASSWORD
+        sync: false
+      - key: FLASK_DEBUG
+        value: "false"

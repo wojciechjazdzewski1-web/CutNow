@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Wolne terminy — CutNow{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('panel') }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6 transition-colors">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+  Wróć do panelu
+</a>
+
+<h1 class="text-2xl font-bold text-slate-900 mb-2">Wolne terminy</h1>
+<p class="text-slate-600 mb-8">Dodaj godziny, w które przyjmujesz klientów na wybrany dzień.</p>
+
+<div class="grid lg:grid-cols-3 gap-6">
+  <div class="lg:col-span-2 space-y-6">
+    <form method="get" class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm flex flex-wrap items-end gap-4">
+      <div class="flex-1 min-w-[200px]">
+        <label for="data" class="block text-sm font-medium text-slate-700 mb-2">Wybierz dzień</label>
+        <input type="date" id="data" name="data" value="{{ wybrana_data }}"
+          class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none">
+      </div>
+      <button type="submit" class="rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 px-5 py-3 font-medium text-slate-700 transition-colors">
+        Pokaż dzień
+      </button>
+    </form>
+
+    <form method="post" class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+      <input type="hidden" name="data" value="{{ wybrana_data }}">
+      <input type="hidden" name="akcja" value="dodaj">
+      <label for="godzina" class="block text-sm font-medium text-slate-700 mb-2">Nowy wolny termin</label>
+      <div class="flex flex-wrap gap-3">
+        <input type="time" id="godzina" name="godzina" required
+          class="flex-1 min-w-[140px] rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none">
+        <button type="submit" class="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-3 transition-colors">
+          + Dodaj termin
+        </button>
+      </div>
+    </form>
+
+    <div class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+      <h2 class="font-semibold text-slate-900 mb-4">Terminy na {{ wybrana_data }}</h2>
+      {% if terminy %}
+        <ul class="space-y-2">
+          {% for t in terminy %}
+            <li class="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+              <span class="font-medium text-slate-800">{{ t }}</span>
+              <form method="post" class="inline">
+                <input type="hidden" name="data" value="{{ wybrana_data }}">
+                <input type="hidden" name="akcja" value="usun">
+                <input type="hidden" name="godzina" value="{{ t }}">
+                <button type="submit" class="text-sm text-red-600 hover:text-red-800 font-medium">Usuń</button>
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-slate-500 text-sm">Brak wolnych terminów na ten dzień. Dodaj pierwszy termin powyżej.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <aside class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm h-fit">
+    <h2 class="font-semibold text-slate-900 mb-4">Inne dni z terminami</h2>
+    {% if wszystkie_terminy %}
+      <ul class="space-y-2 text-sm">
+        {% for data_key, lista in wszystkie_terminy.items()|sort %}
+          <li>
+            <a href="{{ url_for('wolne_terminy', data=data_key) }}"
+              class="flex justify-between rounded-lg px-3 py-2 hover:bg-brand-50 {% if data_key == wybrana_data %}bg-brand-50 text-brand-800 font-medium{% else %}text-slate-700{% endif %}">
+              <span>{{ data_key }}</span>
+              <span class="text-slate-500">{{ lista|length }}</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-slate-500 text-sm">Nie dodano jeszcze żadnych terminów.</p>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

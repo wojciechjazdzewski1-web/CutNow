@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Rezerwacja — {{ dane.nazwa_salonu }}{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+  <div class="text-center mb-8">
+    <p class="text-sm text-brand-600 font-medium mb-2">Podgląd dla klienta</p>
+    <h1 class="text-3xl font-bold text-slate-900">{{ dane.nazwa_salonu }}</h1>
+    <p class="text-slate-600 mt-2">Wybierz dostępny termin wizyty</p>
+  </div>
+
+  <form method="get" class="mb-6 flex gap-3">
+    <input type="date" name="data" value="{{ wybrana_data }}"
+      class="flex-1 rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none">
+    <button type="submit" class="rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-semibold px-5 py-3 transition-colors">
+      Zmień dzień
+    </button>
+  </form>
+
+  <div class="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm mb-6">
+    <h2 class="text-sm font-medium text-slate-500 uppercase tracking-wide mb-3">Godziny otwarcia</h2>
+    {% if godziny.zamkniety %}
+      <p class="text-red-600 font-medium">Salon jest zamknięty w ten dzień.</p>
+    {% else %}
+      <p class="text-xl font-semibold text-slate-900">{{ godziny.otwarcie }} — {{ godziny.zamkniecie }}</p>
+      <p class="text-sm text-slate-500 mt-1">{{ dni_tygodnia[dzien_tygodnia] }}, {{ wybrana_data }}</p>
+    {% endif %}
+  </div>
+
+  {% if not godziny.zamkniety %}
+    <div class="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm">
+      <h2 class="text-sm font-medium text-slate-500 uppercase tracking-wide mb-4">Dostępne terminy</h2>
+      {% if terminy %}
+        <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
+          {% for t in terminy %}
+            <button type="button"
+              class="rounded-xl border-2 border-brand-200 bg-brand-50 text-brand-800 font-semibold py-3 hover:bg-brand-100 hover:border-brand-400 transition-colors cursor-default"
+              title="W pełnej wersji tutaj będzie rezerwacja">
+              {{ t }}
+            </button>
+          {% endfor %}
+        </div>
+        <p class="text-xs text-slate-400 mt-4 text-center">Wybierz godzinę i zadzwoń / napisz do salonu, aby potwierdzić wizytę.</p>
+      {% else %}
+        <p class="text-slate-500">Brak wolnych terminów na wybrany dzień. Spróbuj innej daty.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <p class="text-center mt-8">
+    <a href="{{ url_for('panel') }}" class="text-sm text-brand-600 hover:underline">← Wróć do panelu właściciela</a>
+  </p>
+</div>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Nie znaleziono — CutNow{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto text-center">
+  <h1 class="text-2xl font-bold text-slate-900 mb-2">Strona nie istnieje</h1>
+  <p class="text-slate-600 mb-6">Adres <code class="bg-slate-100 px-2 py-1 rounded">{{ sciezka }}</code> nie został znaleziony.</p>
+  <div class="flex flex-col sm:flex-row gap-3 justify-center">
+    <a href="{{ url_for('strona_glowna') }}" class="rounded-xl bg-brand-600 text-white px-5 py-3 font-semibold hover:bg-brand-700">Strona główna</a>
+    <a href="{{ url_for('rezerwacja_publiczna') }}" class="rounded-xl border border-slate-300 px-5 py-3 font-semibold hover:bg-slate-50">Terminy dla klientów</a>
+    <a href="{{ url_for('panel') }}" class="rounded-xl border border-slate-300 px-5 py-3 font-semibold hover:bg-slate-50">Panel salonu</a>
+  </div>
+</div>
+{% endblock %}

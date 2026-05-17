@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Godziny pracy — CutNow{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('panel') }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6 transition-colors">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+  Wróć do panelu
+</a>
+
+<h1 class="text-2xl font-bold text-slate-900 mb-2">Godziny pracy</h1>
+<p class="text-slate-600 mb-8">Ustaw, kiedy salon jest otwarty w poszczególne dni tygodnia.</p>
+
+<form method="post" class="space-y-3">
+  {% for klucz, nazwa in dni_tygodnia %}
+    {% set dzien = dane.godziny_pracy[klucz] %}
+    <div class="rounded-2xl bg-white border border-slate-200 p-4 sm:p-5 shadow-sm">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div class="sm:w-36 font-semibold text-slate-900">{{ nazwa }}</div>
+
+        <label class="inline-flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" name="zamkniety_{{ klucz }}" {% if dzien.zamkniety %}checked{% endif %}
+            class="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+            onchange="toggleDay(this, '{{ klucz }}')">
+          <span class="text-sm text-slate-600">Zamknięte</span>
+        </label>
+
+        <div id="hours_{{ klucz }}" class="flex items-center gap-2 flex-1 {% if dzien.zamkniety %}opacity-40 pointer-events-none{% endif %}">
+          <input type="time" name="otwarcie_{{ klucz }}" value="{{ dzien.otwarcie }}"
+            class="rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+          <span class="text-slate-400">—</span>
+          <input type="time" name="zamkniecie_{{ klucz }}" value="{{ dzien.zamkniecie }}"
+            class="rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+
+  <button type="submit" class="mt-4 w-full sm:w-auto rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold px-8 py-3 transition-colors">
+    Zapisz godziny pracy
+  </button>
+</form>
+
+<script>
+function toggleDay(checkbox, key) {
+  const block = document.getElementById('hours_' + key);
+  if (checkbox.checked) {
+    block.classList.add('opacity-40', 'pointer-events-none');
+  } else {
+    block.classList.remove('opacity-40', 'pointer-events-none');
+  }
+}
+</script>
+{% endblock %}
