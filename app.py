@@ -28,7 +28,7 @@ PANEL_PASSWORD = os.environ.get("PANEL_PASSWORD", "").strip()
 SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "587").strip() or "587")
 SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "").strip()
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "").strip()
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "").replace(" ", "").strip()
 SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USERNAME or "powiadomienia@cutnow.local").strip()
 
 DNI_TYGODNIA = [
