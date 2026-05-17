@@ -14,7 +14,7 @@ from datetime import date, datetime
 from email.message import EmailMessage
 from pathlib import Path
 from urllib import request as urlrequest
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
@@ -276,9 +276,14 @@ def wyslij_email_przez_resend(odbiorca: str, temat: str, tresc: str) -> bool:
     try:
         with urlrequest.urlopen(req, timeout=10) as response:
             if 200 <= response.status < 300:
+                app.logger.info("Wysłano e-mail przez Resend do %s", odbiorca)
                 return True
             app.logger.warning("Resend zwrócił status HTTP %s", response.status)
             return False
+    except HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        app.logger.warning("Resend odrzucił e-mail: HTTP %s %s", exc.code, body)
+        return False
     except URLError as exc:
         app.logger.warning("Nie udało się wysłać e-maila przez Resend: %s", exc)
         return False
@@ -286,7 +291,11 @@ def wyslij_email_przez_resend(odbiorca: str, temat: str, tresc: str) -> bool:
 
 def wyslij_email_powiadomienie(salon: dict, rezerwacja: dict, salon_slug: str) -> bool:
     odbiorca = salon.get("email_powiadomien", "").strip()
-    if not odbiorca or not email_skonfigurowany():
+    if not odbiorca:
+        app.logger.warning("Nie wysłano e-maila: salon %s nie ma adresu powiadomień.", salon_slug)
+        return False
+    if not email_skonfigurowany():
+        app.logger.warning("Nie wysłano e-maila: brak konfiguracji RESEND_API_KEY/SMTP.")
         return False
 
     link_panelu = url_for("panel_rezerwacje", salon_slug=salon_slug, _external=True)
