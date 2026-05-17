@@ -30,11 +30,12 @@
       </div>
       <div class="grid grid-cols-3 gap-2">
         {% for zdjecie in dane.zdjecia_prac[:6] %}
-          <a href="{{ zdjecie }}" target="_blank" rel="noopener" class="block overflow-hidden rounded-xl bg-slate-100 aspect-square">
+          <button type="button" onclick="openGalleryImage({{ zdjecie|tojson }})" class="block overflow-hidden rounded-xl bg-slate-100 aspect-square focus:ring-2 focus:ring-brand-500 outline-none">
             <img src="{{ zdjecie }}" alt="Praca salonu {{ loop.index }}" class="h-full w-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy">
-          </a>
+          </button>
         {% endfor %}
       </div>
+      <p class="text-xs text-slate-500 mt-3 text-center">Kliknij zdjęcie, aby powiększyć.</p>
     </section>
   {% endif %}
 
@@ -82,4 +83,41 @@
     </div>
   {% endif %}
 </div>
+
+{% if dane.zdjecia_prac %}
+  <div id="gallery-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/80 p-4" onclick="closeGalleryImage()">
+    <div class="relative max-h-full max-w-4xl" onclick="event.stopPropagation()">
+      <button type="button" onclick="closeGalleryImage()" class="absolute -top-12 right-0 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20">
+        Zamknij
+      </button>
+      <img id="gallery-modal-image" src="" alt="Powiększone zdjęcie pracy salonu" class="max-h-[85vh] max-w-full rounded-2xl object-contain shadow-2xl">
+    </div>
+  </div>
+
+  <script>
+    function openGalleryImage(src) {
+      const modal = document.getElementById('gallery-modal');
+      const image = document.getElementById('gallery-modal-image');
+      image.src = src;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.body.classList.add('overflow-hidden');
+    }
+
+    function closeGalleryImage() {
+      const modal = document.getElementById('gallery-modal');
+      const image = document.getElementById('gallery-modal-image');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      image.src = '';
+      document.body.classList.remove('overflow-hidden');
+    }
+
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeGalleryImage();
+      }
+    });
+  </script>
+{% endif %}
 {% endblock %}
