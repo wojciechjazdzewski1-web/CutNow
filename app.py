@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import base64
 import json
 import os
 import re
@@ -212,6 +213,25 @@ def parsuj_linki_zdjec(wartosc: str) -> list[str]:
     return linki[:12]
 
 
+def parsuj_upload_zdjec(pliki) -> list[str]:
+    """Zapisuje małe zdjęcia jako data URL w JSON, bez osobnego hostingu plików."""
+    zdjecia = []
+    dozwolone_typy = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+    maks_bajtow = 1_500_000
+
+    for plik in pliki:
+        if not plik or not plik.filename:
+            continue
+        if plik.mimetype not in dozwolone_typy:
+            continue
+        dane = plik.read()
+        if not dane or len(dane) > maks_bajtow:
+            continue
+        zakodowane = base64.b64encode(dane).decode("ascii")
+        zdjecia.append(f"data:{plik.mimetype};base64,{zakodowane}")
+    return zdjecia
+
+
 def znajdz_rezerwacje(salon: dict, rezerwacja_id: str) -> dict | None:
     for rezerwacja in salon.get("rezerwacje", []):
         if rezerwacja.get("id") == rezerwacja_id:
@@ -412,7 +432,16 @@ def ustawienia_salonu(salon_slug: str):
         opis = request.form.get("opis", "").strip()
         telefon = request.form.get("telefon_kontaktowy", "").strip()
         instagram = request.form.get("instagram", "").strip()
-        zdjecia = parsuj_linki_zdjec(request.form.get("zdjecia_prac", ""))
+        zdjecia_z_linkow = parsuj_linki_zdjec(request.form.get("zdjecia_prac", ""))
+        nowe_zdjecia = parsuj_upload_zdjec(request.files.getlist("zdjecia_upload"))
+        dotychczasowe_uploady = [
+            z
+            for z in salon.get("zdjecia_prac", [])
+            if isinstance(z, str) and z.startswith("data:image/")
+        ]
+        if request.form.get("usun_wgrane_zdjecia") == "on":
+            dotychczasowe_uploady = []
+        zdjecia = (zdjecia_z_linkow + dotychczasowe_uploady + nowe_zdjecia)[:12]
         if nazwa:
             salon["nazwa_salonu"] = nazwa
             salon["opis"] = opis

@@ -11,7 +11,7 @@
   <h1 class="text-2xl font-bold text-slate-900 mb-2">Profil salonu</h1>
   <p class="text-slate-600 mb-8">Te informacje będą widoczne na stronie rezerwacji klienta.</p>
 
-  <form method="post" class="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
+  <form method="post" enctype="multipart/form-data" class="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
     <div>
       <label for="nazwa_salonu" class="block text-sm font-medium text-slate-700 mb-2">Nazwa</label>
       <input type="text" id="nazwa_salonu" name="nazwa_salonu" value="{{ dane.nazwa_salonu }}"
@@ -43,12 +43,43 @@
     </div>
 
     <div>
-      <label for="zdjecia_prac" class="block text-sm font-medium text-slate-700 mb-2">Zdjęcia prac</label>
+      <label for="zdjecia_upload" class="block text-sm font-medium text-slate-700 mb-2">Wgraj zdjęcia prac</label>
+      <input type="file" id="zdjecia_upload" name="zdjecia_upload" accept="image/png,image/jpeg,image/webp,image/gif" multiple
+        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 file:mr-4 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-brand-700 file:font-semibold hover:file:bg-brand-100">
+      <p class="text-xs text-slate-500 mt-2">Zdjęcia pokażą się bezpośrednio na stronie klienta. Najlepiej dodawaj małe zdjęcia (do ok. 1,5 MB każde).</p>
+    </div>
+
+    {% set ns = namespace(ma_wgrane=false) %}
+    {% for zdjecie in dane.zdjecia_prac %}
+      {% if zdjecie.startswith('data:image/') %}
+        {% set ns.ma_wgrane = true %}
+      {% endif %}
+    {% endfor %}
+    {% if ns.ma_wgrane %}
+      <div class="rounded-xl bg-slate-50 border border-slate-200 p-4">
+        <p class="text-sm font-medium text-slate-700 mb-3">Wgrane zdjęcia</p>
+        <div class="grid grid-cols-3 gap-2 mb-3">
+          {% for zdjecie in dane.zdjecia_prac %}
+            {% if zdjecie.startswith('data:image/') and loop.index <= 6 %}
+              <img src="{{ zdjecie }}" alt="Wgrane zdjęcie {{ loop.index }}" class="aspect-square w-full rounded-lg object-cover">
+            {% endif %}
+          {% endfor %}
+        </div>
+        <label class="inline-flex items-center gap-2 text-sm text-red-700">
+          <input type="checkbox" name="usun_wgrane_zdjecia" class="rounded border-slate-300 text-red-600">
+          Usuń wszystkie wgrane zdjęcia przy zapisie
+        </label>
+      </div>
+    {% endif %}
+
+    <div>
+      <label for="zdjecia_prac" class="block text-sm font-medium text-slate-700 mb-2">Albo wklej linki do zdjęć</label>
       <textarea id="zdjecia_prac" name="zdjecia_prac" rows="5"
         class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow resize-none"
-        placeholder="Wklej linki do zdjęć, każdy w osobnej linii">{% for zdjecie in dane.zdjecia_prac %}{{ zdjecie }}
+        placeholder="Wklej linki do zdjęć, każdy w osobnej linii">{% for zdjecie in dane.zdjecia_prac %}{% if zdjecie.startswith('http') %}{{ zdjecie }}
+{% endif %}
 {% endfor %}</textarea>
-      <p class="text-xs text-slate-500 mt-2">Najprościej: wgraj zdjęcie np. na Instagram/stronę/hosting zdjęć i wklej bezpośredni link. Pokażemy maksymalnie 12 zdjęć.</p>
+      <p class="text-xs text-slate-500 mt-2">Linki są opcjonalne. Pokażemy maksymalnie 12 zdjęć łącznie.</p>
     </div>
 
     <div>
