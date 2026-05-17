@@ -38,15 +38,19 @@
   <nav class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
     <div class="max-w-5xl mx-auto px-4 sm:px-6">
       <div class="flex items-center justify-between h-16">
-        <a href="{{ url_for('strona_glowna') }}" class="flex items-center gap-2 group">
+        <a href="{{ url_for('rezerwacja_publiczna') if widok_klienta else url_for('strona_glowna') }}" class="flex items-center gap-2 group">
           <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white font-bold text-sm shadow-lg shadow-brand-500/30 group-hover:scale-105 transition-transform">CN</span>
           <span class="font-bold text-lg tracking-tight">Cut<span class="text-brand-600">Now</span></span>
         </a>
         <div class="flex items-center gap-1 sm:gap-2">
-          <a href="{{ url_for('strona_glowna') }}" class="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors {% if request.endpoint == 'strona_glowna' %}text-brand-700 bg-brand-50{% else %}text-slate-600{% endif %}">Start</a>
-          <a href="{{ url_for('panel') }}" class="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors {% if request.endpoint in ['panel', 'ustawienia_salonu', 'godziny_pracy', 'wolne_terminy', 'panel_rezerwacje', 'podglad_klienta', 'panel_login'] %}text-brand-700 bg-brand-50{% else %}text-slate-600{% endif %}">Panel</a>
-          {% if panel_chroniony_haslem and zalogowany_do_panelu %}
-            <a href="{{ url_for('panel_wyloguj') }}" class="px-3 py-2 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-100">Wyloguj</a>
+          {% if widok_klienta %}
+            <span class="px-3 py-2 text-sm font-medium text-brand-700 bg-brand-50 rounded-lg">Rezerwacja wizyty</span>
+          {% else %}
+            <a href="{{ url_for('strona_glowna') }}" class="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors {% if request.endpoint == 'strona_glowna' %}text-brand-700 bg-brand-50{% else %}text-slate-600{% endif %}">Start</a>
+            <a href="{{ url_for('panel') }}" class="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors {% if request.endpoint in ['panel', 'ustawienia_salonu', 'godziny_pracy', 'wolne_terminy', 'panel_rezerwacje', 'podglad_klienta', 'panel_login'] %}text-brand-700 bg-brand-50{% else %}text-slate-600{% endif %}">Panel właściciela</a>
+            {% if panel_chroniony_haslem and zalogowany_do_panelu %}
+              <a href="{{ url_for('panel_wyloguj') }}" class="px-3 py-2 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-100">Wyloguj</a>
+            {% endif %}
           {% endif %}
         </div>
       </div>

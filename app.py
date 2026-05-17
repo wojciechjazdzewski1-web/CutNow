@@ -36,6 +36,14 @@ PUBLIC_ENDPOINTS = frozenset(
     }
 )
 
+WIDOK_KLIENTA_ENDPOINTS = frozenset(
+    {
+        "rezerwacja_publiczna",
+        "rezerwacja_formularz",
+        "rezerwacja_potwierdzenie",
+    }
+)
+
 DNI_TYGODNIA = [
     ("poniedzialek", "Poniedziałek"),
     ("wtorek", "Wtorek"),
@@ -145,11 +153,19 @@ def bezpieczny_next_url(url: str | None) -> str:
 
 @app.before_request
 def wymagaj_hasla_panelu():
-    if not PANEL_PASSWORD:
-        return
     if request.endpoint in PUBLIC_ENDPOINTS:
         return
-    if request.endpoint and request.endpoint.startswith("panel") and not session.get("panel_auth"):
+    if not (request.endpoint and request.endpoint.startswith("panel")):
+        return
+
+    # Na Renderze panel bez hasła jest zablokowany (ochrona przed klientami).
+    if not PANEL_PASSWORD:
+        if os.environ.get("RENDER"):
+            flash("Ta strona jest tylko dla właściciela salonu.", "error")
+            return redirect(url_for("rezerwacja_publiczna"))
+        return
+
+    if not session.get("panel_auth"):
         return redirect(url_for("panel_login", next=request.path))
 
 
@@ -159,6 +175,7 @@ def inject_globals():
         "dni_tygodnia": DNI_TYGODNIA,
         "panel_chroniony_haslem": bool(PANEL_PASSWORD),
         "zalogowany_do_panelu": session.get("panel_auth", False),
+        "widok_klienta": request.endpoint in WIDOK_KLIENTA_ENDPOINTS,
     }
 
 

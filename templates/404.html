@@ -7,7 +7,9 @@
   <div class="flex flex-col sm:flex-row gap-3 justify-center">
     <a href="{{ url_for('strona_glowna') }}" class="rounded-xl bg-brand-600 text-white px-5 py-3 font-semibold hover:bg-brand-700">Strona główna</a>
     <a href="{{ url_for('rezerwacja_publiczna') }}" class="rounded-xl border border-slate-300 px-5 py-3 font-semibold hover:bg-slate-50">Terminy dla klientów</a>
-    <a href="{{ url_for('panel') }}" class="rounded-xl border border-slate-300 px-5 py-3 font-semibold hover:bg-slate-50">Panel salonu</a>
+    {% if not widok_klienta %}
+      <a href="{{ url_for('panel') }}" class="rounded-xl border border-slate-300 px-5 py-3 font-semibold hover:bg-slate-50">Panel właściciela</a>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
