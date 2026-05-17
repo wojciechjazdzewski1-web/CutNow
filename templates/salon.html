@@ -7,9 +7,9 @@
   Wróć do panelu
 </a>
 
-<div class="max-w-lg">
-  <h1 class="text-2xl font-bold text-slate-900 mb-2">Nazwa salonu</h1>
-  <p class="text-slate-600 mb-8">Ta nazwa będzie widoczna w panelu i w podglądzie dla klientów.</p>
+<div class="max-w-2xl">
+  <h1 class="text-2xl font-bold text-slate-900 mb-2">Profil salonu</h1>
+  <p class="text-slate-600 mb-8">Te informacje będą widoczne na stronie rezerwacji klienta.</p>
 
   <form method="post" class="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
     <div>
@@ -19,6 +19,38 @@
         class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow"
         placeholder="np. Salon Elegance">
     </div>
+
+    <div>
+      <label for="opis" class="block text-sm font-medium text-slate-700 mb-2">Krótki opis / specjalizacja</label>
+      <textarea id="opis" name="opis" rows="4"
+        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow resize-none"
+        placeholder="np. Strzyżenia męskie, broda, koloryzacje, stylizacje okolicznościowe.">{{ dane.opis }}</textarea>
+    </div>
+
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div>
+        <label for="telefon_kontaktowy" class="block text-sm font-medium text-slate-700 mb-2">Telefon kontaktowy</label>
+        <input type="tel" id="telefon_kontaktowy" name="telefon_kontaktowy" value="{{ dane.telefon_kontaktowy }}"
+          class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow"
+          placeholder="np. 500 123 456">
+      </div>
+      <div>
+        <label for="instagram" class="block text-sm font-medium text-slate-700 mb-2">Instagram / social media</label>
+        <input type="text" id="instagram" name="instagram" value="{{ dane.instagram }}"
+          class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow"
+          placeholder="@twojsalon lub link">
+      </div>
+    </div>
+
+    <div>
+      <label for="zdjecia_prac" class="block text-sm font-medium text-slate-700 mb-2">Zdjęcia prac</label>
+      <textarea id="zdjecia_prac" name="zdjecia_prac" rows="5"
+        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow resize-none"
+        placeholder="Wklej linki do zdjęć, każdy w osobnej linii">{% for zdjecie in dane.zdjecia_prac %}{{ zdjecie }}
+{% endfor %}</textarea>
+      <p class="text-xs text-slate-500 mt-2">Najprościej: wgraj zdjęcie np. na Instagram/stronę/hosting zdjęć i wklej bezpośredni link. Pokażemy maksymalnie 12 zdjęć.</p>
+    </div>
+
     <div>
       <label for="haslo_panelu" class="block text-sm font-medium text-slate-700 mb-2">Nowe hasło panelu (opcjonalnie)</label>
       <input type="password" id="haslo_panelu" name="haslo_panelu"

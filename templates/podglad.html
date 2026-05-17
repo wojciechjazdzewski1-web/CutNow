@@ -6,8 +6,37 @@
   <div class="text-center mb-8">
     <p class="text-sm text-brand-600 font-medium mb-2">Rezerwacja online</p>
     <h1 class="text-3xl font-bold text-slate-900">{{ dane.nazwa_salonu }}</h1>
-    <p class="text-slate-600 mt-2">Wybierz termin i zarezerwuj wizytę w kilka sekund</p>
+    <p class="text-slate-600 mt-2">
+      {% if dane.opis %}{{ dane.opis }}{% else %}Wybierz termin i zarezerwuj wizytę w kilka sekund{% endif %}
+    </p>
+    {% if dane.telefon_kontaktowy or dane.instagram %}
+      <div class="mt-4 flex flex-wrap justify-center gap-2 text-sm">
+        {% if dane.telefon_kontaktowy %}
+          <a href="tel:{{ dane.telefon_kontaktowy }}" class="rounded-full bg-white border border-slate-200 px-4 py-2 text-slate-700 hover:border-brand-300">Tel. {{ dane.telefon_kontaktowy }}</a>
+        {% endif %}
+        {% if dane.instagram %}
+          {% set instagram_url = dane.instagram if dane.instagram.startswith('http') else 'https://instagram.com/' ~ dane.instagram|replace('@', '') %}
+          <a href="{{ instagram_url }}" target="_blank" rel="noopener" class="rounded-full bg-white border border-slate-200 px-4 py-2 text-slate-700 hover:border-brand-300">Instagram</a>
+        {% endif %}
+      </div>
+    {% endif %}
   </div>
+
+  {% if dane.zdjecia_prac %}
+    <section class="mb-6 rounded-2xl bg-white border border-slate-200 p-4 shadow-sm">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-semibold text-slate-900">Prace salonu</h2>
+        <span class="text-xs text-slate-500">Galeria</span>
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        {% for zdjecie in dane.zdjecia_prac[:6] %}
+          <a href="{{ zdjecie }}" target="_blank" rel="noopener" class="block overflow-hidden rounded-xl bg-slate-100 aspect-square">
+            <img src="{{ zdjecie }}" alt="Praca salonu {{ loop.index }}" class="h-full w-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy">
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
 
   <form id="date-picker-form" method="get" action="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="mb-6">
     <label for="data" class="block text-sm font-medium text-slate-700 mb-2">Wybierz dzień wizyty</label>

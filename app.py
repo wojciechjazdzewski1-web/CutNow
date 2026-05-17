@@ -36,6 +36,10 @@ DNI_TYGODNIA = [
 DEFAULT_SALON = {
     "nazwa_salonu": "Mój Salon",
     "haslo_panelu": "",
+    "opis": "",
+    "telefon_kontaktowy": "",
+    "instagram": "",
+    "zdjecia_prac": [],
     "godziny_pracy": {
         key: {"otwarcie": "09:00", "zamkniecie": "18:00", "zamkniety": key == "niedziela"}
         for key, _ in DNI_TYGODNIA
@@ -101,6 +105,10 @@ def migracja_danych(dane: dict) -> dict:
         for slug, salon in dane["salony"].items():
             salon.setdefault("slug", slug)
             salon.setdefault("haslo_panelu", "")
+            salon.setdefault("opis", "")
+            salon.setdefault("telefon_kontaktowy", "")
+            salon.setdefault("instagram", "")
+            salon.setdefault("zdjecia_prac", [])
             salon.setdefault("godziny_pracy", copy.deepcopy(DEFAULT_SALON["godziny_pracy"]))
             salon.setdefault("wolne_terminy", {})
             salon.setdefault("rezerwacje", [])
@@ -193,6 +201,15 @@ def normalizuj_telefon(telefon: str) -> str:
 def waliduj_telefon(telefon: str) -> bool:
     cyfry = normalizuj_telefon(telefon)
     return 9 <= len(cyfry) <= 15
+
+
+def parsuj_linki_zdjec(wartosc: str) -> list[str]:
+    linki = []
+    for linia in wartosc.splitlines():
+        link = linia.strip()
+        if link.startswith(("http://", "https://")):
+            linki.append(link)
+    return linki[:12]
 
 
 def znajdz_rezerwacje(salon: dict, rezerwacja_id: str) -> dict | None:
@@ -392,8 +409,16 @@ def ustawienia_salonu(salon_slug: str):
     if request.method == "POST":
         nazwa = request.form.get("nazwa_salonu", "").strip()
         haslo = request.form.get("haslo_panelu", "").strip()
+        opis = request.form.get("opis", "").strip()
+        telefon = request.form.get("telefon_kontaktowy", "").strip()
+        instagram = request.form.get("instagram", "").strip()
+        zdjecia = parsuj_linki_zdjec(request.form.get("zdjecia_prac", ""))
         if nazwa:
             salon["nazwa_salonu"] = nazwa
+            salon["opis"] = opis
+            salon["telefon_kontaktowy"] = telefon
+            salon["instagram"] = instagram
+            salon["zdjecia_prac"] = zdjecia
             if haslo:
                 salon["haslo_panelu"] = haslo
             zapisz_dane(dane)

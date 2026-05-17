@@ -10,6 +10,16 @@
     <span class="text-slate-300">·</span>
     <a href="{{ url_for('panel_lista') }}" class="text-slate-500 hover:text-brand-700">Wszystkie salony</a>
   </div>
+  {% if dane.opis or dane.zdjecia_prac %}
+    <div class="mt-4 rounded-2xl bg-white border border-slate-200 p-4 shadow-sm">
+      {% if dane.opis %}
+        <p class="text-sm text-slate-600">{{ dane.opis }}</p>
+      {% endif %}
+      {% if dane.zdjecia_prac %}
+        <p class="text-xs text-slate-500 mt-2">Zdjęcia w galerii: {{ dane.zdjecia_prac|length }}</p>
+      {% endif %}
+    </div>
+  {% endif %}
 </div>
 
 <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
