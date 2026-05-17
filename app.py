@@ -8,8 +8,10 @@ import json
 import os
 import re
 import secrets
+import smtplib
 import uuid
 from datetime import date, datetime
+from email.message import EmailMessage
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -23,6 +25,11 @@ app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
 DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent / "data"))
 DATA_FILE = DATA_DIR / "salon.json"
 PANEL_PASSWORD = os.environ.get("PANEL_PASSWORD", "").strip()
+SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "").strip()
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "").strip()
+SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USERNAME or "powiadomienia@cutnow.local").strip()
 
 DNI_TYGODNIA = [
     ("poniedzialek", "Poniedziałek"),
@@ -40,6 +47,7 @@ DEFAULT_SALON = {
     "opis": "",
     "telefon_kontaktowy": "",
     "instagram": "",
+    "email_powiadomien": "",
     "zdjecia_prac": [],
     "godziny_pracy": {
         key: {"otwarcie": "09:00", "zamkniecie": "18:00", "zamkniety": key == "niedziela"}
@@ -109,6 +117,7 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("opis", "")
             salon.setdefault("telefon_kontaktowy", "")
             salon.setdefault("instagram", "")
+            salon.setdefault("email_powiadomien", "")
             salon.setdefault("zdjecia_prac", [])
             salon.setdefault("godziny_pracy", copy.deepcopy(DEFAULT_SALON["godziny_pracy"]))
             salon.setdefault("wolne_terminy", {})
@@ -230,6 +239,46 @@ def parsuj_upload_zdjec(pliki) -> list[str]:
         zakodowane = base64.b64encode(dane).decode("ascii")
         zdjecia.append(f"data:{plik.mimetype};base64,{zakodowane}")
     return zdjecia
+
+
+def email_skonfigurowany() -> bool:
+    return bool(SMTP_HOST and SMTP_USERNAME and SMTP_PASSWORD and SMTP_FROM)
+
+
+def wyslij_email_powiadomienie(salon: dict, rezerwacja: dict, salon_slug: str) -> bool:
+    odbiorca = salon.get("email_powiadomien", "").strip()
+    if not odbiorca or not email_skonfigurowany():
+        return False
+
+    link_panelu = url_for("panel_rezerwacje", salon_slug=salon_slug, _external=True)
+    temat = f"Nowa rezerwacja: {rezerwacja['data']} o {rezerwacja['godzina']}"
+    tresc = f"""Nowa rezerwacja w CutNow
+
+Salon: {salon['nazwa_salonu']}
+Termin: {rezerwacja['data']} o {rezerwacja['godzina']}
+Klient: {rezerwacja['imie']}
+Telefon: {rezerwacja['telefon']}
+Uwagi: {rezerwacja.get('uwagi') or '-'}
+
+Panel rezerwacji:
+{link_panelu}
+"""
+
+    msg = EmailMessage()
+    msg["Subject"] = temat
+    msg["From"] = SMTP_FROM
+    msg["To"] = odbiorca
+    msg.set_content(tresc)
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as smtp:
+            smtp.starttls()
+            smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
+            smtp.send_message(msg)
+        return True
+    except Exception as exc:
+        app.logger.warning("Nie udało się wysłać e-maila z rezerwacją: %s", exc)
+        return False
 
 
 def znajdz_rezerwacje(salon: dict, rezerwacja_id: str) -> dict | None:
@@ -432,6 +481,7 @@ def ustawienia_salonu(salon_slug: str):
         opis = request.form.get("opis", "").strip()
         telefon = request.form.get("telefon_kontaktowy", "").strip()
         instagram = request.form.get("instagram", "").strip()
+        email_powiadomien = request.form.get("email_powiadomien", "").strip()
         zdjecia_z_linkow = parsuj_linki_zdjec(request.form.get("zdjecia_prac", ""))
         nowe_zdjecia = parsuj_upload_zdjec(request.files.getlist("zdjecia_upload"))
         dotychczasowe_uploady = [
@@ -447,6 +497,7 @@ def ustawienia_salonu(salon_slug: str):
             salon["opis"] = opis
             salon["telefon_kontaktowy"] = telefon
             salon["instagram"] = instagram
+            salon["email_powiadomien"] = email_powiadomien
             salon["zdjecia_prac"] = zdjecia
             if haslo:
                 salon["haslo_panelu"] = haslo
@@ -612,17 +663,16 @@ def rezerwacja_formularz(salon_slug: str):
         return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug, data=data_iso))
 
     rezerwacja_id = uuid.uuid4().hex[:12]
-    salon.setdefault("rezerwacje", []).append(
-        {
-            "id": rezerwacja_id,
-            "data": data_iso,
-            "godzina": godzina,
-            "imie": imie,
-            "telefon": telefon,
-            "uwagi": uwagi,
-            "utworzono": datetime.now().isoformat(timespec="minutes"),
-        }
-    )
+    rezerwacja = {
+        "id": rezerwacja_id,
+        "data": data_iso,
+        "godzina": godzina,
+        "imie": imie,
+        "telefon": telefon,
+        "uwagi": uwagi,
+        "utworzono": datetime.now().isoformat(timespec="minutes"),
+    }
+    salon.setdefault("rezerwacje", []).append(rezerwacja)
 
     terminy = salon.setdefault("wolne_terminy", {}).setdefault(data_iso, [])
     if godzina in terminy:
@@ -631,6 +681,7 @@ def rezerwacja_formularz(salon_slug: str):
         salon["wolne_terminy"].pop(data_iso, None)
 
     zapisz_dane(dane)
+    wyslij_email_powiadomienie(salon, rezerwacja, salon_slug)
     return redirect(url_for("rezerwacja_potwierdzenie", salon_slug=salon_slug, id=rezerwacja_id))
 
 
