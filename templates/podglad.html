@@ -9,12 +9,19 @@
     <p class="text-slate-600 mt-2">Wybierz termin i zarezerwuj wizytę w kilka sekund</p>
   </div>
 
-  <form method="get" action="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="mb-6 flex gap-3">
-    <input type="date" name="data" value="{{ wybrana_data }}"
-      class="flex-1 rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none">
-    <button type="submit" class="rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-semibold px-5 py-3 transition-colors">
-      Zmień dzień
-    </button>
+  <form id="date-picker-form" method="get" action="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="mb-6">
+    <label for="data" class="block text-sm font-medium text-slate-700 mb-2">Wybierz dzień wizyty</label>
+    <div class="flex gap-3">
+      <input type="date" id="data" name="data" value="{{ wybrana_data }}"
+        class="flex-1 rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none"
+        onchange="this.form.submit()">
+      <noscript>
+        <button type="submit" class="rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-semibold px-5 py-3 transition-colors">
+          Pokaż terminy
+        </button>
+      </noscript>
+    </div>
+    <p class="text-xs text-slate-500 mt-2">Terminy odświeżą się automatycznie po zmianie daty.</p>
   </form>
 
   <div class="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm mb-6">
