@@ -44,7 +44,7 @@
         </a>
         <div class="flex items-center gap-1 sm:gap-2">
           <a href="{{ url_for('strona_glowna') }}" class="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors {% if request.endpoint == 'strona_glowna' %}text-brand-700 bg-brand-50{% else %}text-slate-600{% endif %}">Start</a>
-          <a href="{{ url_for('panel') }}" class="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors {% if request.endpoint in ['panel', 'ustawienia_salonu', 'godziny_pracy', 'wolne_terminy', 'podglad_klienta', 'panel_login'] %}text-brand-700 bg-brand-50{% else %}text-slate-600{% endif %}">Panel</a>
+          <a href="{{ url_for('panel') }}" class="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors {% if request.endpoint in ['panel', 'ustawienia_salonu', 'godziny_pracy', 'wolne_terminy', 'panel_rezerwacje', 'podglad_klienta', 'panel_login'] %}text-brand-700 bg-brand-50{% else %}text-slate-600{% endif %}">Panel</a>
           {% if panel_chroniony_haslem and zalogowany_do_panelu %}
             <a href="{{ url_for('panel_wyloguj') }}" class="px-3 py-2 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-100">Wyloguj</a>
           {% endif %}

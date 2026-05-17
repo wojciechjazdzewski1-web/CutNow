@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Rezerwacja potwierdzona — {{ dane.nazwa_salonu }}{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto text-center">
+  <div class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-6">
+    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+  </div>
+
+  <h1 class="text-2xl font-bold text-slate-900 mb-2">Rezerwacja potwierdzona!</h1>
+  <p class="text-slate-600 mb-8">Do zobaczenia w salonie.</p>
+
+  <div class="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm text-left space-y-3 mb-8">
+    <div class="flex justify-between gap-4">
+      <span class="text-slate-500">Salon</span>
+      <span class="font-semibold text-slate-900 text-right">{{ dane.nazwa_salonu }}</span>
+    </div>
+    <div class="flex justify-between gap-4">
+      <span class="text-slate-500">Termin</span>
+      <span class="font-semibold text-slate-900 text-right">{{ dzien_nazwa }}, {{ rezerwacja.data }} o {{ rezerwacja.godzina }}</span>
+    </div>
+    <div class="flex justify-between gap-4">
+      <span class="text-slate-500">Imię</span>
+      <span class="font-semibold text-slate-900 text-right">{{ rezerwacja.imie }}</span>
+    </div>
+    <div class="flex justify-between gap-4">
+      <span class="text-slate-500">Telefon</span>
+      <span class="font-semibold text-slate-900 text-right">{{ rezerwacja.telefon }}</span>
+    </div>
+    {% if rezerwacja.uwagi %}
+      <div class="pt-2 border-t border-slate-100">
+        <span class="text-slate-500 text-sm">Uwagi</span>
+        <p class="text-slate-800 mt-1">{{ rezerwacja.uwagi }}</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <a href="{{ url_for('rezerwacja_publiczna') }}" class="inline-flex rounded-xl border border-slate-300 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">
+    Wróć na stronę rezerwacji
+  </a>
+</div>
+{% endblock %}

@@ -55,6 +55,20 @@
       {% else %}
         <p class="text-slate-500 text-sm">Brak wolnych terminów na ten dzień. Dodaj pierwszy termin powyżej.</p>
       {% endif %}
+
+      {% if zajete %}
+        <div class="mt-6 pt-6 border-t border-slate-100">
+          <h3 class="text-sm font-medium text-slate-500 mb-3">Zarezerwowane (zajęte)</h3>
+          <div class="flex flex-wrap gap-2">
+            {% for t in zajete %}
+              <span class="inline-flex px-3 py-1 rounded-lg bg-slate-100 text-slate-500 text-sm line-through">{{ t }}</span>
+            {% endfor %}
+          </div>
+          <p class="text-xs text-slate-400 mt-2">
+            <a href="{{ url_for('panel_rezerwacje') }}" class="text-brand-600 hover:underline">Zobacz szczegóły w rezerwacjach</a>
+          </p>
+        </div>
+      {% endif %}
     </div>
   </div>
 

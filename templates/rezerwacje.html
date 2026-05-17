@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Rezerwacje — CutNow{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('panel') }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+  Wróć do panelu
+</a>
+
+<h1 class="text-2xl font-bold text-slate-900 mb-2">Rezerwacje klientów</h1>
+<p class="text-slate-600 mb-8">Lista wizyt zarezerwowanych online. Anulowanie przywraca termin do wolnych.</p>
+
+{% if nadchodzace %}
+  <div class="space-y-3 mb-10">
+    <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wide">Nadchodzące</h2>
+    {% for r in nadchodzace %}
+      <article class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p class="font-semibold text-lg text-slate-900">{{ r.imie }}</p>
+          <p class="text-brand-700 font-medium">{{ r.data }} · {{ r.godzina }}</p>
+          <p class="text-slate-600 text-sm mt-1">
+            <a href="tel:{{ r.telefon }}" class="hover:underline">{{ r.telefon }}</a>
+          </p>
+          {% if r.uwagi %}
+            <p class="text-slate-500 text-sm mt-2">{{ r.uwagi }}</p>
+          {% endif %}
+        </div>
+        <form method="post" onsubmit="return confirm('Anulować tę rezerwację? Termin wróci do wolnych.');">
+          <input type="hidden" name="akcja" value="anuluj">
+          <input type="hidden" name="id" value="{{ r.id }}">
+          <button type="submit" class="text-sm text-red-600 hover:text-red-800 font-medium px-4 py-2 rounded-lg border border-red-200 hover:bg-red-50">
+            Anuluj rezerwację
+          </button>
+        </form>
+      </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="text-slate-500 rounded-2xl bg-white border border-slate-200 p-6 mb-10">Brak nadchodzących rezerwacji.</p>
+{% endif %}
+
+{% if archiwum %}
+  <div class="space-y-3">
+    <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wide">Archiwum (ostatnie)</h2>
+    {% for r in archiwum|reverse %}
+      <div class="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3 text-sm text-slate-600">
+        {{ r.data }} {{ r.godzina }} — {{ r.imie }} ({{ r.telefon }})
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

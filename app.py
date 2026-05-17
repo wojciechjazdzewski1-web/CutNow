@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import secrets
+import uuid
 from datetime import date, datetime
 from pathlib import Path
 from urllib.parse import urlparse
@@ -25,6 +27,8 @@ PUBLIC_ENDPOINTS = frozenset(
         "strona_glowna",
         "podglad_klienta",
         "rezerwacja_publiczna",
+        "rezerwacja_formularz",
+        "rezerwacja_potwierdzenie",
         "health",
         "panel_login",
         "panel_wyloguj",
@@ -49,6 +53,7 @@ DEFAULT_DATA = {
         for key, _ in DNI_TYGODNIA
     },
     "wolne_terminy": {},
+    "rezerwacje": [],
 }
 
 
@@ -58,7 +63,11 @@ def wczytaj_dane() -> dict:
         zapisz_dane(DEFAULT_DATA.copy())
         return DEFAULT_DATA.copy()
     with DATA_FILE.open(encoding="utf-8") as f:
-        return json.load(f)
+        dane = json.load(f)
+    if "rezerwacje" not in dane:
+        dane["rezerwacje"] = []
+        zapisz_dane(dane)
+    return dane
 
 
 def zapisz_dane(dane: dict) -> None:
@@ -73,6 +82,56 @@ def waliduj_godzine(wartosc: str) -> bool:
         return True
     except ValueError:
         return False
+
+
+def waliduj_date_iso(wartosc: str) -> bool:
+    try:
+        datetime.strptime(wartosc, "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False
+
+
+def klucz_dnia_tygodnia(data_iso: str) -> str:
+    return [
+        "poniedzialek",
+        "wtorek",
+        "sroda",
+        "czwartek",
+        "piatek",
+        "sobota",
+        "niedziela",
+    ][datetime.strptime(data_iso, "%Y-%m-%d").weekday()]
+
+
+def zajete_godziny(dane: dict, data_iso: str) -> set[str]:
+    return {
+        r["godzina"]
+        for r in dane.get("rezerwacje", [])
+        if r.get("data") == data_iso
+    }
+
+
+def dostepne_terminy(dane: dict, data_iso: str) -> list[str]:
+    wolne = dane.get("wolne_terminy", {}).get(data_iso, [])
+    zajete = zajete_godziny(dane, data_iso)
+    return sorted(g for g in wolne if g not in zajete)
+
+
+def normalizuj_telefon(telefon: str) -> str:
+    return re.sub(r"\D", "", telefon)
+
+
+def waliduj_telefon(telefon: str) -> bool:
+    cyfry = normalizuj_telefon(telefon)
+    return 9 <= len(cyfry) <= 15
+
+
+def znajdz_rezerwacje(dane: dict, rezerwacja_id: str) -> dict | None:
+    for rezerwacja in dane.get("rezerwacje", []):
+        if rezerwacja.get("id") == rezerwacja_id:
+            return rezerwacja
+    return None
 
 
 def bezpieczny_next_url(url: str | None) -> str:
@@ -152,13 +211,20 @@ def nie_znaleziono(_error):
 def panel():
     dane = wczytaj_dane()
     dzisiaj = date.today().isoformat()
-    terminy_dzis = dane.get("wolne_terminy", {}).get(dzisiaj, [])
+    terminy_dzis = dostepne_terminy(dane, dzisiaj)
+    rezerwacje = sorted(
+        dane.get("rezerwacje", []),
+        key=lambda r: (r.get("data", ""), r.get("godzina", "")),
+    )
+    nadchodzace = [r for r in rezerwacje if r.get("data", "") >= dzisiaj]
     return render_template(
         "panel.html",
         dane=dane,
         dzisiaj=dzisiaj,
         terminy_dzis=terminy_dzis,
         liczba_dni_z_terminami=len(dane.get("wolne_terminy", {})),
+        liczba_rezerwacji=len(nadchodzace),
+        ostatnie_rezerwacje=nadchodzace[:5],
     )
 
 
@@ -248,7 +314,8 @@ def wolne_terminy():
         zapisz_dane(dane)
         return redirect(url_for("wolne_terminy", data=wybrana_data))
 
-    terminy = sorted(dane.get("wolne_terminy", {}).get(wybrana_data, []))
+    terminy = dostepne_terminy(dane, wybrana_data)
+    zajete = sorted(zajete_godziny(dane, wybrana_data))
     wszystkie_terminy = dane.get("wolne_terminy", {})
 
     return render_template(
@@ -256,46 +323,151 @@ def wolne_terminy():
         dane=dane,
         wybrana_data=wybrana_data,
         terminy=terminy,
+        zajete=zajete,
         wszystkie_terminy=wszystkie_terminy,
     )
 
 
+def kontekst_rezerwacji(dane: dict, wybrana_data: str) -> dict:
+    if not waliduj_date_iso(wybrana_data):
+        wybrana_data = date.today().isoformat()
+    dzien_tygodnia = klucz_dnia_tygodnia(wybrana_data)
+    godziny = dane["godziny_pracy"].get(dzien_tygodnia, {})
+    return {
+        "dane": dane,
+        "wybrana_data": wybrana_data,
+        "dzien_tygodnia": dzien_tygodnia,
+        "godziny": godziny,
+        "terminy": dostepne_terminy(dane, wybrana_data),
+        "dni_tygodnia": dict(DNI_TYGODNIA),
+    }
+
+
 @app.route("/rezerwacja")
 def rezerwacja_publiczna():
-    """Krótki link dla klientów (Instagram, SMS)."""
-    return redirect(url_for("podglad_klienta", **request.args))
+    """Strona rezerwacji dla klientów."""
+    dane = wczytaj_dane()
+    wybrana_data = request.args.get("data", date.today().isoformat())
+    return render_template("podglad.html", **kontekst_rezerwacji(dane, wybrana_data))
+
+
+@app.route("/rezerwacja/nowa", methods=["GET", "POST"])
+def rezerwacja_formularz():
+    dane = wczytaj_dane()
+    data_iso = request.values.get("data", date.today().isoformat())
+    godzina = request.values.get("godzina", "").strip()
+
+    if not waliduj_date_iso(data_iso):
+        flash("Nieprawidłowa data.", "error")
+        return redirect(url_for("rezerwacja_publiczna"))
+
+    if request.method == "GET":
+        if not godzina or godzina not in dostepne_terminy(dane, data_iso):
+            flash("Wybierz dostępny termin z listy.", "error")
+            return redirect(url_for("rezerwacja_publiczna", data=data_iso))
+        ctx = kontekst_rezerwacji(dane, data_iso)
+        ctx["godzina"] = godzina
+        return render_template("rezerwacja_form.html", **ctx)
+
+    imie = request.form.get("imie", "").strip()
+    telefon = request.form.get("telefon", "").strip()
+    uwagi = request.form.get("uwagi", "").strip()
+    godzina = request.form.get("godzina", "").strip()
+
+    if not imie:
+        flash("Podaj imię i nazwisko.", "error")
+        return redirect(url_for("rezerwacja_formularz", data=data_iso, godzina=godzina))
+    if not waliduj_telefon(telefon):
+        flash("Podaj poprawny numer telefonu (min. 9 cyfr).", "error")
+        return redirect(url_for("rezerwacja_formularz", data=data_iso, godzina=godzina))
+    if godzina not in dostepne_terminy(dane, data_iso):
+        flash("Ten termin został właśnie zajęty. Wybierz inną godzinę.", "error")
+        return redirect(url_for("rezerwacja_publiczna", data=data_iso))
+
+    rezerwacja_id = uuid.uuid4().hex[:12]
+    rezerwacja = {
+        "id": rezerwacja_id,
+        "data": data_iso,
+        "godzina": godzina,
+        "imie": imie,
+        "telefon": telefon,
+        "uwagi": uwagi,
+        "utworzono": datetime.now().isoformat(timespec="minutes"),
+    }
+    dane.setdefault("rezerwacje", []).append(rezerwacja)
+
+    terminy = dane.setdefault("wolne_terminy", {}).setdefault(data_iso, [])
+    if godzina in terminy:
+        terminy.remove(godzina)
+    if not terminy:
+        dane["wolne_terminy"].pop(data_iso, None)
+
+    zapisz_dane(dane)
+    return redirect(url_for("rezerwacja_potwierdzenie", id=rezerwacja_id))
+
+
+@app.route("/rezerwacja/potwierdzenie")
+def rezerwacja_potwierdzenie():
+    dane = wczytaj_dane()
+    rezerwacja_id = request.args.get("id", "")
+    rezerwacja = znajdz_rezerwacje(dane, rezerwacja_id)
+    if not rezerwacja:
+        flash("Nie znaleziono rezerwacji.", "error")
+        return redirect(url_for("rezerwacja_publiczna"))
+    dzien = klucz_dnia_tygodnia(rezerwacja["data"])
+    return render_template(
+        "rezerwacja_potwierdzenie.html",
+        dane=dane,
+        rezerwacja=rezerwacja,
+        dzien_nazwa=dict(DNI_TYGODNIA)[dzien],
+    )
 
 
 @app.route("/panel/podglad")
 def podglad_klienta():
-    """Podgląd tego, co zobaczy klient rezerwujący wizytę."""
+    return redirect(url_for("rezerwacja_publiczna", **request.args))
+
+
+@app.route("/panel/rezerwacje", methods=["GET", "POST"])
+def panel_rezerwacje():
     dane = wczytaj_dane()
-    wybrana_data = request.args.get("data", date.today().isoformat())
-    try:
-        datetime.strptime(wybrana_data, "%Y-%m-%d")
-    except ValueError:
-        wybrana_data = date.today().isoformat()
 
-    dzien_tygodnia = [
-        "poniedzialek",
-        "wtorek",
-        "sroda",
-        "czwartek",
-        "piatek",
-        "sobota",
-        "niedziela",
-    ][datetime.strptime(wybrana_data, "%Y-%m-%d").weekday()]
+    if request.method == "POST":
+        akcja = request.form.get("akcja")
+        rezerwacja_id = request.form.get("id", "")
+        rezerwacja = znajdz_rezerwacje(dane, rezerwacja_id)
 
-    godziny = dane["godziny_pracy"].get(dzien_tygodnia, {})
-    terminy = sorted(dane.get("wolne_terminy", {}).get(wybrana_data, []))
+        if akcja == "anuluj" and rezerwacja:
+            dane["rezerwacje"] = [
+                r for r in dane.get("rezerwacje", []) if r.get("id") != rezerwacja_id
+            ]
+            data_iso = rezerwacja["data"]
+            godzina = rezerwacja["godzina"]
+            if data_iso not in dane.setdefault("wolne_terminy", {}):
+                dane["wolne_terminy"][data_iso] = []
+            if godzina not in dane["wolne_terminy"][data_iso]:
+                dane["wolne_terminy"][data_iso].append(godzina)
+                dane["wolne_terminy"][data_iso].sort()
+            zapisz_dane(dane)
+            flash(
+                f"Anulowano rezerwację: {rezerwacja['imie']}, {data_iso} o {godzina}.",
+                "success",
+            )
+        return redirect(url_for("panel_rezerwacje"))
+
+    dzisiaj = date.today().isoformat()
+    rezerwacje = sorted(
+        dane.get("rezerwacje", []),
+        key=lambda r: (r.get("data", ""), r.get("godzina", "")),
+    )
+    nadchodzace = [r for r in rezerwacje if r.get("data", "") >= dzisiaj]
+    archiwum = [r for r in rezerwacje if r.get("data", "") < dzisiaj]
 
     return render_template(
-        "podglad.html",
+        "rezerwacje.html",
         dane=dane,
-        wybrana_data=wybrana_data,
-        dzien_tygodnia=dzien_tygodnia,
-        godziny=godziny,
-        terminy=terminy,
+        nadchodzace=nadchodzace,
+        archiwum=archiwum[-20:],
         dni_tygodnia=dict(DNI_TYGODNIA),
     )
 

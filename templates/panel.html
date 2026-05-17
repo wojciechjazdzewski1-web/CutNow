@@ -27,6 +27,24 @@
   </div>
 </div>
 
+{% if ostatnie_rezerwacje %}
+  <div class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm mb-10">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-semibold text-slate-900">Ostatnie rezerwacje online</h2>
+      <a href="{{ url_for('panel_rezerwacje') }}" class="text-sm text-brand-600 hover:underline">Wszystkie</a>
+    </div>
+    <ul class="space-y-2">
+      {% for r in ostatnie_rezerwacje %}
+        <li class="flex flex-wrap justify-between gap-2 text-sm rounded-xl bg-slate-50 px-4 py-3">
+          <span class="font-medium text-slate-800">{{ r.imie }}</span>
+          <span class="text-slate-600">{{ r.data }} · {{ r.godzina }}</span>
+          <a href="tel:{{ r.telefon }}" class="text-brand-600">{{ r.telefon }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
 <div class="grid sm:grid-cols-2 gap-4">
   <a href="{{ url_for('ustawienia_salonu') }}" class="group rounded-2xl bg-white border border-slate-200 p-6 shadow-sm hover:border-brand-300 hover:shadow-md transition-all">
     <div class="h-12 w-12 rounded-xl bg-slate-100 text-slate-600 group-hover:bg-brand-100 group-hover:text-brand-700 flex items-center justify-center mb-4 transition-colors">
@@ -42,6 +60,14 @@
     </div>
     <h2 class="font-semibold text-lg text-slate-900">Godziny pracy</h2>
     <p class="text-sm text-slate-600 mt-1">Ustaw harmonogram na każdy dzień tygodnia.</p>
+  </a>
+
+  <a href="{{ url_for('panel_rezerwacje') }}" class="group rounded-2xl bg-white border border-slate-200 p-6 shadow-sm hover:border-brand-300 hover:shadow-md transition-all">
+    <div class="h-12 w-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    </div>
+    <h2 class="font-semibold text-lg text-slate-900">Rezerwacje</h2>
+    <p class="text-sm text-slate-600 mt-1">{{ liczba_rezerwacji }} nadchodzących wizyt zarezerwowanych online.</p>
   </a>
 
   <a href="{{ url_for('wolne_terminy') }}" class="group rounded-2xl bg-white border border-slate-200 p-6 shadow-sm hover:border-brand-300 hover:shadow-md transition-all">
