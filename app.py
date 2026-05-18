@@ -269,6 +269,7 @@ def wyslij_email_przez_resend(odbiorca: str, temat: str, tresc: str) -> bool:
         headers={
             "Authorization": f"Bearer {RESEND_API_KEY}",
             "Content-Type": "application/json",
+            "User-Agent": "CutNow/1.0",
         },
         method="POST",
     )
