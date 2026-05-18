@@ -28,6 +28,9 @@ app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
 app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = bool(os.environ.get("RENDER"))
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent / "data"))
 DATA_FILE = DATA_DIR / "salon.json"
@@ -43,6 +46,10 @@ RESEND_FROM = os.environ.get("RESEND_FROM", SMTP_FROM).strip()
 REMINDER_SECRET = os.environ.get("REMINDER_SECRET", "").strip()
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "").strip()
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
+LEGAL_COMPANY_NAME = os.environ.get("LEGAL_COMPANY_NAME", "CutNow").strip()
+LEGAL_COMPANY_ADDRESS = os.environ.get("LEGAL_COMPANY_ADDRESS", "Uzupełnij adres firmy").strip()
+LEGAL_COMPANY_EMAIL = os.environ.get("LEGAL_COMPANY_EMAIL", "kontakt@example.com").strip()
+LEGAL_COMPANY_NIP = os.environ.get("LEGAL_COMPANY_NIP", "Uzupełnij NIP").strip()
 REZERWACJA_RATE_LIMIT: dict[str, list[float]] = {}
 
 DNI_TYGODNIA = [
@@ -88,6 +95,9 @@ PUBLIC_ENDPOINTS = {
     "anuluj_rezerwacje_klienta",
     "opinia_klienta",
     "stripe_webhook",
+    "regulamin",
+    "polityka_prywatnosci",
+    "polityka_cookies",
     "panel_login",
     "static",
 }
@@ -728,6 +738,15 @@ def wymagaj_hasla_panelu():
         return redirect(url_for("panel_login", salon=salon_slug, next=request.path))
 
 
+@app.after_request
+def dodaj_naglowki_bezpieczenstwa(response):
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    return response
+
+
 @app.context_processor
 def inject_globals():
     salon_slug = request.view_args.get("salon_slug") if request.view_args else None
@@ -738,6 +757,12 @@ def inject_globals():
         "widok_klienta": request.endpoint in WIDOK_KLIENTA_ENDPOINTS,
         "aktywny_salon_slug": salon_slug,
         "stripe_skonfigurowany": stripe_skonfigurowany(),
+        "legal": {
+            "company_name": LEGAL_COMPANY_NAME,
+            "company_address": LEGAL_COMPANY_ADDRESS,
+            "company_email": LEGAL_COMPANY_EMAIL,
+            "company_nip": LEGAL_COMPANY_NIP,
+        },
     }
 
 
@@ -816,6 +841,21 @@ def wyslij_przypomnienia():
 def strona_glowna():
     dane = wczytaj_dane()
     return render_template("index.html", salony=dane.get("salony", {}))
+
+
+@app.route("/regulamin")
+def regulamin():
+    return render_template("regulamin.html")
+
+
+@app.route("/polityka-prywatnosci")
+def polityka_prywatnosci():
+    return render_template("polityka_prywatnosci.html")
+
+
+@app.route("/polityka-cookies")
+def polityka_cookies():
+    return render_template("polityka_cookies.html")
 
 
 @app.errorhandler(404)

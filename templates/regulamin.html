@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Regulamin — CutNow{% endblock %}
+
+{% block content %}
+<article class="mx-auto max-w-3xl rounded-3xl bg-white p-6 sm:p-8 shadow-sm border border-slate-200">
+  <p class="text-sm font-semibold text-brand-700 mb-2">Dokument prawny</p>
+  <h1 class="text-3xl font-bold text-slate-900 mb-4">Regulamin serwisu CutNow</h1>
+  <p class="text-sm text-slate-500 mb-8">Ostatnia aktualizacja: 2026-05-18</p>
+
+  <div class="space-y-7 text-slate-700 leading-relaxed">
+    <section>
+      <h2 class="text-xl font-semibold text-slate-900 mb-2">1. Dane usługodawcy</h2>
+      <p>Serwis CutNow jest prowadzony przez: <strong>{{ legal.company_name }}</strong>, adres: <strong>{{ legal.company_address }}</strong>, NIP: <strong>{{ legal.company_nip }}</strong>, e-mail kontaktowy: <strong>{{ legal.company_email }}</strong>.</p>
+      <p class="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-3">Uzupełnij te dane w Render Environment przed publicznym startem.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold text-slate-900 mb-2">2. Opis usługi</h2>
+      <p>CutNow umożliwia salonom fryzjerskim tworzenie profilu, ustawianie godzin pracy, wolnych terminów, pracowników, blokad czasowych oraz obsługę rezerwacji online klientów.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold text-slate-900 mb-2">3. Konto i panel salonu</h2>
+      <p>Dostęp do panelu salonu jest chroniony hasłem. Właściciel salonu odpowiada za zachowanie hasła w poufności oraz za poprawność danych wprowadzanych w panelu, w tym danych kontaktowych, opisów, zdjęć, terminów i pracowników.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold text-slate-900 mb-2">4. Rezerwacje klientów</h2>
+      <p>Klient może złożyć rezerwację online, podając imię, numer telefonu oraz opcjonalne uwagi. Salon może potwierdzić, odrzucić lub anulować rezerwację. Klient może anulować wizytę za pomocą indywidualnego linku.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold text-slate-900 mb-2">5. Płatności i abonament</h2>
+      <p>Korzystanie z usługi może być płatne według stawki wskazanej w panelu, np. 100 zł miesięcznie za salon. Płatności online są obsługiwane przez Stripe. Operator płatności może stosować własne regulaminy i zasady prywatności.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold text-slate-900 mb-2">6. Treści dodawane przez salony</h2>
+      <p>Salon oświadcza, że ma prawa do zdjęć, opisów i innych treści publikowanych w profilu. Zabronione jest dodawanie treści bezprawnych, obraźliwych, naruszających prawa osób trzecich lub wprowadzających klientów w błąd.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold text-slate-900 mb-2">7. Odpowiedzialność</h2>
+      <p>CutNow udostępnia narzędzie techniczne do obsługi rezerwacji. Salon odpowiada za wykonanie usługi fryzjerskiej, kontakt z klientem, poprawność terminów oraz rozliczenia z klientami, jeśli takie występują poza platformą.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold text-slate-900 mb-2">8. Reklamacje i kontakt</h2>
+      <p>Reklamacje dotyczące działania serwisu można zgłaszać na adres: <strong>{{ legal.company_email }}</strong>. Zgłoszenie powinno zawierać opis problemu, nazwę salonu oraz dane kontaktowe osoby zgłaszającej.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold text-slate-900 mb-2">9. Zmiany regulaminu</h2>
+      <p>Regulamin może być aktualizowany w przypadku zmian funkcji, prawa, operatorów płatności lub sposobu świadczenia usługi. Aktualna wersja regulaminu jest zawsze dostępna na tej stronie.</p>
+    </section>
+  </div>
+</article>
+{% endblock %}

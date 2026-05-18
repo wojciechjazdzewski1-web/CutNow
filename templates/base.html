@@ -75,8 +75,38 @@
 
   <footer class="border-t border-slate-200 bg-white mt-auto">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 text-center text-sm text-slate-500">
-      &copy; 2026 CutNow — panel dla salonów fryzjerskich
+      <p>&copy; 2026 CutNow — panel dla salonów fryzjerskich</p>
+      <div class="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2">
+        <a href="{{ url_for('regulamin') }}" class="hover:text-brand-700">Regulamin</a>
+        <a href="{{ url_for('polityka_prywatnosci') }}" class="hover:text-brand-700">Polityka prywatności</a>
+        <a href="{{ url_for('polityka_cookies') }}" class="hover:text-brand-700">Cookies</a>
+      </div>
     </div>
   </footer>
+
+  <div id="cookie-banner" class="fixed inset-x-0 bottom-0 z-[200] hidden border-t border-slate-200 bg-white/95 p-4 shadow-2xl backdrop-blur">
+    <div class="mx-auto flex max-w-5xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="text-sm text-slate-600">
+        <p class="font-semibold text-slate-900">Pliki cookies</p>
+        <p>Używamy niezbędnych cookies do działania logowania, rezerwacji i bezpieczeństwa. Szczegóły znajdziesz w <a href="{{ url_for('polityka_cookies') }}" class="font-semibold text-brand-700 hover:underline">polityce cookies</a>.</p>
+      </div>
+      <button type="button" onclick="acceptCookies()" class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800">
+        Rozumiem
+      </button>
+    </div>
+  </div>
+
+  <script>
+    function acceptCookies() {
+      localStorage.setItem('cutnow_cookie_notice', 'accepted');
+      document.getElementById('cookie-banner')?.classList.add('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      if (localStorage.getItem('cutnow_cookie_notice') !== 'accepted') {
+        document.getElementById('cookie-banner')?.classList.remove('hidden');
+      }
+    });
+  </script>
 </body>
 </html>
