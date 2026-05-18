@@ -71,6 +71,7 @@ DEFAULT_SALON = {
     "wolne_terminy": {},
     "blokady": [],
     "rezerwacje": [],
+    "opinie": [],
 }
 
 PUBLIC_ENDPOINTS = {
@@ -81,6 +82,7 @@ PUBLIC_ENDPOINTS = {
     "rezerwacja_formularz",
     "rezerwacja_potwierdzenie",
     "anuluj_rezerwacje_klienta",
+    "opinia_klienta",
     "panel_login",
     "static",
 }
@@ -91,6 +93,7 @@ WIDOK_KLIENTA_ENDPOINTS = {
     "rezerwacja_formularz",
     "rezerwacja_potwierdzenie",
     "anuluj_rezerwacje_klienta",
+    "opinia_klienta",
 }
 
 
@@ -146,9 +149,11 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("wolne_terminy", {})
             salon.setdefault("blokady", [])
             salon.setdefault("rezerwacje", [])
+            salon.setdefault("opinie", [])
             for rezerwacja in salon["rezerwacje"]:
                 rezerwacja.setdefault("status", "potwierdzona")
                 rezerwacja.setdefault("token_anulowania", uuid.uuid4().hex)
+                rezerwacja.setdefault("token_opinii", uuid.uuid4().hex)
                 rezerwacja.setdefault("pracownik", "")
         return dane
 
@@ -157,6 +162,12 @@ def migracja_danych(dane: dict) -> dict:
     salon["godziny_pracy"] = dane.get("godziny_pracy", salon["godziny_pracy"])
     salon["wolne_terminy"] = dane.get("wolne_terminy", {})
     salon["rezerwacje"] = dane.get("rezerwacje", [])
+    salon["opinie"] = dane.get("opinie", [])
+    for rezerwacja in salon["rezerwacje"]:
+        rezerwacja.setdefault("status", "potwierdzona")
+        rezerwacja.setdefault("token_anulowania", uuid.uuid4().hex)
+        rezerwacja.setdefault("token_opinii", uuid.uuid4().hex)
+        rezerwacja.setdefault("pracownik", "")
     salon["slug"] = "demo"
     return {"salony": {"demo": salon}}
 
@@ -536,6 +547,28 @@ def znajdz_rezerwacje_po_tokenie(salon: dict, token: str) -> dict | None:
         if token and rezerwacja.get("token_anulowania") == token:
             return rezerwacja
     return None
+
+
+def znajdz_rezerwacje_po_tokenie_opinii(salon: dict, token: str) -> dict | None:
+    for rezerwacja in salon.get("rezerwacje", []):
+        if token and rezerwacja.get("token_opinii") == token:
+            return rezerwacja
+    return None
+
+
+def widoczne_opinie(salon: dict) -> list[dict]:
+    return [
+        opinia
+        for opinia in salon.get("opinie", [])
+        if opinia.get("widoczna", True)
+    ]
+
+
+def srednia_ocen(opinie: list[dict]) -> float:
+    oceny = [int(o.get("ocena", 0)) for o in opinie if str(o.get("ocena", "")).isdigit()]
+    if not oceny:
+        return 0
+    return round(sum(oceny) / len(oceny), 1)
 
 
 def przywroc_wolny_termin(salon: dict, rezerwacja: dict) -> None:
@@ -1041,6 +1074,7 @@ def kontekst_rezerwacji(salon: dict, salon_slug: str, wybrana_data: str) -> dict
         wybrana_data = date.today().isoformat()
     dzien_tygodnia = klucz_dnia_tygodnia(wybrana_data)
     godziny = salon["godziny_pracy"].get(dzien_tygodnia, {})
+    opinie = widoczne_opinie(salon)
     return {
         "dane": salon,
         "salon_slug": salon_slug,
@@ -1050,6 +1084,8 @@ def kontekst_rezerwacji(salon: dict, salon_slug: str, wybrana_data: str) -> dict
         "terminy": dostepne_terminy(salon, wybrana_data),
         "dni_tygodnia": dict(DNI_TYGODNIA),
         "pracownicy": aktywni_pracownicy(salon),
+        "opinie": sorted(opinie, key=lambda o: o.get("utworzono", ""), reverse=True)[:6],
+        "srednia_ocena": srednia_ocen(opinie),
     }
 
 
@@ -1127,6 +1163,7 @@ def rezerwacja_formularz(salon_slug: str):
         "id": rezerwacja_id,
         "token_anulowania": uuid.uuid4().hex,
         "status": "oczekuje",
+        "token_opinii": uuid.uuid4().hex,
         "data": data_iso,
         "godzina": godzina,
         "imie": imie,
@@ -1162,6 +1199,64 @@ def rezerwacja_potwierdzenie(salon_slug: str):
     dzien = klucz_dnia_tygodnia(rezerwacja["data"])
     return render_template(
         "rezerwacja_potwierdzenie.html",
+        dane=salon,
+        salon_slug=salon_slug,
+        rezerwacja=rezerwacja,
+        dzien_nazwa=dict(DNI_TYGODNIA)[dzien],
+    )
+
+
+@app.route("/rezerwacja/<salon_slug>/opinia/<token>", methods=["GET", "POST"])
+def opinia_klienta(salon_slug: str, token: str):
+    dane = wczytaj_dane()
+    salon = pobierz_salon(dane, salon_slug)
+    if not salon:
+        return render_template("404.html", sciezka=request.path, domyslny_slug=domyslny_slug(dane)), 404
+
+    rezerwacja = znajdz_rezerwacje_po_tokenie_opinii(salon, token)
+    if not rezerwacja:
+        flash("Nie znaleziono linku do opinii.", "error")
+        return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug))
+
+    if rezerwacja.get("status") in {"anulowana", "odrzucona"}:
+        flash("Nie można wystawić opinii do anulowanej wizyty.", "error")
+        return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug))
+
+    if rezerwacja.get("opinia_id"):
+        flash("Opinia dla tej wizyty została już dodana. Dziękujemy!", "success")
+        return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug))
+
+    if request.method == "POST":
+        ocena = request.form.get("ocena", "").strip()
+        komentarz = request.form.get("komentarz", "").strip()
+        if ocena not in {"1", "2", "3", "4", "5"}:
+            flash("Wybierz ocenę od 1 do 5.", "error")
+            return redirect(url_for("opinia_klienta", salon_slug=salon_slug, token=token))
+        if len(komentarz) > 600:
+            flash("Komentarz może mieć maksymalnie 600 znaków.", "error")
+            return redirect(url_for("opinia_klienta", salon_slug=salon_slug, token=token))
+
+        opinia_id = uuid.uuid4().hex[:12]
+        opinia = {
+            "id": opinia_id,
+            "rezerwacja_id": rezerwacja["id"],
+            "ocena": int(ocena),
+            "komentarz": komentarz,
+            "imie": rezerwacja.get("imie", ""),
+            "pracownik": rezerwacja.get("pracownik", ""),
+            "data_wizyty": rezerwacja.get("data", ""),
+            "widoczna": True,
+            "utworzono": datetime.now().isoformat(timespec="minutes"),
+        }
+        salon.setdefault("opinie", []).append(opinia)
+        rezerwacja["opinia_id"] = opinia_id
+        zapisz_dane(dane)
+        flash("Dziękujemy za opinię!", "success")
+        return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug))
+
+    dzien = klucz_dnia_tygodnia(rezerwacja["data"])
+    return render_template(
+        "opinia_form.html",
         dane=salon,
         salon_slug=salon_slug,
         rezerwacja=rezerwacja,
@@ -1261,6 +1356,41 @@ def panel_rezerwacje(salon_slug: str):
         nadchodzace=nadchodzace,
         archiwum=archiwum[-20:],
         dni_tygodnia=dict(DNI_TYGODNIA),
+    )
+
+
+@app.route("/panel/<salon_slug>/opinie", methods=["GET", "POST"])
+def panel_opinie(salon_slug: str):
+    dane = wczytaj_dane()
+    salon = pobierz_salon(dane, salon_slug)
+    if not salon:
+        flash("Nie znaleziono takiego salonu.", "error")
+        return redirect(url_for("panel_lista"))
+
+    if request.method == "POST":
+        opinia_id = request.form.get("id", "")
+        akcja = request.form.get("akcja", "")
+        for opinia in salon.get("opinie", []):
+            if opinia.get("id") == opinia_id:
+                if akcja == "ukryj":
+                    opinia["widoczna"] = False
+                    flash("Opinia została ukryta na stronie klienta.", "success")
+                elif akcja == "pokaz":
+                    opinia["widoczna"] = True
+                    flash("Opinia jest znowu widoczna na stronie klienta.", "success")
+                break
+        zapisz_dane(dane)
+        return redirect(url_for("panel_opinie", salon_slug=salon_slug))
+
+    opinie = sorted(salon.get("opinie", []), key=lambda o: o.get("utworzono", ""), reverse=True)
+    widoczne = widoczne_opinie(salon)
+    return render_template(
+        "opinie.html",
+        dane=salon,
+        salon_slug=salon_slug,
+        opinie=opinie,
+        srednia_ocena=srednia_ocen(widoczne),
+        liczba_widocznych=len(widoczne),
     )
 
 

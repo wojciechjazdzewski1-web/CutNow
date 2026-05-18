@@ -129,6 +129,14 @@
     <p class="text-sm text-slate-600 mt-1">Zarządzaj dostępnymi godzinami wizyt ({{ liczba_dni_z_terminami }} dni w kalendarzu).</p>
   </a>
 
+  <a href="{{ url_for('panel_opinie', salon_slug=salon_slug) }}" class="group rounded-2xl bg-white border border-slate-200 p-6 shadow-sm hover:border-brand-300 hover:shadow-md transition-all">
+    <div class="h-12 w-12 rounded-xl bg-yellow-100 text-yellow-600 flex items-center justify-center mb-4">
+      <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.539 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.783.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81H7.03a1 1 0 00.95-.69l1.07-3.292z"/></svg>
+    </div>
+    <h2 class="font-semibold text-lg text-slate-900">Opinie klientów</h2>
+    <p class="text-sm text-slate-600 mt-1">Zobacz oceny po wizytach i decyduj, które opinie pokazać publicznie.</p>
+  </a>
+
   <a href="{{ url_for('podglad_klienta', salon_slug=salon_slug) }}" class="group rounded-2xl bg-white border border-slate-200 p-6 shadow-sm hover:border-brand-300 hover:shadow-md transition-all">
     <div class="h-12 w-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mb-4">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>

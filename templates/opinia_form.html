@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Wystaw opinię — {{ dane.nazwa_salonu }}{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+  <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    Wróć na stronę salonu
+  </a>
+
+  <div class="rounded-3xl bg-white border border-slate-200 p-6 shadow-sm">
+    <div class="text-center mb-6">
+      <div class="mx-auto mb-4 h-14 w-14 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center">
+        <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.539 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.783.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81H7.03a1 1 0 00.95-.69l1.07-3.292z"/></svg>
+      </div>
+      <h1 class="text-2xl font-bold text-slate-900">Jak oceniasz wizytę?</h1>
+      <p class="text-slate-600 mt-2">{{ dane.nazwa_salonu }} — {{ dzien_nazwa }}, {{ rezerwacja.data }} o {{ rezerwacja.godzina }}</p>
+    </div>
+
+    <form method="post" class="space-y-5">
+      <div>
+        <label for="ocena" class="block text-sm font-medium text-slate-700 mb-2">Ocena *</label>
+        <select id="ocena" name="ocena" required
+          class="w-full rounded-2xl border border-slate-300 px-4 py-4 text-lg focus:ring-2 focus:ring-brand-500 outline-none">
+          <option value="">Wybierz ocenę</option>
+          <option value="5">5 - świetnie</option>
+          <option value="4">4 - dobrze</option>
+          <option value="3">3 - średnio</option>
+          <option value="2">2 - słabo</option>
+          <option value="1">1 - bardzo źle</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="komentarz" class="block text-sm font-medium text-slate-700 mb-2">Komentarz (opcjonalnie)</label>
+        <textarea id="komentarz" name="komentarz" rows="4" maxlength="600"
+          class="w-full rounded-2xl border border-slate-300 px-4 py-4 focus:ring-2 focus:ring-brand-500 outline-none resize-none"
+          placeholder="Napisz krótko, co było dobre albo co można poprawić."></textarea>
+        <p class="text-xs text-slate-500 mt-2">Opinia może pojawić się na stronie salonu.</p>
+      </div>
+
+      <button type="submit" class="w-full rounded-2xl bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-4 text-lg font-bold text-white shadow-lg shadow-brand-500/20 hover:from-brand-500 hover:to-brand-600">
+        Wyślij opinię
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

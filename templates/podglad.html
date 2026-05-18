@@ -50,6 +50,38 @@
     </section>
   {% endif %}
 
+  {% if opinie %}
+    <section class="mb-6 rounded-3xl bg-white border border-slate-200 p-5 shadow-sm">
+      <div class="flex items-center justify-between gap-4 mb-4">
+        <div>
+          <h2 class="font-semibold text-slate-900">Opinie klientów</h2>
+          <p class="text-sm text-slate-500">Średnia ocena: <span class="font-semibold text-slate-800">{{ srednia_ocena }}/5</span></p>
+        </div>
+        <div class="rounded-full bg-yellow-100 px-4 py-2 text-sm font-bold text-yellow-800">
+          {{ opinie|length }} opinii
+        </div>
+      </div>
+      <div class="space-y-3">
+        {% for opinia in opinie[:3] %}
+          <article class="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+            <div class="flex items-center justify-between gap-3 mb-2">
+              <p class="font-semibold text-slate-900">{{ opinia.imie }}</p>
+              <p class="text-yellow-500 font-bold">
+                {% for _ in range(opinia.ocena) %}★{% endfor %}
+              </p>
+            </div>
+            {% if opinia.komentarz %}
+              <p class="text-sm text-slate-600 leading-relaxed">{{ opinia.komentarz }}</p>
+            {% endif %}
+            {% if opinia.pracownik %}
+              <p class="text-xs text-slate-400 mt-2">Pracownik: {{ opinia.pracownik }}</p>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
   <form id="date-picker-form" method="get" action="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="mb-6 rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
     <label for="data" class="block text-sm font-medium text-slate-700 mb-2">Wybierz dzień wizyty</label>
     <div class="flex gap-3">

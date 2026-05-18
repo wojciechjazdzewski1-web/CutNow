@@ -53,6 +53,11 @@
         Anuluj wizytę
       </a>
     {% endif %}
+    {% if rezerwacja.token_opinii and not rezerwacja.opinia_id %}
+      <a href="{{ url_for('opinia_klienta', salon_slug=salon_slug, token=rezerwacja.token_opinii) }}" class="inline-flex justify-center rounded-xl bg-yellow-400 px-6 py-3 font-semibold text-yellow-950 hover:bg-yellow-300">
+        Wystaw opinię po wizycie
+      </a>
+    {% endif %}
     <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="inline-flex justify-center rounded-xl border border-slate-300 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">
       Wróć na stronę rezerwacji
     </a>
