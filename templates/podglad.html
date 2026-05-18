@@ -2,35 +2,46 @@
 {% block title %}Rezerwacja — {{ dane.nazwa_salonu }}{% endblock %}
 
 {% block content %}
-<div class="max-w-xl mx-auto">
-  <div class="text-center mb-8">
-    <p class="text-sm text-brand-600 font-medium mb-2">Rezerwacja online</p>
-    <h1 class="text-3xl font-bold text-slate-900">{{ dane.nazwa_salonu }}</h1>
-    <p class="text-slate-600 mt-2">
-      {% if dane.opis %}{{ dane.opis }}{% else %}Wybierz termin i zarezerwuj wizytę w kilka sekund{% endif %}
-    </p>
-    {% if dane.telefon_kontaktowy or dane.instagram %}
-      <div class="mt-4 flex flex-wrap justify-center gap-2 text-sm">
-        {% if dane.telefon_kontaktowy %}
-          <a href="tel:{{ dane.telefon_kontaktowy }}" class="rounded-full bg-white border border-slate-200 px-4 py-2 text-slate-700 hover:border-brand-300">Tel. {{ dane.telefon_kontaktowy }}</a>
-        {% endif %}
-        {% if dane.instagram %}
-          {% set instagram_url = dane.instagram if dane.instagram.startswith('http') else 'https://instagram.com/' ~ dane.instagram|replace('@', '') %}
-          <a href="{{ instagram_url }}" target="_blank" rel="noopener" class="rounded-full bg-white border border-slate-200 px-4 py-2 text-slate-700 hover:border-brand-300">Instagram</a>
-        {% endif %}
-      </div>
-    {% endif %}
+<div id="booking-loader" class="fixed inset-0 z-[120] hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm">
+  <div class="rounded-2xl bg-white px-6 py-5 text-center shadow-2xl">
+    <div class="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-700"></div>
+    <p class="text-sm font-semibold text-slate-800">Ładuję terminy...</p>
   </div>
+</div>
+
+<div class="max-w-2xl mx-auto">
+  <section class="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-slate-900 to-brand-900 px-6 py-9 text-white shadow-2xl shadow-slate-900/20 mb-6">
+    <div class="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-brand-500/30 blur-3xl"></div>
+    <div class="absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-violet-500/20 blur-3xl"></div>
+    <div class="relative text-center">
+      <p class="text-sm text-brand-200 font-medium mb-2">Rezerwacja online</p>
+      <h1 class="text-4xl font-bold tracking-tight">{{ dane.nazwa_salonu }}</h1>
+      <p class="text-slate-200 mt-3 leading-relaxed">
+      {% if dane.opis %}{{ dane.opis }}{% else %}Wybierz termin i zarezerwuj wizytę w kilka sekund{% endif %}
+      </p>
+      {% if dane.telefon_kontaktowy or dane.instagram %}
+        <div class="mt-5 flex flex-wrap justify-center gap-2 text-sm">
+          {% if dane.telefon_kontaktowy %}
+            <a href="tel:{{ dane.telefon_kontaktowy }}" class="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-white hover:bg-white/20">Tel. {{ dane.telefon_kontaktowy }}</a>
+          {% endif %}
+          {% if dane.instagram %}
+            {% set instagram_url = dane.instagram if dane.instagram.startswith('http') else 'https://instagram.com/' ~ dane.instagram|replace('@', '') %}
+            <a href="{{ instagram_url }}" target="_blank" rel="noopener" class="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-white hover:bg-white/20">Instagram</a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </section>
 
   {% if dane.zdjecia_prac %}
-    <section class="mb-6 rounded-2xl bg-white border border-slate-200 p-4 shadow-sm">
+    <section class="mb-6 rounded-3xl bg-white border border-slate-200 p-4 shadow-sm">
       <div class="flex items-center justify-between mb-3">
         <h2 class="font-semibold text-slate-900">Prace salonu</h2>
         <span class="text-xs text-slate-500">Galeria</span>
       </div>
-      <div class="grid grid-cols-3 gap-2">
+      <div class="grid grid-cols-3 gap-2 sm:gap-3">
         {% for zdjecie in dane.zdjecia_prac[:6] %}
-          <button type="button" onclick="openGalleryImage({{ zdjecie|tojson }})" class="block overflow-hidden rounded-xl bg-slate-100 aspect-square focus:ring-2 focus:ring-brand-500 outline-none">
+          <button type="button" onclick="openGalleryImage({{ zdjecie|tojson }})" class="{% if loop.first %}col-span-2 row-span-2{% endif %} block overflow-hidden rounded-2xl bg-slate-100 aspect-square focus:ring-2 focus:ring-brand-500 outline-none">
             <img src="{{ zdjecie }}" alt="Praca salonu {{ loop.index }}" class="h-full w-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy">
           </button>
         {% endfor %}
@@ -39,12 +50,12 @@
     </section>
   {% endif %}
 
-  <form id="date-picker-form" method="get" action="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="mb-6">
+  <form id="date-picker-form" method="get" action="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="mb-6 rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
     <label for="data" class="block text-sm font-medium text-slate-700 mb-2">Wybierz dzień wizyty</label>
     <div class="flex gap-3">
       <input type="date" id="data" name="data" value="{{ wybrana_data }}"
-        class="flex-1 rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none"
-        onchange="this.form.submit()">
+        class="flex-1 rounded-2xl border border-slate-300 px-4 py-4 text-lg focus:ring-2 focus:ring-brand-500 outline-none"
+        onchange="showBookingLoader(); this.form.submit()">
       <noscript>
         <button type="submit" class="rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-semibold px-5 py-3 transition-colors">
           Pokaż terminy
@@ -54,7 +65,7 @@
     <p class="text-xs text-slate-500 mt-2">Terminy odświeżą się automatycznie po zmianie daty.</p>
   </form>
 
-  <div class="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm mb-6">
+  <div class="rounded-3xl bg-white border border-slate-200 p-6 shadow-sm mb-6">
     <h2 class="text-sm font-medium text-slate-500 uppercase tracking-wide mb-3">Godziny otwarcia</h2>
     {% if godziny.zamkniety %}
       <p class="text-red-600 font-medium">Salon jest zamknięty w ten dzień.</p>
@@ -65,13 +76,13 @@
   </div>
 
   {% if not godziny.zamkniety %}
-    <div class="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm">
+    <div class="rounded-3xl bg-white border border-slate-200 p-6 shadow-sm">
       <h2 class="text-sm font-medium text-slate-500 uppercase tracking-wide mb-4">Wolne terminy</h2>
       {% if terminy %}
-        <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {% for t in terminy %}
             <a href="{{ url_for('rezerwacja_formularz', salon_slug=salon_slug, data=wybrana_data, godzina=t) }}"
-              class="rounded-xl border-2 border-brand-200 bg-brand-50 text-brand-800 font-semibold py-3 text-center hover:bg-brand-100 hover:border-brand-500 transition-colors">
+              class="rounded-2xl border-2 border-brand-200 bg-brand-50 text-brand-800 font-bold py-5 text-center text-lg hover:bg-brand-100 hover:border-brand-500 hover:-translate-y-0.5 transition-all shadow-sm">
               {{ t }}
             </a>
           {% endfor %}
@@ -120,4 +131,13 @@
     });
   </script>
 {% endif %}
+
+<script>
+  function showBookingLoader() {
+    const loader = document.getElementById('booking-loader');
+    if (!loader) return;
+    loader.classList.remove('hidden');
+    loader.classList.add('flex');
+  }
+</script>
 {% endblock %}

@@ -8,9 +8,11 @@ import json
 import os
 import re
 import secrets
+import shutil
 import smtplib
+import time
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from email.message import EmailMessage
 from pathlib import Path
 from urllib import request as urlrequest
@@ -23,9 +25,11 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
+app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent / "data"))
 DATA_FILE = DATA_DIR / "salon.json"
+BACKUP_DIR = DATA_DIR / "backups"
 PANEL_PASSWORD = os.environ.get("PANEL_PASSWORD", "").strip()
 SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "587").strip() or "587")
@@ -34,6 +38,8 @@ SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "").replace(" ", "").strip()
 SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USERNAME or "powiadomienia@cutnow.local").strip()
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
 RESEND_FROM = os.environ.get("RESEND_FROM", SMTP_FROM).strip()
+REMINDER_SECRET = os.environ.get("REMINDER_SECRET", "").strip()
+REZERWACJA_RATE_LIMIT: dict[str, list[float]] = {}
 
 DNI_TYGODNIA = [
     ("poniedzialek", "Poniedziałek"),
@@ -163,8 +169,22 @@ def wczytaj_dane() -> dict:
 
 def zapisz_dane(dane: dict) -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    wykonaj_backup_danych()
     with DATA_FILE.open("w", encoding="utf-8") as f:
         json.dump(dane, f, ensure_ascii=False, indent=2)
+
+
+def wykonaj_backup_danych() -> None:
+    if not DATA_FILE.exists():
+        return
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup_file = BACKUP_DIR / f"salon-{timestamp}.json"
+    shutil.copy2(DATA_FILE, backup_file)
+
+    kopie = sorted(BACKUP_DIR.glob("salon-*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    for stara_kopia in kopie[30:]:
+        stara_kopia.unlink(missing_ok=True)
 
 
 def pobierz_salon(dane: dict, salon_slug: str) -> dict | None:
@@ -181,6 +201,19 @@ def salon_wstrzymany(salon: dict) -> bool:
 def abonament_po_terminie(salon: dict) -> bool:
     oplacone_do = salon.get("oplacone_do", "")
     return bool(oplacone_do and oplacone_do < date.today().isoformat())
+
+
+def przekroczono_limit_rezerwacji(salon_slug: str) -> bool:
+    identyfikator = f"{request.headers.get('X-Forwarded-For', request.remote_addr)}:{salon_slug}"
+    teraz = time.time()
+    okno_sekund = 10 * 60
+    proby = [t for t in REZERWACJA_RATE_LIMIT.get(identyfikator, []) if teraz - t < okno_sekund]
+    if len(proby) >= 6:
+        REZERWACJA_RATE_LIMIT[identyfikator] = proby
+        return True
+    proby.append(teraz)
+    REZERWACJA_RATE_LIMIT[identyfikator] = proby
+    return False
 
 
 def waliduj_godzine(wartosc: str) -> bool:
@@ -350,6 +383,45 @@ Panel rezerwacji:
         return False
 
 
+def wyslij_email_przypomnienie(salon: dict, rezerwacja: dict, salon_slug: str) -> bool:
+    odbiorca = salon.get("email_powiadomien", "").strip()
+    if not odbiorca or not email_skonfigurowany():
+        return False
+
+    link_panelu = url_for("panel_rezerwacje", salon_slug=salon_slug, _external=True)
+    temat = f"Przypomnienie: wizyta jutro o {rezerwacja['godzina']}"
+    tresc = f"""Przypomnienie o nadchodzącej wizycie
+
+Salon: {salon['nazwa_salonu']}
+Termin: {rezerwacja['data']} o {rezerwacja['godzina']}
+Klient: {rezerwacja['imie']}
+Telefon: {rezerwacja['telefon']}
+Uwagi: {rezerwacja.get('uwagi') or '-'}
+
+Panel rezerwacji:
+{link_panelu}
+"""
+
+    if wyslij_email_przez_resend(odbiorca, temat, tresc):
+        return True
+
+    msg = EmailMessage()
+    msg["Subject"] = temat
+    msg["From"] = SMTP_FROM
+    msg["To"] = odbiorca
+    msg.set_content(tresc)
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as smtp:
+            smtp.starttls()
+            smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
+            smtp.send_message(msg)
+        return True
+    except Exception as exc:
+        app.logger.warning("Nie udało się wysłać przypomnienia e-mail: %s", exc)
+        return False
+
+
 def znajdz_rezerwacje(salon: dict, rezerwacja_id: str) -> dict | None:
     for rezerwacja in salon.get("rezerwacje", []):
         if rezerwacja.get("id") == rezerwacja_id:
@@ -468,6 +540,35 @@ def health():
     return jsonify({"status": "ok", "app": "CutNow"}), 200
 
 
+@app.route("/tasks/send-reminders")
+def wyslij_przypomnienia():
+    if not REMINDER_SECRET or request.args.get("secret") != REMINDER_SECRET:
+        return jsonify({"error": "unauthorized"}), 401
+
+    dane = wczytaj_dane()
+    teraz = datetime.now()
+    okno_do = teraz + timedelta(hours=26)
+    wyslane = 0
+
+    for salon_slug, salon in dane.get("salony", {}).items():
+        for rezerwacja in salon.get("rezerwacje", []):
+            if rezerwacja.get("przypomnienie_wyslane"):
+                continue
+            try:
+                termin = datetime.strptime(
+                    f"{rezerwacja.get('data')} {rezerwacja.get('godzina')}", "%Y-%m-%d %H:%M"
+                )
+            except (TypeError, ValueError):
+                continue
+            if teraz <= termin <= okno_do and wyslij_email_przypomnienie(salon, rezerwacja, salon_slug):
+                rezerwacja["przypomnienie_wyslane"] = datetime.now().isoformat(timespec="minutes")
+                wyslane += 1
+
+    if wyslane:
+        zapisz_dane(dane)
+    return jsonify({"sent": wyslane})
+
+
 @app.route("/")
 def strona_glowna():
     dane = wczytaj_dane()
@@ -563,6 +664,16 @@ def panel(salon_slug: str):
         key=lambda r: (r.get("data", ""), r.get("godzina", "")),
     )
     nadchodzace = [r for r in rezerwacje if r.get("data", "") >= dzisiaj]
+    klienci = {normalizuj_telefon(r.get("telefon", "")) for r in rezerwacje if r.get("telefon")}
+    dni_count: dict[str, int] = {}
+    for r in rezerwacje:
+        data_rezerwacji = r.get("data", "")
+        if waliduj_date_iso(data_rezerwacji):
+            dzien = dict(DNI_TYGODNIA)[klucz_dnia_tygodnia(data_rezerwacji)]
+            dni_count[dzien] = dni_count.get(dzien, 0) + 1
+    najpopularniejszy_dzien = max(dni_count.items(), key=lambda item: item[1])[0] if dni_count else "-"
+    za_7_dni = (date.today() + timedelta(days=7)).isoformat()
+    rezerwacje_7_dni = [r for r in nadchodzace if r.get("data", "") <= za_7_dni]
     return render_template(
         "panel.html",
         dane=salon,
@@ -572,6 +683,12 @@ def panel(salon_slug: str):
         liczba_dni_z_terminami=len(salon.get("wolne_terminy", {})),
         liczba_rezerwacji=len(nadchodzace),
         ostatnie_rezerwacje=nadchodzace[:5],
+        statystyki={
+            "wszystkie_rezerwacje": len(rezerwacje),
+            "unikalni_klienci": len([k for k in klienci if k]),
+            "najpopularniejszy_dzien": najpopularniejszy_dzien,
+            "rezerwacje_7_dni": len(rezerwacje_7_dni),
+        },
     )
 
 
@@ -764,6 +881,9 @@ def rezerwacja_formularz(salon_slug: str):
     uwagi = request.form.get("uwagi", "").strip()
     godzina = request.form.get("godzina", "").strip()
 
+    if przekroczono_limit_rezerwacji(salon_slug):
+        flash("Zbyt wiele prób rezerwacji. Spróbuj ponownie za kilka minut.", "error")
+        return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug, data=data_iso))
     if not imie:
         flash("Podaj imię i nazwisko.", "error")
         return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
