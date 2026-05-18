@@ -10,6 +10,9 @@
     <div class="rounded-xl bg-slate-50 p-4 text-left space-y-2 mb-6">
       <p><span class="text-slate-500">Salon:</span> <strong>{{ dane.nazwa_salonu }}</strong></p>
       <p><span class="text-slate-500">Termin:</span> <strong>{{ dzien_nazwa }}, {{ rezerwacja.data }} o {{ rezerwacja.godzina }}</strong></p>
+      {% if rezerwacja.pracownik %}
+        <p><span class="text-slate-500">Pracownik:</span> <strong>{{ rezerwacja.pracownik }}</strong></p>
+      {% endif %}
       <p><span class="text-slate-500">Klient:</span> <strong>{{ rezerwacja.imie }}</strong></p>
     </div>
 

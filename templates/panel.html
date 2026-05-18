@@ -87,6 +87,7 @@
         <li class="flex flex-wrap justify-between gap-2 text-sm rounded-xl bg-slate-50 px-4 py-3">
           <span class="font-medium text-slate-800">{{ r.imie }}</span>
           <span class="text-slate-600">{{ r.data }} · {{ r.godzina }}</span>
+          {% if r.pracownik %}<span class="text-slate-600">{{ r.pracownik }}</span>{% endif %}
           <span class="text-slate-500">{{ r.status }}</span>
           <a href="tel:{{ r.telefon }}" class="text-brand-600">{{ r.telefon }}</a>
         </li>

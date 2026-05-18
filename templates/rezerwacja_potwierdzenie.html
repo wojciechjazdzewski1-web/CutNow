@@ -27,6 +27,12 @@
       <span class="text-slate-500">Telefon</span>
       <span class="font-semibold text-slate-900 text-right">{{ rezerwacja.telefon }}</span>
     </div>
+    {% if rezerwacja.pracownik %}
+      <div class="flex justify-between gap-4">
+        <span class="text-slate-500">Pracownik</span>
+        <span class="font-semibold text-slate-900 text-right">{{ rezerwacja.pracownik }}</span>
+      </div>
+    {% endif %}
     <div class="flex justify-between gap-4">
       <span class="text-slate-500">Status</span>
       <span class="font-semibold text-slate-900 text-right">

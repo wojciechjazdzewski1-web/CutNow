@@ -59,6 +59,7 @@ DEFAULT_SALON = {
     "instagram": "",
     "email_powiadomien": "",
     "zdjecia_prac": [],
+    "pracownicy": [],
     "abonament_status": "trial",
     "oplata_miesieczna": 100,
     "oplacone_do": "",
@@ -136,6 +137,7 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("instagram", "")
             salon.setdefault("email_powiadomien", "")
             salon.setdefault("zdjecia_prac", [])
+            salon.setdefault("pracownicy", [])
             salon.setdefault("abonament_status", "trial")
             salon.setdefault("oplata_miesieczna", 100)
             salon.setdefault("oplacone_do", "")
@@ -147,6 +149,7 @@ def migracja_danych(dane: dict) -> dict:
             for rezerwacja in salon["rezerwacje"]:
                 rezerwacja.setdefault("status", "potwierdzona")
                 rezerwacja.setdefault("token_anulowania", uuid.uuid4().hex)
+                rezerwacja.setdefault("pracownik", "")
         return dane
 
     # Stary format jednej strony zamieniamy na salon "demo", żeby nie stracić danych.
@@ -279,12 +282,39 @@ def klucz_dnia_tygodnia(data_iso: str) -> str:
     ][datetime.strptime(data_iso, "%Y-%m-%d").weekday()]
 
 
-def zajete_godziny(salon: dict, data_iso: str) -> set[str]:
-    return {
-        r["godzina"]
+def aktywni_pracownicy(salon: dict) -> list[str]:
+    return [p.strip() for p in salon.get("pracownicy", []) if isinstance(p, str) and p.strip()]
+
+
+def aktywne_rezerwacje_slotu(salon: dict, data_iso: str, godzina: str) -> list[dict]:
+    return [
+        r
         for r in salon.get("rezerwacje", [])
         if r.get("data") == data_iso
+        and r.get("godzina") == godzina
         and r.get("status", "potwierdzona") not in {"anulowana", "odrzucona"}
+    ]
+
+
+def pracownik_zajety(salon: dict, data_iso: str, godzina: str, pracownik: str) -> bool:
+    return any(r.get("pracownik") == pracownik for r in aktywne_rezerwacje_slotu(salon, data_iso, godzina))
+
+
+def slot_w_pelni_zajety(salon: dict, data_iso: str, godzina: str) -> bool:
+    pracownicy = aktywni_pracownicy(salon)
+    aktywne = aktywne_rezerwacje_slotu(salon, data_iso, godzina)
+    if not pracownicy:
+        return bool(aktywne)
+    zajeci_pracownicy = {r.get("pracownik") for r in aktywne if r.get("pracownik")}
+    bez_pracownika = any(not r.get("pracownik") for r in aktywne)
+    return bez_pracownika or len(zajeci_pracownicy) >= len(pracownicy)
+
+
+def zajete_godziny(salon: dict, data_iso: str) -> set[str]:
+    return {
+        godzina
+        for godzina in salon.get("wolne_terminy", {}).get(data_iso, [])
+        if slot_w_pelni_zajety(salon, data_iso, godzina)
     }
 
 
@@ -311,8 +341,12 @@ def godzina_zablokowana(salon: dict, data_iso: str, godzina: str) -> bool:
 
 def dostepne_terminy(salon: dict, data_iso: str) -> list[str]:
     wolne = salon.get("wolne_terminy", {}).get(data_iso, [])
-    zajete = zajete_godziny(salon, data_iso)
-    return sorted(g for g in wolne if g not in zajete and not godzina_zablokowana(salon, data_iso, g))
+    return sorted(
+        g
+        for g in wolne
+        if not slot_w_pelni_zajety(salon, data_iso, g)
+        and not godzina_zablokowana(salon, data_iso, g)
+    )
 
 
 def normalizuj_telefon(telefon: str) -> str:
@@ -331,6 +365,15 @@ def parsuj_linki_zdjec(wartosc: str) -> list[str]:
         if link.startswith(("http://", "https://")):
             linki.append(link)
     return linki[:12]
+
+
+def parsuj_pracownikow(wartosc: str) -> list[str]:
+    pracownicy = []
+    for linia in wartosc.splitlines():
+        imie = linia.strip()
+        if imie and imie not in pracownicy:
+            pracownicy.append(imie)
+    return pracownicy[:20]
 
 
 def parsuj_upload_zdjec(pliki) -> list[str]:
@@ -415,6 +458,7 @@ Termin: {rezerwacja['data']} o {rezerwacja['godzina']}
 Klient: {rezerwacja['imie']}
 Telefon: {rezerwacja['telefon']}
 Uwagi: {rezerwacja.get('uwagi') or '-'}
+Pracownik: {rezerwacja.get('pracownik') or 'Dowolny / nie wybrano'}
 
 Panel rezerwacji:
 {link_panelu}
@@ -454,6 +498,7 @@ Termin: {rezerwacja['data']} o {rezerwacja['godzina']}
 Klient: {rezerwacja['imie']}
 Telefon: {rezerwacja['telefon']}
 Uwagi: {rezerwacja.get('uwagi') or '-'}
+Pracownik: {rezerwacja.get('pracownik') or 'Dowolny / nie wybrano'}
 
 Panel rezerwacji:
 {link_panelu}
@@ -782,6 +827,7 @@ def ustawienia_salonu(salon_slug: str):
         telefon = request.form.get("telefon_kontaktowy", "").strip()
         instagram = request.form.get("instagram", "").strip()
         email_powiadomien = request.form.get("email_powiadomien", "").strip()
+        pracownicy = parsuj_pracownikow(request.form.get("pracownicy", ""))
         zdjecia_z_linkow = parsuj_linki_zdjec(request.form.get("zdjecia_prac", ""))
         nowe_zdjecia = parsuj_upload_zdjec(request.files.getlist("zdjecia_upload"))
         dotychczasowe_uploady = [
@@ -798,6 +844,7 @@ def ustawienia_salonu(salon_slug: str):
             salon["telefon_kontaktowy"] = telefon
             salon["instagram"] = instagram
             salon["email_powiadomien"] = email_powiadomien
+            salon["pracownicy"] = pracownicy
             salon["zdjecia_prac"] = zdjecia
             if haslo:
                 salon["haslo_panelu"] = haslo
@@ -902,6 +949,7 @@ def wolne_terminy(salon_slug: str):
                     if (
                         slot not in salon["wolne_terminy"][data_key]
                         and slot not in zajete
+                        and not slot_w_pelni_zajety(salon, data_key, slot)
                         and not godzina_zablokowana(salon, data_key, slot)
                     ):
                         salon["wolne_terminy"][data_key].append(slot)
@@ -920,6 +968,7 @@ def wolne_terminy(salon_slug: str):
             elif (
                 godzina in terminy
                 or godzina in zajete_godziny(salon, wybrana_data)
+                or slot_w_pelni_zajety(salon, wybrana_data, godzina)
                 or godzina_zablokowana(salon, wybrana_data, godzina)
             ):
                 flash("Ten termin już istnieje, jest zajęty albo zablokowany.", "error")
@@ -1000,6 +1049,7 @@ def kontekst_rezerwacji(salon: dict, salon_slug: str, wybrana_data: str) -> dict
         "godziny": godziny,
         "terminy": dostepne_terminy(salon, wybrana_data),
         "dni_tygodnia": dict(DNI_TYGODNIA),
+        "pracownicy": aktywni_pracownicy(salon),
     }
 
 
@@ -1048,10 +1098,20 @@ def rezerwacja_formularz(salon_slug: str):
     telefon = request.form.get("telefon", "").strip()
     uwagi = request.form.get("uwagi", "").strip()
     godzina = request.form.get("godzina", "").strip()
+    pracownik = request.form.get("pracownik", "").strip()
+    pracownicy = aktywni_pracownicy(salon)
 
     if przekroczono_limit_rezerwacji(salon_slug):
         flash("Zbyt wiele prób rezerwacji. Spróbuj ponownie za kilka minut.", "error")
         return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug, data=data_iso))
+    if pracownicy and pracownik == "__dowolny__":
+        pracownik = next((p for p in pracownicy if not pracownik_zajety(salon, data_iso, godzina, p)), "")
+    if pracownicy and pracownik not in pracownicy:
+        flash("Wybierz pracownika z listy.", "error")
+        return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
+    if pracownik and pracownik_zajety(salon, data_iso, godzina, pracownik):
+        flash("Ten pracownik jest już zajęty o tej godzinie. Wybierz inną osobę albo termin.", "error")
+        return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
     if not imie:
         flash("Podaj imię i nazwisko.", "error")
         return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
@@ -1071,13 +1131,14 @@ def rezerwacja_formularz(salon_slug: str):
         "godzina": godzina,
         "imie": imie,
         "telefon": telefon,
+        "pracownik": pracownik,
         "uwagi": uwagi,
         "utworzono": datetime.now().isoformat(timespec="minutes"),
     }
     salon.setdefault("rezerwacje", []).append(rezerwacja)
 
     terminy = salon.setdefault("wolne_terminy", {}).setdefault(data_iso, [])
-    if godzina in terminy:
+    if godzina in terminy and slot_w_pelni_zajety(salon, data_iso, godzina):
         terminy.remove(godzina)
     if not terminy:
         salon["wolne_terminy"].pop(data_iso, None)
