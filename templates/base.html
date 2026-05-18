@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}CutNow{% endblock %}</title>
+  <title>{% block title %}Glovaro{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -39,8 +39,8 @@
     <div class="max-w-5xl mx-auto px-4 sm:px-6">
       <div class="flex items-center justify-between h-16">
         <a href="{{ url_for('rezerwacja_publiczna', salon_slug=aktywny_salon_slug) if widok_klienta and aktywny_salon_slug else url_for('strona_glowna') }}" class="flex items-center gap-2 group">
-          <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white font-bold text-sm shadow-lg shadow-brand-500/30 group-hover:scale-105 transition-transform">CN</span>
-          <span class="font-bold text-lg tracking-tight">Cut<span class="text-brand-600">Now</span></span>
+          <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white font-bold text-sm shadow-lg shadow-brand-500/30 group-hover:scale-105 transition-transform">G</span>
+          <span class="font-bold text-lg tracking-tight">Glov<span class="text-brand-600">aro</span></span>
         </a>
         <div class="flex items-center gap-1 sm:gap-2">
           {% if widok_klienta %}
@@ -75,7 +75,7 @@
 
   <footer class="border-t border-slate-200 bg-white mt-auto">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 text-center text-sm text-slate-500">
-      <p>&copy; 2026 CutNow — panel dla salonów fryzjerskich</p>
+      <p>&copy; 2026 Glovaro — panel dla salonów fryzjerskich</p>
       <div class="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2">
         <a href="{{ url_for('regulamin') }}" class="hover:text-brand-700">Regulamin</a>
         <a href="{{ url_for('polityka_prywatnosci') }}" class="hover:text-brand-700">Polityka prywatności</a>
@@ -98,12 +98,12 @@
 
   <script>
     function acceptCookies() {
-      localStorage.setItem('cutnow_cookie_notice', 'accepted');
+      localStorage.setItem('glovaro_cookie_notice', 'accepted');
       document.getElementById('cookie-banner')?.classList.add('hidden');
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-      if (localStorage.getItem('cutnow_cookie_notice') !== 'accepted') {
+      if (localStorage.getItem('glovaro_cookie_notice') !== 'accepted') {
         document.getElementById('cookie-banner')?.classList.remove('hidden');
       }
     });

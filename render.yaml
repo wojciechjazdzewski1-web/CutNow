@@ -1,7 +1,7 @@
 # Opcjonalny plik „Blueprint” — Render może utworzyć serwis automatycznie z repo.
 services:
   - type: web
-    name: cutnow
+    name: glovaro
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt

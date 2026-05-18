@@ -1,4 +1,4 @@
-"""CutNow — panel rezerwacji dla wielu salonów/fryzjerów."""
+"""Glovaro — panel rezerwacji dla wielu salonów/fryzjerów."""
 
 from __future__ import annotations
 
@@ -40,13 +40,13 @@ SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "587").strip() or "587")
 SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "").strip()
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "").replace(" ", "").strip()
-SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USERNAME or "powiadomienia@cutnow.local").strip()
+SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USERNAME or "powiadomienia@glovaro.local").strip()
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
 RESEND_FROM = os.environ.get("RESEND_FROM", SMTP_FROM).strip()
 REMINDER_SECRET = os.environ.get("REMINDER_SECRET", "").strip()
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "").strip()
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
-LEGAL_COMPANY_NAME = os.environ.get("LEGAL_COMPANY_NAME", "CutNow").strip()
+LEGAL_COMPANY_NAME = os.environ.get("LEGAL_COMPANY_NAME", "Glovaro").strip()
 LEGAL_COMPANY_ADDRESS = os.environ.get("LEGAL_COMPANY_ADDRESS", "Uzupełnij adres firmy").strip()
 LEGAL_COMPANY_EMAIL = os.environ.get("LEGAL_COMPANY_EMAIL", "kontakt@example.com").strip()
 LEGAL_COMPANY_NIP = os.environ.get("LEGAL_COMPANY_NIP", "Uzupełnij NIP").strip()
@@ -461,7 +461,7 @@ def utworz_sesje_stripe(salon: dict, salon_slug: str) -> str | None:
             "line_items[0][price_data][currency]": "pln",
             "line_items[0][price_data][unit_amount]": str(kwota_grosze),
             "line_items[0][price_data][recurring][interval]": "month",
-            "line_items[0][price_data][product_data][name]": f"Abonament CutNow - {salon.get('nazwa_salonu', salon_slug)}",
+            "line_items[0][price_data][product_data][name]": f"Abonament Glovaro - {salon.get('nazwa_salonu', salon_slug)}",
             "metadata[salon_slug]": salon_slug,
             "subscription_data[metadata][salon_slug]": salon_slug,
         }
@@ -472,7 +472,7 @@ def utworz_sesje_stripe(salon: dict, salon_slug: str) -> str | None:
         headers={
             "Authorization": f"Bearer {STRIPE_SECRET_KEY}",
             "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": "CutNow/1.0",
+            "User-Agent": "Glovaro/1.0",
         },
         method="POST",
     )
@@ -529,7 +529,7 @@ def wyslij_email_przez_resend(odbiorca: str, temat: str, tresc: str) -> bool:
         headers={
             "Authorization": f"Bearer {RESEND_API_KEY}",
             "Content-Type": "application/json",
-            "User-Agent": "CutNow/1.0",
+            "User-Agent": "Glovaro/1.0",
         },
         method="POST",
     )
@@ -561,7 +561,7 @@ def wyslij_email_powiadomienie(salon: dict, rezerwacja: dict, salon_slug: str) -
 
     link_panelu = url_for("panel_rezerwacje", salon_slug=salon_slug, _external=True)
     temat = f"Nowa rezerwacja: {rezerwacja['data']} o {rezerwacja['godzina']}"
-    tresc = f"""Nowa rezerwacja w CutNow
+    tresc = f"""Nowa rezerwacja w Glovaro
 
 Salon: {salon['nazwa_salonu']}
 Termin: {rezerwacja['data']} o {rezerwacja['godzina']}
@@ -803,7 +803,7 @@ def panel_wyloguj(salon_slug: str | None = None):
 
 @app.route("/health")
 def health():
-    return jsonify({"status": "ok", "app": "CutNow"}), 200
+    return jsonify({"status": "ok", "app": "Glovaro"}), 200
 
 
 @app.route("/tasks/send-reminders")
@@ -900,7 +900,7 @@ def panel_nowy_salon():
 @app.route("/panel/<salon_slug>/rozliczenia", methods=["POST"])
 def panel_rozliczenia(salon_slug: str):
     if not session.get(admin_auth_key()):
-        flash("Rozliczenia może zmieniać tylko główny administrator CutNow.", "error")
+        flash("Rozliczenia może zmieniać tylko główny administrator Glovaro.", "error")
         return redirect(url_for("panel", salon_slug=salon_slug))
 
     dane = wczytaj_dane()
