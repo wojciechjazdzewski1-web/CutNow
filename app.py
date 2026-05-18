@@ -53,6 +53,10 @@ DEFAULT_SALON = {
     "instagram": "",
     "email_powiadomien": "",
     "zdjecia_prac": [],
+    "abonament_status": "trial",
+    "oplata_miesieczna": 100,
+    "oplacone_do": "",
+    "notatka_rozliczeniowa": "",
     "godziny_pracy": {
         key: {"otwarcie": "09:00", "zamkniecie": "18:00", "zamkniety": key == "niedziela"}
         for key, _ in DNI_TYGODNIA
@@ -123,6 +127,10 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("instagram", "")
             salon.setdefault("email_powiadomien", "")
             salon.setdefault("zdjecia_prac", [])
+            salon.setdefault("abonament_status", "trial")
+            salon.setdefault("oplata_miesieczna", 100)
+            salon.setdefault("oplacone_do", "")
+            salon.setdefault("notatka_rozliczeniowa", "")
             salon.setdefault("godziny_pracy", copy.deepcopy(DEFAULT_SALON["godziny_pracy"]))
             salon.setdefault("wolne_terminy", {})
             salon.setdefault("rezerwacje", [])
@@ -164,6 +172,15 @@ def pobierz_salon(dane: dict, salon_slug: str) -> dict | None:
     if salon:
         salon.setdefault("slug", salon_slug)
     return salon
+
+
+def salon_wstrzymany(salon: dict) -> bool:
+    return salon.get("abonament_status") == "suspended"
+
+
+def abonament_po_terminie(salon: dict) -> bool:
+    oplacone_do = salon.get("oplacone_do", "")
+    return bool(oplacone_do and oplacone_do < date.today().isoformat())
 
 
 def waliduj_godzine(wartosc: str) -> bool:
@@ -467,7 +484,11 @@ def nie_znaleziono(_error):
 @app.route("/panel")
 def panel_lista():
     dane = wczytaj_dane()
-    return render_template("salony.html", salony=dane.get("salony", {}))
+    return render_template(
+        "salony.html",
+        salony=dane.get("salony", {}),
+        dzisiaj=date.today().isoformat(),
+    )
 
 
 @app.route("/panel/nowy", methods=["POST"])
@@ -490,6 +511,41 @@ def panel_nowy_salon():
     zapisz_dane(dane)
     flash(f"Dodano salon: {nazwa}.", "success")
     return redirect(url_for("panel", salon_slug=slug))
+
+
+@app.route("/panel/<salon_slug>/rozliczenia", methods=["POST"])
+def panel_rozliczenia(salon_slug: str):
+    if not session.get(admin_auth_key()):
+        flash("Rozliczenia może zmieniać tylko główny administrator CutNow.", "error")
+        return redirect(url_for("panel", salon_slug=salon_slug))
+
+    dane = wczytaj_dane()
+    salon = pobierz_salon(dane, salon_slug)
+    if not salon:
+        flash("Nie znaleziono takiego salonu.", "error")
+        return redirect(url_for("panel_lista"))
+
+    status = request.form.get("abonament_status", "trial")
+    if status not in {"trial", "active", "suspended"}:
+        status = "trial"
+
+    try:
+        oplata = int(request.form.get("oplata_miesieczna", "100"))
+    except ValueError:
+        oplata = 100
+
+    oplacone_do = request.form.get("oplacone_do", "").strip()
+    if oplacone_do and not waliduj_date_iso(oplacone_do):
+        flash("Nieprawidłowa data opłacenia.", "error")
+        return redirect(url_for("panel_lista"))
+
+    salon["abonament_status"] = status
+    salon["oplata_miesieczna"] = max(oplata, 0)
+    salon["oplacone_do"] = oplacone_do
+    salon["notatka_rozliczeniowa"] = request.form.get("notatka_rozliczeniowa", "").strip()
+    zapisz_dane(dane)
+    flash(f"Zapisano rozliczenia dla: {salon['nazwa_salonu']}.", "success")
+    return redirect(url_for("panel_lista"))
 
 
 @app.route("/panel/<salon_slug>")
@@ -674,6 +730,8 @@ def rezerwacja_publiczna(salon_slug: str):
     salon = pobierz_salon(dane, salon_slug)
     if not salon:
         return render_template("404.html", sciezka=request.path, domyslny_slug=domyslny_slug(dane)), 404
+    if salon_wstrzymany(salon):
+        return render_template("abonament_wstrzymany.html", dane=salon), 403
     wybrana_data = request.args.get("data", date.today().isoformat())
     return render_template("podglad.html", **kontekst_rezerwacji(salon, salon_slug, wybrana_data))
 
@@ -684,6 +742,8 @@ def rezerwacja_formularz(salon_slug: str):
     salon = pobierz_salon(dane, salon_slug)
     if not salon:
         return render_template("404.html", sciezka=request.path, domyslny_slug=domyslny_slug(dane)), 404
+    if salon_wstrzymany(salon):
+        return render_template("abonament_wstrzymany.html", dane=salon), 403
 
     data_iso = request.values.get("data", date.today().isoformat())
     godzina = request.values.get("godzina", "").strip()

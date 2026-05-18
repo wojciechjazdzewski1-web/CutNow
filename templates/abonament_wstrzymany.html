@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Strona chwilowo niedostępna — CutNow{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto text-center rounded-2xl bg-white border border-slate-200 p-8 shadow-sm">
+  <div class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+    <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+  </div>
+  <h1 class="text-2xl font-bold text-slate-900 mb-2">Rezerwacje chwilowo niedostępne</h1>
+  <p class="text-slate-600">
+    Strona salonu {{ dane.nazwa_salonu }} jest tymczasowo wstrzymana. Spróbuj ponownie później albo skontaktuj się bezpośrednio z salonem.
+  </p>
+</div>
+{% endblock %}
