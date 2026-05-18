@@ -7,8 +7,8 @@
     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
   </div>
 
-  <h1 class="text-2xl font-bold text-slate-900 mb-2">Rezerwacja potwierdzona!</h1>
-  <p class="text-slate-600 mb-8">Do zobaczenia w salonie.</p>
+  <h1 class="text-2xl font-bold text-slate-900 mb-2">Rezerwacja wysłana!</h1>
+  <p class="text-slate-600 mb-8">Salon otrzymał zgłoszenie. Status możesz sprawdzić lub anulować z tej strony.</p>
 
   <div class="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm text-left space-y-3 mb-8">
     <div class="flex justify-between gap-4">
@@ -27,6 +27,12 @@
       <span class="text-slate-500">Telefon</span>
       <span class="font-semibold text-slate-900 text-right">{{ rezerwacja.telefon }}</span>
     </div>
+    <div class="flex justify-between gap-4">
+      <span class="text-slate-500">Status</span>
+      <span class="font-semibold text-slate-900 text-right">
+        {% if rezerwacja.status == 'oczekuje' %}Oczekuje na potwierdzenie{% elif rezerwacja.status == 'potwierdzona' %}Potwierdzona{% elif rezerwacja.status == 'anulowana' %}Anulowana{% elif rezerwacja.status == 'odrzucona' %}Odrzucona{% else %}{{ rezerwacja.status }}{% endif %}
+      </span>
+    </div>
     {% if rezerwacja.uwagi %}
       <div class="pt-2 border-t border-slate-100">
         <span class="text-slate-500 text-sm">Uwagi</span>
@@ -35,8 +41,15 @@
     {% endif %}
   </div>
 
-  <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="inline-flex rounded-xl border border-slate-300 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">
-    Wróć na stronę rezerwacji
-  </a>
+  <div class="flex flex-col gap-3">
+    {% if rezerwacja.status not in ['anulowana', 'odrzucona'] %}
+      <a href="{{ url_for('anuluj_rezerwacje_klienta', salon_slug=salon_slug, token=rezerwacja.token_anulowania) }}" class="inline-flex justify-center rounded-xl border border-red-200 px-6 py-3 font-semibold text-red-700 hover:bg-red-50">
+        Anuluj wizytę
+      </a>
+    {% endif %}
+    <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="inline-flex justify-center rounded-xl border border-slate-300 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">
+      Wróć na stronę rezerwacji
+    </a>
+  </div>
 </div>
 {% endblock %}

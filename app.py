@@ -78,6 +78,7 @@ PUBLIC_ENDPOINTS = {
     "rezerwacja_publiczna",
     "rezerwacja_formularz",
     "rezerwacja_potwierdzenie",
+    "anuluj_rezerwacje_klienta",
     "panel_login",
     "static",
 }
@@ -87,6 +88,7 @@ WIDOK_KLIENTA_ENDPOINTS = {
     "rezerwacja_publiczna",
     "rezerwacja_formularz",
     "rezerwacja_potwierdzenie",
+    "anuluj_rezerwacje_klienta",
 }
 
 
@@ -140,6 +142,9 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("godziny_pracy", copy.deepcopy(DEFAULT_SALON["godziny_pracy"]))
             salon.setdefault("wolne_terminy", {})
             salon.setdefault("rezerwacje", [])
+            for rezerwacja in salon["rezerwacje"]:
+                rezerwacja.setdefault("status", "potwierdzona")
+                rezerwacja.setdefault("token_anulowania", uuid.uuid4().hex)
         return dane
 
     # Stary format jednej strony zamieniamy na salon "demo", żeby nie stracić danych.
@@ -249,6 +254,7 @@ def zajete_godziny(salon: dict, data_iso: str) -> set[str]:
         r["godzina"]
         for r in salon.get("rezerwacje", [])
         if r.get("data") == data_iso
+        and r.get("status", "potwierdzona") not in {"anulowana", "odrzucona"}
     }
 
 
@@ -429,6 +435,22 @@ def znajdz_rezerwacje(salon: dict, rezerwacja_id: str) -> dict | None:
     return None
 
 
+def znajdz_rezerwacje_po_tokenie(salon: dict, token: str) -> dict | None:
+    for rezerwacja in salon.get("rezerwacje", []):
+        if token and rezerwacja.get("token_anulowania") == token:
+            return rezerwacja
+    return None
+
+
+def przywroc_wolny_termin(salon: dict, rezerwacja: dict) -> None:
+    data_iso = rezerwacja["data"]
+    godzina = rezerwacja["godzina"]
+    salon.setdefault("wolne_terminy", {}).setdefault(data_iso, [])
+    if godzina not in salon["wolne_terminy"][data_iso]:
+        salon["wolne_terminy"][data_iso].append(godzina)
+        salon["wolne_terminy"][data_iso].sort()
+
+
 def panel_auth_key(salon_slug: str) -> str:
     return f"panel_auth_{salon_slug}"
 
@@ -553,6 +575,8 @@ def wyslij_przypomnienia():
     for salon_slug, salon in dane.get("salony", {}).items():
         for rezerwacja in salon.get("rezerwacje", []):
             if rezerwacja.get("przypomnienie_wyslane"):
+                continue
+            if rezerwacja.get("status", "potwierdzona") != "potwierdzona":
                 continue
             try:
                 termin = datetime.strptime(
@@ -897,6 +921,8 @@ def rezerwacja_formularz(salon_slug: str):
     rezerwacja_id = uuid.uuid4().hex[:12]
     rezerwacja = {
         "id": rezerwacja_id,
+        "token_anulowania": uuid.uuid4().hex,
+        "status": "oczekuje",
         "data": data_iso,
         "godzina": godzina,
         "imie": imie,
@@ -938,6 +964,38 @@ def rezerwacja_potwierdzenie(salon_slug: str):
     )
 
 
+@app.route("/rezerwacja/<salon_slug>/anuluj/<token>", methods=["GET", "POST"])
+def anuluj_rezerwacje_klienta(salon_slug: str, token: str):
+    dane = wczytaj_dane()
+    salon = pobierz_salon(dane, salon_slug)
+    if not salon:
+        return render_template("404.html", sciezka=request.path, domyslny_slug=domyslny_slug(dane)), 404
+
+    rezerwacja = znajdz_rezerwacje_po_tokenie(salon, token)
+    if not rezerwacja:
+        flash("Nie znaleziono rezerwacji do anulowania.", "error")
+        return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug))
+
+    if request.method == "POST":
+        if rezerwacja.get("status") not in {"anulowana", "odrzucona"}:
+            rezerwacja["status"] = "anulowana"
+            rezerwacja["anulowano"] = datetime.now().isoformat(timespec="minutes")
+            rezerwacja["anulowal"] = "klient"
+            przywroc_wolny_termin(salon, rezerwacja)
+            zapisz_dane(dane)
+            flash("Rezerwacja została anulowana.", "success")
+        return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug))
+
+    dzien = klucz_dnia_tygodnia(rezerwacja["data"])
+    return render_template(
+        "anuluj_rezerwacje.html",
+        dane=salon,
+        salon_slug=salon_slug,
+        rezerwacja=rezerwacja,
+        dzien_nazwa=dict(DNI_TYGODNIA)[dzien],
+    )
+
+
 @app.route("/panel/<salon_slug>/podglad")
 def podglad_klienta(salon_slug: str):
     return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug, **request.args))
@@ -956,18 +1014,23 @@ def panel_rezerwacje(salon_slug: str):
         rezerwacja_id = request.form.get("id", "")
         rezerwacja = znajdz_rezerwacje(salon, rezerwacja_id)
 
-        if akcja == "anuluj" and rezerwacja:
-            salon["rezerwacje"] = [
-                r for r in salon.get("rezerwacje", []) if r.get("id") != rezerwacja_id
-            ]
-            data_iso = rezerwacja["data"]
-            godzina = rezerwacja["godzina"]
-            salon.setdefault("wolne_terminy", {}).setdefault(data_iso, [])
-            if godzina not in salon["wolne_terminy"][data_iso]:
-                salon["wolne_terminy"][data_iso].append(godzina)
-                salon["wolne_terminy"][data_iso].sort()
+        if akcja in {"potwierdz", "odrzuc", "anuluj"} and rezerwacja:
+            if akcja == "potwierdz":
+                rezerwacja["status"] = "potwierdzona"
+                rezerwacja["potwierdzono"] = datetime.now().isoformat(timespec="minutes")
+                flash(f"Potwierdzono rezerwację: {rezerwacja['imie']}.", "success")
+            elif akcja == "odrzuc":
+                rezerwacja["status"] = "odrzucona"
+                rezerwacja["odrzucono"] = datetime.now().isoformat(timespec="minutes")
+                przywroc_wolny_termin(salon, rezerwacja)
+                flash(f"Odrzucono rezerwację: {rezerwacja['imie']}. Termin wrócił do wolnych.", "success")
+            elif akcja == "anuluj":
+                rezerwacja["status"] = "anulowana"
+                rezerwacja["anulowano"] = datetime.now().isoformat(timespec="minutes")
+                rezerwacja["anulowal"] = "salon"
+                przywroc_wolny_termin(salon, rezerwacja)
+                flash(f"Anulowano rezerwację: {rezerwacja['imie']}. Termin wrócił do wolnych.", "success")
             zapisz_dane(dane)
-            flash(f"Anulowano rezerwację: {rezerwacja['imie']}, {data_iso} o {godzina}.", "success")
         return redirect(url_for("panel_rezerwacje", salon_slug=salon_slug))
 
     dzisiaj = date.today().isoformat()
@@ -975,8 +1038,16 @@ def panel_rezerwacje(salon_slug: str):
         salon.get("rezerwacje", []),
         key=lambda r: (r.get("data", ""), r.get("godzina", "")),
     )
-    nadchodzace = [r for r in rezerwacje if r.get("data", "") >= dzisiaj]
-    archiwum = [r for r in rezerwacje if r.get("data", "") < dzisiaj]
+    nadchodzace = [
+        r
+        for r in rezerwacje
+        if r.get("data", "") >= dzisiaj and r.get("status", "potwierdzona") not in {"anulowana", "odrzucona"}
+    ]
+    archiwum = [
+        r
+        for r in rezerwacje
+        if r.get("data", "") < dzisiaj or r.get("status", "potwierdzona") in {"anulowana", "odrzucona"}
+    ]
 
     return render_template(
         "rezerwacje.html",
