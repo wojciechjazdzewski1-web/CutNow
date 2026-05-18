@@ -237,6 +237,30 @@ def waliduj_date_iso(wartosc: str) -> bool:
         return False
 
 
+def czas_na_minuty(wartosc: str) -> int:
+    godzina, minuta = wartosc.split(":")
+    return int(godzina) * 60 + int(minuta)
+
+
+def minuty_na_czas(minuty: int) -> str:
+    return f"{minuty // 60:02d}:{minuty % 60:02d}"
+
+
+def daty_w_zakresie(start_iso: str, koniec_iso: str) -> list[str]:
+    start = datetime.strptime(start_iso, "%Y-%m-%d").date()
+    koniec = datetime.strptime(koniec_iso, "%Y-%m-%d").date()
+    if koniec < start:
+        start, koniec = koniec, start
+    if (koniec - start).days > 62:
+        koniec = start + timedelta(days=62)
+    dni = []
+    aktualna = start
+    while aktualna <= koniec:
+        dni.append(aktualna.isoformat())
+        aktualna += timedelta(days=1)
+    return dni
+
+
 def klucz_dnia_tygodnia(data_iso: str) -> str:
     return [
         "poniedzialek",
@@ -811,6 +835,53 @@ def wolne_terminy(salon_slug: str):
         godzina = request.form.get("godzina", "").strip()
         salon.setdefault("wolne_terminy", {}).setdefault(wybrana_data, [])
         terminy = salon["wolne_terminy"][wybrana_data]
+
+        if akcja == "generuj":
+            data_od = request.form.get("data_od", wybrana_data)
+            data_do = request.form.get("data_do", data_od)
+            od_godziny = request.form.get("od_godziny", "")
+            do_godziny = request.form.get("do_godziny", "")
+            interwal = request.form.get("interwal", "30")
+            nadpisz = request.form.get("nadpisz") == "on"
+
+            if (
+                not waliduj_date_iso(data_od)
+                or not waliduj_date_iso(data_do)
+                or not waliduj_godzine(od_godziny)
+                or not waliduj_godzine(do_godziny)
+                or interwal not in {"15", "30", "45", "60"}
+            ):
+                flash("Uzupełnij poprawnie zakres generowania terminów.", "error")
+                return redirect(url_for("wolne_terminy", salon_slug=salon_slug, data=wybrana_data))
+
+            start_min = czas_na_minuty(od_godziny)
+            koniec_min = czas_na_minuty(do_godziny)
+            krok = int(interwal)
+            if start_min >= koniec_min:
+                flash("Godzina startu musi być wcześniejsza niż końca.", "error")
+                return redirect(url_for("wolne_terminy", salon_slug=salon_slug, data=wybrana_data))
+
+            dodane = 0
+            for data_key in daty_w_zakresie(data_od, data_do):
+                dzien_key = klucz_dnia_tygodnia(data_key)
+                if salon.get("godziny_pracy", {}).get(dzien_key, {}).get("zamkniety"):
+                    continue
+                if nadpisz:
+                    salon["wolne_terminy"][data_key] = []
+                salon.setdefault("wolne_terminy", {}).setdefault(data_key, [])
+                zajete = zajete_godziny(salon, data_key)
+                for minuta in range(start_min, koniec_min, krok):
+                    slot = minuty_na_czas(minuta)
+                    if slot not in salon["wolne_terminy"][data_key] and slot not in zajete:
+                        salon["wolne_terminy"][data_key].append(slot)
+                        dodane += 1
+                salon["wolne_terminy"][data_key].sort()
+                if not salon["wolne_terminy"][data_key]:
+                    salon["wolne_terminy"].pop(data_key, None)
+
+            zapisz_dane(dane)
+            flash(f"Wygenerowano {dodane} nowych terminów.", "success")
+            return redirect(url_for("wolne_terminy", salon_slug=salon_slug, data=data_od))
 
         if akcja == "dodaj":
             if not waliduj_godzine(godzina):

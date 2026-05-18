@@ -23,6 +23,58 @@
       </button>
     </form>
 
+    <form method="post" class="rounded-2xl bg-gradient-to-br from-slate-900 to-brand-900 text-white p-5 shadow-lg shadow-slate-900/20">
+      <input type="hidden" name="akcja" value="generuj">
+      <h2 class="font-semibold text-lg mb-1">Automatyczne generowanie terminów</h2>
+      <p class="text-sm text-slate-300 mb-5">Wybierz zakres dat, godziny i interwał — CutNow sam utworzy wolne sloty.</p>
+
+      <div class="grid sm:grid-cols-2 gap-3 mb-3">
+        <div>
+          <label for="data_od" class="block text-sm font-medium text-slate-200 mb-2">Od daty</label>
+          <input type="date" id="data_od" name="data_od" value="{{ wybrana_data }}" required
+            class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
+        </div>
+        <div>
+          <label for="data_do" class="block text-sm font-medium text-slate-200 mb-2">Do daty</label>
+          <input type="date" id="data_do" name="data_do" value="{{ wybrana_data }}" required
+            class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
+        </div>
+      </div>
+
+      <div class="grid sm:grid-cols-3 gap-3">
+        <div>
+          <label for="od_godziny" class="block text-sm font-medium text-slate-200 mb-2">Od godziny</label>
+          <input type="time" id="od_godziny" name="od_godziny" value="09:00" required
+            class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
+        </div>
+        <div>
+          <label for="do_godziny" class="block text-sm font-medium text-slate-200 mb-2">Do godziny</label>
+          <input type="time" id="do_godziny" name="do_godziny" value="17:00" required
+            class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
+        </div>
+        <div>
+          <label for="interwal" class="block text-sm font-medium text-slate-200 mb-2">Co ile minut</label>
+          <select id="interwal" name="interwal"
+            class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white focus:ring-2 focus:ring-brand-300 outline-none">
+            <option class="text-slate-900" value="15">15 minut</option>
+            <option class="text-slate-900" value="30" selected>30 minut</option>
+            <option class="text-slate-900" value="45">45 minut</option>
+            <option class="text-slate-900" value="60">60 minut</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <label class="inline-flex items-center gap-2 text-sm text-slate-200">
+          <input type="checkbox" name="nadpisz" class="rounded border-white/30 text-brand-600">
+          Nadpisz wolne terminy w wybranych dniach
+        </label>
+        <button type="submit" class="sm:ml-auto rounded-xl bg-white text-slate-900 font-semibold px-6 py-3 hover:bg-brand-50">
+          Wygeneruj terminy
+        </button>
+      </div>
+    </form>
+
     <form method="post" class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
       <input type="hidden" name="data" value="{{ wybrana_data }}">
       <input type="hidden" name="akcja" value="dodaj">
