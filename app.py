@@ -68,6 +68,7 @@ DEFAULT_SALON = {
         for key, _ in DNI_TYGODNIA
     },
     "wolne_terminy": {},
+    "blokady": [],
     "rezerwacje": [],
 }
 
@@ -141,6 +142,7 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("notatka_rozliczeniowa", "")
             salon.setdefault("godziny_pracy", copy.deepcopy(DEFAULT_SALON["godziny_pracy"]))
             salon.setdefault("wolne_terminy", {})
+            salon.setdefault("blokady", [])
             salon.setdefault("rezerwacje", [])
             for rezerwacja in salon["rezerwacje"]:
                 rezerwacja.setdefault("status", "potwierdzona")
@@ -246,6 +248,10 @@ def minuty_na_czas(minuty: int) -> str:
     return f"{minuty // 60:02d}:{minuty % 60:02d}"
 
 
+def zakresy_nachodza(start_a: int, koniec_a: int, start_b: int, koniec_b: int) -> bool:
+    return start_a < koniec_b and start_b < koniec_a
+
+
 def daty_w_zakresie(start_iso: str, koniec_iso: str) -> list[str]:
     start = datetime.strptime(start_iso, "%Y-%m-%d").date()
     koniec = datetime.strptime(koniec_iso, "%Y-%m-%d").date()
@@ -282,10 +288,31 @@ def zajete_godziny(salon: dict, data_iso: str) -> set[str]:
     }
 
 
+def blokady_dnia(salon: dict, data_iso: str) -> list[dict]:
+    return [
+        blokada
+        for blokada in salon.get("blokady", [])
+        if blokada.get("data_od", "") <= data_iso <= blokada.get("data_do", "")
+    ]
+
+
+def godzina_zablokowana(salon: dict, data_iso: str, godzina: str) -> bool:
+    minuta = czas_na_minuty(godzina)
+    for blokada in blokady_dnia(salon, data_iso):
+        caly_dzien = blokada.get("caly_dzien", False)
+        if caly_dzien:
+            return True
+        start = blokada.get("od_godziny") or "00:00"
+        koniec = blokada.get("do_godziny") or "23:59"
+        if zakresy_nachodza(minuta, minuta + 1, czas_na_minuty(start), czas_na_minuty(koniec)):
+            return True
+    return False
+
+
 def dostepne_terminy(salon: dict, data_iso: str) -> list[str]:
     wolne = salon.get("wolne_terminy", {}).get(data_iso, [])
     zajete = zajete_godziny(salon, data_iso)
-    return sorted(g for g in wolne if g not in zajete)
+    return sorted(g for g in wolne if g not in zajete and not godzina_zablokowana(salon, data_iso, g))
 
 
 def normalizuj_telefon(telefon: str) -> str:
@@ -872,7 +899,11 @@ def wolne_terminy(salon_slug: str):
                 zajete = zajete_godziny(salon, data_key)
                 for minuta in range(start_min, koniec_min, krok):
                     slot = minuty_na_czas(minuta)
-                    if slot not in salon["wolne_terminy"][data_key] and slot not in zajete:
+                    if (
+                        slot not in salon["wolne_terminy"][data_key]
+                        and slot not in zajete
+                        and not godzina_zablokowana(salon, data_key, slot)
+                    ):
                         salon["wolne_terminy"][data_key].append(slot)
                         dodane += 1
                 salon["wolne_terminy"][data_key].sort()
@@ -886,8 +917,12 @@ def wolne_terminy(salon_slug: str):
         if akcja == "dodaj":
             if not waliduj_godzine(godzina):
                 flash("Podaj godzinę w formacie HH:MM (np. 10:30).", "error")
-            elif godzina in terminy or godzina in zajete_godziny(salon, wybrana_data):
-                flash("Ten termin już istnieje albo jest zajęty.", "error")
+            elif (
+                godzina in terminy
+                or godzina in zajete_godziny(salon, wybrana_data)
+                or godzina_zablokowana(salon, wybrana_data, godzina)
+            ):
+                flash("Ten termin już istnieje, jest zajęty albo zablokowany.", "error")
             else:
                 terminy.append(godzina)
                 terminy.sort()
@@ -900,6 +935,43 @@ def wolne_terminy(salon_slug: str):
             if not terminy:
                 salon["wolne_terminy"].pop(wybrana_data, None)
 
+        elif akcja == "blokuj":
+            data_od = request.form.get("blokada_data_od", wybrana_data)
+            data_do = request.form.get("blokada_data_do", data_od)
+            powod = request.form.get("powod", "Przerwa").strip() or "Przerwa"
+            opis = request.form.get("opis_blokady", "").strip()
+            caly_dzien = request.form.get("caly_dzien") == "on"
+            od_godziny = request.form.get("blokada_od_godziny", "")
+            do_godziny = request.form.get("blokada_do_godziny", "")
+
+            if not waliduj_date_iso(data_od) or not waliduj_date_iso(data_do):
+                flash("Podaj poprawny zakres dat blokady.", "error")
+                return redirect(url_for("wolne_terminy", salon_slug=salon_slug, data=wybrana_data))
+            if not caly_dzien:
+                if not waliduj_godzine(od_godziny) or not waliduj_godzine(do_godziny) or od_godziny >= do_godziny:
+                    flash("Podaj poprawny zakres godzin blokady.", "error")
+                    return redirect(url_for("wolne_terminy", salon_slug=salon_slug, data=wybrana_data))
+
+            salon.setdefault("blokady", []).append(
+                {
+                    "id": uuid.uuid4().hex[:12],
+                    "data_od": data_od,
+                    "data_do": data_do,
+                    "caly_dzien": caly_dzien,
+                    "od_godziny": "" if caly_dzien else od_godziny,
+                    "do_godziny": "" if caly_dzien else do_godziny,
+                    "powod": powod,
+                    "opis": opis,
+                    "utworzono": datetime.now().isoformat(timespec="minutes"),
+                }
+            )
+            flash("Dodano blokadę terminów.", "success")
+
+        elif akcja == "usun_blokade":
+            blokada_id = request.form.get("blokada_id", "")
+            salon["blokady"] = [b for b in salon.get("blokady", []) if b.get("id") != blokada_id]
+            flash("Usunięto blokadę.", "success")
+
         zapisz_dane(dane)
         return redirect(url_for("wolne_terminy", salon_slug=salon_slug, data=wybrana_data))
 
@@ -910,6 +982,7 @@ def wolne_terminy(salon_slug: str):
         wybrana_data=wybrana_data,
         terminy=dostepne_terminy(salon, wybrana_data),
         zajete=sorted(zajete_godziny(salon, wybrana_data)),
+        blokady=blokady_dnia(salon, wybrana_data),
         wszystkie_terminy=salon.get("wolne_terminy", {}),
     )
 

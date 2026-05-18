@@ -76,6 +76,63 @@
     </form>
 
     <form method="post" class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+      <input type="hidden" name="akcja" value="blokuj">
+      <h2 class="font-semibold text-lg text-slate-900 mb-1">Zablokuj terminy</h2>
+      <p class="text-sm text-slate-600 mb-5">Dodaj urlop, chorobę, przerwę obiadową albo szkolenie. Klienci nie zobaczą tych godzin.</p>
+
+      <div class="grid sm:grid-cols-2 gap-3 mb-3">
+        <div>
+          <label for="blokada_data_od" class="block text-sm font-medium text-slate-700 mb-2">Od daty</label>
+          <input type="date" id="blokada_data_od" name="blokada_data_od" value="{{ wybrana_data }}" required
+            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none">
+        </div>
+        <div>
+          <label for="blokada_data_do" class="block text-sm font-medium text-slate-700 mb-2">Do daty</label>
+          <input type="date" id="blokada_data_do" name="blokada_data_do" value="{{ wybrana_data }}" required
+            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none">
+        </div>
+      </div>
+
+      <div class="grid sm:grid-cols-3 gap-3 mb-3">
+        <div>
+          <label for="powod" class="block text-sm font-medium text-slate-700 mb-2">Powód</label>
+          <select id="powod" name="powod" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none">
+            <option>Przerwa</option>
+            <option>Urlop</option>
+            <option>Choroba</option>
+            <option>Szkolenie</option>
+            <option>Inne</option>
+          </select>
+        </div>
+        <div>
+          <label for="blokada_od_godziny" class="block text-sm font-medium text-slate-700 mb-2">Od godziny</label>
+          <input type="time" id="blokada_od_godziny" name="blokada_od_godziny" value="12:00"
+            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none">
+        </div>
+        <div>
+          <label for="blokada_do_godziny" class="block text-sm font-medium text-slate-700 mb-2">Do godziny</label>
+          <input type="time" id="blokada_do_godziny" name="blokada_do_godziny" value="13:00"
+            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none">
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label for="opis_blokady" class="block text-sm font-medium text-slate-700 mb-2">Notatka (opcjonalnie)</label>
+        <input id="opis_blokady" name="opis_blokady" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none" placeholder="np. szkolenie w Gdańsku">
+      </div>
+
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+        <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" name="caly_dzien" class="rounded border-slate-300 text-brand-600">
+          Zablokuj cały dzień / całe dni
+        </label>
+        <button type="submit" class="sm:ml-auto rounded-xl bg-slate-900 text-white font-semibold px-6 py-3 hover:bg-slate-800">
+          Dodaj blokadę
+        </button>
+      </div>
+    </form>
+
+    <form method="post" class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
       <input type="hidden" name="data" value="{{ wybrana_data }}">
       <input type="hidden" name="akcja" value="dodaj">
       <label for="godzina" class="block text-sm font-medium text-slate-700 mb-2">Nowy wolny termin</label>
@@ -119,6 +176,38 @@
           <p class="text-xs text-slate-400 mt-2">
             <a href="{{ url_for('panel_rezerwacje', salon_slug=salon_slug) }}" class="text-brand-600 hover:underline">Zobacz szczegóły w rezerwacjach</a>
           </p>
+        </div>
+      {% endif %}
+
+      {% if blokady %}
+        <div class="mt-6 pt-6 border-t border-slate-100">
+          <h3 class="text-sm font-medium text-slate-500 mb-3">Blokady w tym dniu</h3>
+          <div class="space-y-2">
+            {% for blokada in blokady %}
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
+                <div>
+                  <p class="font-medium text-amber-900">
+                    {{ blokada.powod }}
+                    {% if blokada.caly_dzien %}
+                      · cały dzień
+                    {% else %}
+                      · {{ blokada.od_godziny }}–{{ blokada.do_godziny }}
+                    {% endif %}
+                  </p>
+                  <p class="text-xs text-amber-700">
+                    {{ blokada.data_od }}{% if blokada.data_do != blokada.data_od %} – {{ blokada.data_do }}{% endif %}
+                    {% if blokada.opis %} · {{ blokada.opis }}{% endif %}
+                  </p>
+                </div>
+                <form method="post">
+                  <input type="hidden" name="akcja" value="usun_blokade">
+                  <input type="hidden" name="data" value="{{ wybrana_data }}">
+                  <input type="hidden" name="blokada_id" value="{{ blokada.id }}">
+                  <button type="submit" class="text-sm font-medium text-red-700 hover:text-red-900">Usuń</button>
+                </form>
+              </div>
+            {% endfor %}
+          </div>
         </div>
       {% endif %}
     </div>
