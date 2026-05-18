@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import copy
 import base64
+import hashlib
+import hmac
 import json
 import os
 import re
@@ -17,7 +19,7 @@ from email.message import EmailMessage
 from pathlib import Path
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -39,6 +41,8 @@ SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USERNAME or "powiadomienia@cutnow.l
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
 RESEND_FROM = os.environ.get("RESEND_FROM", SMTP_FROM).strip()
 REMINDER_SECRET = os.environ.get("REMINDER_SECRET", "").strip()
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "").strip()
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
 REZERWACJA_RATE_LIMIT: dict[str, list[float]] = {}
 
 DNI_TYGODNIA = [
@@ -83,6 +87,7 @@ PUBLIC_ENDPOINTS = {
     "rezerwacja_potwierdzenie",
     "anuluj_rezerwacje_klienta",
     "opinia_klienta",
+    "stripe_webhook",
     "panel_login",
     "static",
 }
@@ -222,6 +227,25 @@ def salon_wstrzymany(salon: dict) -> bool:
 def abonament_po_terminie(salon: dict) -> bool:
     oplacone_do = salon.get("oplacone_do", "")
     return bool(oplacone_do and oplacone_do < date.today().isoformat())
+
+
+def stripe_skonfigurowany() -> bool:
+    return bool(STRIPE_SECRET_KEY)
+
+
+def przedluz_abonament(salon: dict, dni: int = 31) -> str:
+    dzisiaj = date.today()
+    oplacone_do = salon.get("oplacone_do", "")
+    start = dzisiaj
+    if oplacone_do and waliduj_date_iso(oplacone_do):
+        obecny_koniec = datetime.strptime(oplacone_do, "%Y-%m-%d").date()
+        if obecny_koniec > dzisiaj:
+            start = obecny_koniec
+    nowa_data = (start + timedelta(days=dni)).isoformat()
+    salon["abonament_status"] = "active"
+    salon["oplacone_do"] = nowa_data
+    salon["notatka_rozliczeniowa"] = "Opłacone online przez Stripe"
+    return nowa_data
 
 
 def przekroczono_limit_rezerwacji(salon_slug: str) -> bool:
@@ -410,6 +434,71 @@ def email_skonfigurowany() -> bool:
     return bool(RESEND_API_KEY and RESEND_FROM) or bool(
         SMTP_HOST and SMTP_USERNAME and SMTP_PASSWORD and SMTP_FROM
     )
+
+
+def utworz_sesje_stripe(salon: dict, salon_slug: str) -> str | None:
+    if not stripe_skonfigurowany():
+        return None
+
+    kwota_grosze = max(int(salon.get("oplata_miesieczna", 100)), 1) * 100
+    payload = urlencode(
+        {
+            "mode": "subscription",
+            "success_url": url_for("stripe_sukces", salon_slug=salon_slug, _external=True),
+            "cancel_url": url_for("panel", salon_slug=salon_slug, _external=True),
+            "client_reference_id": salon_slug,
+            "line_items[0][quantity]": "1",
+            "line_items[0][price_data][currency]": "pln",
+            "line_items[0][price_data][unit_amount]": str(kwota_grosze),
+            "line_items[0][price_data][recurring][interval]": "month",
+            "line_items[0][price_data][product_data][name]": f"Abonament CutNow - {salon.get('nazwa_salonu', salon_slug)}",
+            "metadata[salon_slug]": salon_slug,
+            "subscription_data[metadata][salon_slug]": salon_slug,
+        }
+    ).encode("utf-8")
+    req = urlrequest.Request(
+        "https://api.stripe.com/v1/checkout/sessions",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {STRIPE_SECRET_KEY}",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "CutNow/1.0",
+        },
+        method="POST",
+    )
+
+    try:
+        with urlrequest.urlopen(req, timeout=15) as response:
+            body = json.loads(response.read().decode("utf-8"))
+            return body.get("url")
+    except HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        app.logger.warning("Stripe odrzucił sesję płatności: HTTP %s %s", exc.code, body)
+        return None
+    except (URLError, json.JSONDecodeError) as exc:
+        app.logger.warning("Nie udało się utworzyć sesji Stripe: %s", exc)
+        return None
+
+
+def podpis_stripe_poprawny(payload: bytes, header: str) -> bool:
+    if not STRIPE_WEBHOOK_SECRET:
+        return True
+    elementy = {}
+    for czesc in header.split(","):
+        if "=" in czesc:
+            klucz, wartosc = czesc.split("=", 1)
+            elementy.setdefault(klucz, []).append(wartosc)
+    timestamp = elementy.get("t", [""])[0]
+    podpisy = elementy.get("v1", [])
+    if not timestamp or not podpisy:
+        return False
+    signed_payload = timestamp.encode("utf-8") + b"." + payload
+    oczekiwany = hmac.new(
+        STRIPE_WEBHOOK_SECRET.encode("utf-8"),
+        signed_payload,
+        hashlib.sha256,
+    ).hexdigest()
+    return any(hmac.compare_digest(oczekiwany, podpis) for podpis in podpisy)
 
 
 def wyslij_email_przez_resend(odbiorca: str, temat: str, tresc: str) -> bool:
@@ -648,6 +737,7 @@ def inject_globals():
         "zalogowany_do_panelu": bool(salon_slug and zalogowany_do_salonu(salon_slug)),
         "widok_klienta": request.endpoint in WIDOK_KLIENTA_ENDPOINTS,
         "aktywny_salon_slug": salon_slug,
+        "stripe_skonfigurowany": stripe_skonfigurowany(),
     }
 
 
@@ -800,6 +890,62 @@ def panel_rozliczenia(salon_slug: str):
     zapisz_dane(dane)
     flash(f"Zapisano rozliczenia dla: {salon['nazwa_salonu']}.", "success")
     return redirect(url_for("panel_lista"))
+
+
+@app.route("/panel/<salon_slug>/stripe/checkout", methods=["POST"])
+def stripe_checkout(salon_slug: str):
+    dane = wczytaj_dane()
+    salon = pobierz_salon(dane, salon_slug)
+    if not salon:
+        flash("Nie znaleziono takiego salonu.", "error")
+        return redirect(url_for("panel_lista"))
+    if not stripe_skonfigurowany():
+        flash("Płatności Stripe nie są jeszcze skonfigurowane. Dodaj STRIPE_SECRET_KEY w Render.", "error")
+        return redirect(url_for("panel", salon_slug=salon_slug))
+
+    checkout_url = utworz_sesje_stripe(salon, salon_slug)
+    if not checkout_url:
+        flash("Nie udało się utworzyć płatności Stripe. Sprawdź logi Render albo klucz Stripe.", "error")
+        return redirect(url_for("panel", salon_slug=salon_slug))
+    return redirect(checkout_url)
+
+
+@app.route("/panel/<salon_slug>/stripe/sukces")
+def stripe_sukces(salon_slug: str):
+    flash("Dziękujemy za płatność. Stripe potwierdzi ją automatycznie po webhooku.", "success")
+    return redirect(url_for("panel", salon_slug=salon_slug))
+
+
+@app.route("/stripe/webhook", methods=["POST"])
+def stripe_webhook():
+    payload = request.get_data()
+    if not podpis_stripe_poprawny(payload, request.headers.get("Stripe-Signature", "")):
+        return jsonify({"error": "invalid signature"}), 400
+
+    try:
+        event = json.loads(payload.decode("utf-8"))
+    except json.JSONDecodeError:
+        return jsonify({"error": "invalid json"}), 400
+
+    event_type = event.get("type", "")
+    obiekt = event.get("data", {}).get("object", {})
+    metadata = obiekt.get("metadata") or {}
+    subscription_metadata = obiekt.get("subscription_details", {}).get("metadata") or {}
+    salon_slug = (
+        metadata.get("salon_slug")
+        or subscription_metadata.get("salon_slug")
+        or obiekt.get("client_reference_id")
+    )
+
+    if event_type in {"checkout.session.completed", "invoice.paid"} and salon_slug:
+        dane = wczytaj_dane()
+        salon = pobierz_salon(dane, salon_slug)
+        if salon:
+            przedluz_abonament(salon)
+            zapisz_dane(dane)
+            app.logger.info("Stripe potwierdził płatność dla salonu %s", salon_slug)
+
+    return jsonify({"received": True})
 
 
 @app.route("/panel/<salon_slug>")

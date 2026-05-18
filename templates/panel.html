@@ -25,6 +25,23 @@
       <span class="rounded-full bg-brand-100 px-3 py-1 font-medium text-brand-700">Okres testowy</span>
     {% endif %}
   </div>
+  <div class="mt-4 rounded-2xl bg-white border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div>
+      <p class="font-semibold text-slate-900">Abonament CutNow</p>
+      <p class="text-sm text-slate-600">
+        Opłata: {{ dane.oplata_miesieczna }} zł miesięcznie{% if dane.oplacone_do %}, opłacone do {{ dane.oplacone_do }}{% endif %}.
+      </p>
+    </div>
+    {% if stripe_skonfigurowany %}
+      <form method="post" action="{{ url_for('stripe_checkout', salon_slug=salon_slug) }}">
+        <button type="submit" class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800">
+          Opłać abonament
+        </button>
+      </form>
+    {% else %}
+      <span class="rounded-xl bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700">Stripe nie skonfigurowany</span>
+    {% endif %}
+  </div>
   {% if dane.opis or dane.zdjecia_prac %}
     <div class="mt-4 rounded-2xl bg-white border border-slate-200 p-4 shadow-sm">
       {% if dane.opis %}
