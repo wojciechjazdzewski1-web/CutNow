@@ -4,23 +4,35 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Glovaro{% endblock %}</title>
+  <script>
+    (function () {
+      var clientView = {{ 'true' if widok_klienta else 'false' }};
+      if (clientView && localStorage.getItem('glovaro_theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+      if (!clientView) {
+        document.documentElement.classList.remove('dark');
+      }
+    })();
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           colors: {
             brand: {
-              50: '#fdf4ff',
-              100: '#fae8ff',
-              200: '#f5d0fe',
-              300: '#f0abfc',
-              400: '#e879f9',
-              500: '#d946ef',
-              600: '#c026d3',
-              700: '#a21caf',
-              800: '#86198f',
-              900: '#701a75',
+              50: '#fff1f5',
+              100: '#ffe4ec',
+              200: '#ffc9d9',
+              300: '#ff9ebb',
+              400: '#ff6b9d',
+              500: '#f43f8a',
+              600: '#e11d74',
+              700: '#be185d',
+              800: '#9d174d',
+              900: '#831843',
             }
           },
           fontFamily: {
@@ -33,23 +45,150 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  {% if motyw_rozowy %}
+  <style>
+    :root {
+      --glo-page: #ffe8f2;
+      --glo-page-accent: #ffd1e3;
+      --glo-surface: #ffffff;
+      --glo-surface-muted: #fff0f7;
+      --glo-border: #f9a8d4;
+      --glo-border-soft: #fbcfe8;
+      --glo-text: #500724;
+      --glo-text-muted: #9d174d;
+      --glo-heading: #831843;
+      --glo-hero-from: #fce7f3;
+      --glo-hero-via: #fbcfe8;
+      --glo-hero-to: #f472b6;
+      --glo-hero-text: #831843;
+      --glo-hero-sub: #9d174d;
+      --glo-slot-bg: #fff0f7;
+      --glo-slot-border: #f472b6;
+      --glo-slot-text: #be185d;
+    }
+    html.dark {
+      --glo-page: #12060d;
+      --glo-page-accent: #1f0a14;
+      --glo-surface: #1e0b15;
+      --glo-surface-muted: #2a101c;
+      --glo-border: #be185d;
+      --glo-border-soft: #5c2444;
+      --glo-text: #fce7f3;
+      --glo-text-muted: #f9a8d4;
+      --glo-heading: #fdf2f8;
+      --glo-hero-from: #4a1635;
+      --glo-hero-via: #3b1028;
+      --glo-hero-to: #9d174d;
+      --glo-hero-text: #fdf2f8;
+      --glo-hero-sub: #f9a8d4;
+      --glo-slot-bg: #2a101c;
+      --glo-slot-border: #ec4899;
+      --glo-slot-text: #fbcfe8;
+    }
+    body.client-theme {
+      min-height: 100vh;
+      background: linear-gradient(180deg, var(--glo-page) 0%, var(--glo-page-accent) 55%, var(--glo-page) 100%) !important;
+      color: var(--glo-text) !important;
+    }
+    .client-nav {
+      background: rgba(255, 255, 255, 0.92) !important;
+      border-color: var(--glo-border-soft) !important;
+    }
+    html.dark .client-nav {
+      background: rgba(18, 6, 13, 0.95) !important;
+      border-color: var(--glo-border) !important;
+    }
+    .client-footer {
+      background: var(--glo-surface) !important;
+      border-color: var(--glo-border-soft) !important;
+      color: var(--glo-text-muted) !important;
+    }
+    html.dark .client-footer { border-color: var(--glo-border) !important; }
+    .client-card {
+      background: var(--glo-surface) !important;
+      border: 1px solid var(--glo-border-soft) !important;
+      border-radius: 1.5rem;
+      box-shadow: 0 8px 30px -8px rgba(190, 24, 93, 0.2);
+    }
+    html.dark .client-card { box-shadow: 0 8px 30px -8px rgba(0, 0, 0, 0.5); }
+    .client-hero {
+      background: linear-gradient(135deg, var(--glo-hero-from), var(--glo-hero-via), var(--glo-hero-to)) !important;
+      color: var(--glo-hero-text) !important;
+    }
+    .client-hero-sub { color: var(--glo-hero-sub) !important; }
+    .client-heading { color: var(--glo-heading) !important; }
+    .client-muted { color: var(--glo-text-muted) !important; }
+    .client-input {
+      background: var(--glo-surface) !important;
+      border: 1px solid var(--glo-border) !important;
+      color: var(--glo-text) !important;
+      border-radius: 1rem;
+    }
+    html.dark .client-input { background: var(--glo-surface-muted) !important; }
+    .client-input:focus {
+      outline: none;
+      border-color: #ec4899 !important;
+      box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.3);
+    }
+    .client-slot {
+      background: var(--glo-slot-bg) !important;
+      border: 2px solid var(--glo-slot-border) !important;
+      color: var(--glo-slot-text) !important;
+    }
+    .client-slot:hover {
+      background: #fce7f3 !important;
+      border-color: #ec4899 !important;
+    }
+    html.dark .client-slot:hover {
+      background: #3d1829 !important;
+      border-color: #f472b6 !important;
+    }
+    .client-btn-primary {
+      background: linear-gradient(135deg, #ec4899, #db2777) !important;
+      color: #fff !important;
+    }
+    .client-btn-primary:hover {
+      background: linear-gradient(135deg, #f472b6, #ec4899) !important;
+    }
+    .client-sticky-bar {
+      background: rgba(255, 255, 255, 0.97) !important;
+      border-color: var(--glo-border-soft) !important;
+    }
+    html.dark .client-sticky-bar {
+      background: rgba(18, 6, 13, 0.97) !important;
+      border-color: var(--glo-border) !important;
+    }
+    .client-loader-panel {
+      background: var(--glo-surface) !important;
+      color: var(--glo-heading) !important;
+    }
+    .client-review-box {
+      background: var(--glo-surface-muted) !important;
+      border: 1px solid var(--glo-border-soft) !important;
+    }
+  </style>
+  {% endif %}
+  {% block head_extra %}{% endblock %}
 </head>
-<body class="h-full bg-slate-50 text-slate-800 font-sans antialiased">
-  <nav class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
+<body class="h-full min-h-screen font-sans antialiased {% if motyw_rozowy %}client-theme{% else %}bg-slate-50 text-slate-800{% endif %}">
+  <nav class="sticky top-0 z-50 border-b backdrop-blur-md {% if motyw_rozowy %}client-nav{% else %}border-slate-200 bg-white/80{% endif %}">
     <div class="max-w-5xl mx-auto px-4 sm:px-6">
       <div class="flex items-center justify-between h-16">
         <a href="{{ url_for('rezerwacja_publiczna', salon_slug=aktywny_salon_slug) if widok_klienta and aktywny_salon_slug else url_for('strona_glowna') }}" class="flex items-center gap-2 group">
-          <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white font-bold text-sm shadow-lg shadow-brand-500/30 group-hover:scale-105 transition-transform">G</span>
-          <span class="font-bold text-lg tracking-tight">Glov<span class="text-brand-600">aro</span></span>
+          <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 to-brand-700 text-white font-bold text-sm shadow-lg shadow-brand-500/30 group-hover:scale-105 transition-transform">G</span>
+          <span class="font-bold text-lg tracking-tight {% if motyw_rozowy %}client-heading{% else %}text-slate-900{% endif %}">Glov<span class="text-brand-600 dark:text-brand-400">aro</span></span>
         </a>
         <div class="flex items-center gap-1 sm:gap-2">
           {% if widok_klienta %}
-            <span class="px-3 py-2 text-sm font-medium text-brand-700 bg-brand-50 rounded-lg">Rezerwacja wizyty</span>
+            <button type="button" id="theme-toggle" onclick="toggleClientTheme()" class="rounded-lg border border-brand-300 dark:border-brand-700 bg-brand-100 dark:bg-brand-950/50 px-3 py-2 text-sm font-medium text-brand-800 dark:text-brand-200 hover:bg-brand-200 dark:hover:bg-brand-900/50 transition-colors" aria-label="Przełącz tryb nocny">
+              <span id="theme-toggle-label">Tryb nocny</span>
+            </button>
+            <span class="hidden sm:inline px-3 py-2 text-sm font-medium text-brand-800 dark:text-brand-200 bg-brand-100 dark:bg-brand-950/40 rounded-lg border border-brand-200 dark:border-brand-900">Rezerwacja wizyty</span>
           {% else %}
-            <a href="{{ url_for('strona_glowna') }}" class="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors {% if request.endpoint == 'strona_glowna' %}text-brand-700 bg-brand-50{% else %}text-slate-600{% endif %}">Start</a>
-            <a href="{{ url_for('panel', salon_slug=aktywny_salon_slug) if aktywny_salon_slug else url_for('panel_lista') }}" class="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors {% if request.endpoint in ['panel', 'panel_lista', 'ustawienia_salonu', 'godziny_pracy', 'wolne_terminy', 'panel_rezerwacje', 'podglad_klienta', 'panel_login'] %}text-brand-700 bg-brand-50{% else %}text-slate-600{% endif %}">Panel właściciela</a>
+            <a href="{{ url_for('strona_glowna') }}" class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.endpoint == 'strona_glowna' %}text-brand-800 bg-brand-100{% elif motyw_rozowy %}text-brand-800 hover:bg-brand-100{% else %}text-slate-600 hover:bg-slate-100{% endif %}">Start</a>
+            <a href="{{ url_for('panel', salon_slug=aktywny_salon_slug) if aktywny_salon_slug else url_for('panel_lista') }}" class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.endpoint in ['panel', 'panel_lista', 'ustawienia_salonu', 'godziny_pracy', 'wolne_terminy', 'panel_rezerwacje', 'podglad_klienta', 'panel_login'] %}text-brand-800 bg-brand-100{% elif motyw_rozowy %}text-brand-800 hover:bg-brand-100{% else %}text-slate-600 hover:bg-slate-100{% endif %}">Panel właściciela</a>
             {% if panel_chroniony_haslem and zalogowany_do_panelu %}
-              <a href="{{ url_for('panel_wyloguj', salon_slug=aktywny_salon_slug) if aktywny_salon_slug else url_for('panel_wyloguj') }}" class="px-3 py-2 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-100">Wyloguj</a>
+              <a href="{{ url_for('panel_wyloguj', salon_slug=aktywny_salon_slug) if aktywny_salon_slug else url_for('panel_wyloguj') }}" class="px-3 py-2 text-sm font-medium rounded-lg {% if motyw_rozowy %}text-brand-700 hover:bg-brand-100{% else %}text-slate-500 hover:bg-slate-100{% endif %}">Wyloguj</a>
             {% endif %}
           {% endif %}
         </div>
@@ -61,7 +200,7 @@
     {% if messages %}
       <div class="max-w-5xl mx-auto px-4 sm:px-6 pt-4 space-y-2">
         {% for category, message in messages %}
-          <div role="alert" class="rounded-xl px-4 py-3 text-sm font-medium border {% if category == 'success' %}bg-emerald-50 text-emerald-800 border-emerald-200{% else %}bg-red-50 text-red-800 border-red-200{% endif %}">
+          <div role="alert" class="rounded-xl px-4 py-3 text-sm font-medium border {% if category == 'success' %}bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-200 dark:border-emerald-800{% else %}bg-red-50 text-red-800 border-red-200 dark:bg-red-950/50 dark:text-red-200 dark:border-red-800{% endif %}">
             {{ message }}
           </div>
         {% endfor %}
@@ -73,24 +212,24 @@
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="border-t border-slate-200 bg-white mt-auto">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 text-center text-sm text-slate-500">
+  <footer class="mt-auto border-t {% if motyw_rozowy %}client-footer{% else %}border-slate-200 bg-white{% endif %}">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 text-center text-sm">
       <p>&copy; 2026 Glovaro — panel dla salonów fryzjerskich</p>
       <div class="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2">
-        <a href="{{ url_for('regulamin') }}" class="hover:text-brand-700">Regulamin</a>
-        <a href="{{ url_for('polityka_prywatnosci') }}" class="hover:text-brand-700">Polityka prywatności</a>
-        <a href="{{ url_for('polityka_cookies') }}" class="hover:text-brand-700">Cookies</a>
+        <a href="{{ url_for('regulamin') }}" class="hover:text-brand-600 dark:hover:text-brand-400">Regulamin</a>
+        <a href="{{ url_for('polityka_prywatnosci') }}" class="hover:text-brand-600 dark:hover:text-brand-400">Polityka prywatności</a>
+        <a href="{{ url_for('polityka_cookies') }}" class="hover:text-brand-600 dark:hover:text-brand-400">Cookies</a>
       </div>
     </div>
   </footer>
 
-  <div id="cookie-banner" class="fixed inset-x-0 bottom-0 z-[200] hidden border-t border-slate-200 bg-white/95 p-4 shadow-2xl backdrop-blur">
+  <div id="cookie-banner" class="fixed inset-x-0 bottom-0 z-[200] hidden border-t p-4 shadow-2xl backdrop-blur {% if motyw_rozowy %}border-brand-300 dark:border-brand-900 bg-white/95 dark:bg-[#12060d]/95{% else %}border-slate-200 bg-white/95{% endif %}">
     <div class="mx-auto flex max-w-5xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div class="text-sm text-slate-600">
-        <p class="font-semibold text-slate-900">Pliki cookies</p>
-        <p>Używamy niezbędnych cookies do działania logowania, rezerwacji i bezpieczeństwa. Szczegóły znajdziesz w <a href="{{ url_for('polityka_cookies') }}" class="font-semibold text-brand-700 hover:underline">polityce cookies</a>.</p>
+      <div class="text-sm {% if motyw_rozowy %}client-muted{% else %}text-slate-600{% endif %}">
+        <p class="font-semibold {% if motyw_rozowy %}client-heading{% else %}text-slate-900{% endif %}">Pliki cookies</p>
+        <p>Używamy niezbędnych cookies do działania logowania, rezerwacji i bezpieczeństwa. Szczegóły znajdziesz w <a href="{{ url_for('polityka_cookies') }}" class="font-semibold text-brand-600 dark:text-brand-400 hover:underline">polityce cookies</a>.</p>
       </div>
-      <button type="button" onclick="acceptCookies()" class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800">
+      <button type="button" onclick="acceptCookies()" class="rounded-xl px-5 py-3 text-sm font-semibold text-white {% if motyw_rozowy %}client-btn-primary{% else %}bg-slate-900 hover:bg-slate-800{% endif %}">
         Rozumiem
       </button>
     </div>
@@ -102,10 +241,24 @@
       document.getElementById('cookie-banner')?.classList.add('hidden');
     }
 
+    function toggleClientTheme() {
+      var root = document.documentElement;
+      var isDark = root.classList.toggle('dark');
+      localStorage.setItem('glovaro_theme', isDark ? 'dark' : 'light');
+      updateThemeToggleLabel();
+    }
+
+    function updateThemeToggleLabel() {
+      var label = document.getElementById('theme-toggle-label');
+      if (!label) return;
+      label.textContent = document.documentElement.classList.contains('dark') ? 'Tryb jasny' : 'Tryb nocny';
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
       if (localStorage.getItem('glovaro_cookie_notice') !== 'accepted') {
         document.getElementById('cookie-banner')?.classList.remove('hidden');
       }
+      updateThemeToggleLabel();
     });
   </script>
 </body>

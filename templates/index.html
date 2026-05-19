@@ -3,28 +3,28 @@
 
 {% block content %}
 <section class="text-center max-w-2xl mx-auto">
-  <div class="inline-flex items-center gap-2 rounded-full bg-brand-50 text-brand-700 px-4 py-1.5 text-sm font-medium mb-6 border border-brand-100">
+  <div class="inline-flex items-center gap-2 rounded-full bg-brand-100 text-brand-800 px-4 py-1.5 text-sm font-medium mb-6 border border-brand-200">
     <span class="h-2 w-2 rounded-full bg-brand-500 animate-pulse"></span>
     Proste narzędzie dla fryzjerów
   </div>
 
-  <h1 class="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900 mb-4">
+  <h1 class="text-4xl sm:text-5xl font-bold tracking-tight client-heading mb-4">
     Twój salon.<br>
-    <span class="bg-gradient-to-r from-brand-600 to-violet-600 bg-clip-text text-transparent">Twoje terminy.</span>
+    <span class="bg-gradient-to-r from-brand-600 to-brand-500 bg-clip-text text-transparent">Twoje terminy.</span>
   </h1>
 
-  <p class="text-lg text-slate-600 mb-10 leading-relaxed">
+  <p class="text-lg client-muted mb-10 leading-relaxed">
     Glovaro pomaga obsługiwać wiele salonów naraz: każdy fryzjer dostaje osobny link, własny panel i własne rezerwacje.
   </p>
 
   <div class="flex flex-col sm:flex-row gap-3 justify-center">
-    <a href="{{ url_for('panel_lista') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-3.5 text-white font-semibold shadow-lg shadow-brand-500/30 hover:from-brand-500 hover:to-brand-600 transition-all hover:-translate-y-0.5">
+    <a href="{{ url_for('panel_lista') }}" class="client-btn-primary inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 font-semibold shadow-lg shadow-brand-500/30 transition-all hover:-translate-y-0.5">
       Otwórz panel salonów
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
     </a>
     {% if salony %}
       {% set pierwszy_slug = salony.keys()|list|first %}
-      <a href="{{ url_for('rezerwacja_publiczna', salon_slug=pierwszy_slug) }}" class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3.5 font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+      <a href="{{ url_for('rezerwacja_publiczna', salon_slug=pierwszy_slug) }}" class="inline-flex items-center justify-center rounded-xl border border-brand-300 bg-white px-6 py-3.5 font-semibold text-brand-800 hover:bg-brand-50 transition-colors">
         Przykładowa rezerwacja
       </a>
     {% endif %}
@@ -32,28 +32,28 @@
 </section>
 
 <section class="mt-20 grid sm:grid-cols-3 gap-6">
-  <article class="rounded-2xl bg-white p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-    <div class="h-11 w-11 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center mb-4">
+  <article class="client-card p-6 hover:shadow-lg transition-shadow">
+    <div class="h-11 w-11 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center mb-4">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
     </div>
-    <h3 class="font-semibold text-slate-900 mb-2">Godziny pracy</h3>
-    <p class="text-sm text-slate-600">Ustaw otwarcie i zamknięcie dla każdego dnia tygodnia. Oznacz dni wolne jednym kliknięciem.</p>
+    <h3 class="font-semibold client-heading mb-2">Godziny pracy</h3>
+    <p class="text-sm client-muted">Ustaw otwarcie i zamknięcie dla każdego dnia tygodnia. Oznacz dni wolne jednym kliknięciem.</p>
   </article>
 
-  <article class="rounded-2xl bg-white p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-    <div class="h-11 w-11 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4">
+  <article class="client-card p-6 hover:shadow-lg transition-shadow">
+    <div class="h-11 w-11 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center mb-4">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
     </div>
-    <h3 class="font-semibold text-slate-900 mb-2">Wolne terminy</h3>
-    <p class="text-sm text-slate-600">Klienci rezerwują wizytę online — imię, telefon i gotowe. Ty widzisz listę w panelu.</p>
+    <h3 class="font-semibold client-heading mb-2">Wolne terminy</h3>
+    <p class="text-sm client-muted">Klienci rezerwują wizytę online — imię, telefon i gotowe. Ty widzisz listę w panelu.</p>
   </article>
 
-  <article class="rounded-2xl bg-white p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-    <div class="h-11 w-11 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mb-4">
+  <article class="client-card p-6 hover:shadow-lg transition-shadow">
+    <div class="h-11 w-11 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center mb-4">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
     </div>
-    <h3 class="font-semibold text-slate-900 mb-2">Podgląd klienta</h3>
-    <p class="text-sm text-slate-600">Zobacz, jak wygląda lista dostępnych terminów z perspektywy osoby rezerwującej wizytę.</p>
+    <h3 class="font-semibold client-heading mb-2">Podgląd klienta</h3>
+    <p class="text-sm client-muted">Zobacz, jak wygląda lista dostępnych terminów z perspektywy osoby rezerwującej wizytę.</p>
   </article>
 </section>
 {% endblock %}

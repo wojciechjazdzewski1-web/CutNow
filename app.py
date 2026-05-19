@@ -111,6 +111,13 @@ WIDOK_KLIENTA_ENDPOINTS = {
     "opinia_klienta",
 }
 
+MOTYW_ROZOWY_ENDPOINTS = WIDOK_KLIENTA_ENDPOINTS | {
+    "strona_glowna",
+    "regulamin",
+    "polityka_prywatnosci",
+    "polityka_cookies",
+}
+
 
 def slugify(wartosc: str) -> str:
     wartosc = wartosc.lower()
@@ -755,6 +762,7 @@ def inject_globals():
         "panel_chroniony_haslem": bool(PANEL_PASSWORD),
         "zalogowany_do_panelu": bool(salon_slug and zalogowany_do_salonu(salon_slug)),
         "widok_klienta": request.endpoint in WIDOK_KLIENTA_ENDPOINTS,
+        "motyw_rozowy": request.endpoint in MOTYW_ROZOWY_ENDPOINTS,
         "aktywny_salon_slug": salon_slug,
         "stripe_skonfigurowany": stripe_skonfigurowany(),
         "legal": {

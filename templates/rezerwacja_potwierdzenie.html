@@ -3,62 +3,62 @@
 
 {% block content %}
 <div class="max-w-md mx-auto text-center">
-  <div class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-6">
+  <div class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 mb-6">
     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
   </div>
 
-  <h1 class="text-2xl font-bold text-slate-900 mb-2">Rezerwacja wysłana!</h1>
-  <p class="text-slate-600 mb-8">Salon otrzymał zgłoszenie. Status możesz sprawdzić lub anulować z tej strony.</p>
+  <h1 class="text-2xl font-bold client-heading mb-2">Rezerwacja wysłana!</h1>
+  <p class="client-muted mb-8">Salon otrzymał zgłoszenie. Status możesz sprawdzić lub anulować z tej strony.</p>
 
-  <div class="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm text-left space-y-3 mb-8">
+  <div class="client-card p-6 text-left space-y-3 mb-8">
     <div class="flex justify-between gap-4">
-      <span class="text-slate-500">Salon</span>
-      <span class="font-semibold text-slate-900 text-right">{{ dane.nazwa_salonu }}</span>
+      <span class="client-muted">Salon</span>
+      <span class="font-semibold client-heading text-right">{{ dane.nazwa_salonu }}</span>
     </div>
     <div class="flex justify-between gap-4">
-      <span class="text-slate-500">Termin</span>
-      <span class="font-semibold text-slate-900 text-right">{{ dzien_nazwa }}, {{ rezerwacja.data }} o {{ rezerwacja.godzina }}</span>
+      <span class="client-muted">Termin</span>
+      <span class="font-semibold client-heading text-right">{{ dzien_nazwa }}, {{ rezerwacja.data }} o {{ rezerwacja.godzina }}</span>
     </div>
     <div class="flex justify-between gap-4">
-      <span class="text-slate-500">Imię</span>
-      <span class="font-semibold text-slate-900 text-right">{{ rezerwacja.imie }}</span>
+      <span class="client-muted">Imię</span>
+      <span class="font-semibold client-heading text-right">{{ rezerwacja.imie }}</span>
     </div>
     <div class="flex justify-between gap-4">
-      <span class="text-slate-500">Telefon</span>
-      <span class="font-semibold text-slate-900 text-right">{{ rezerwacja.telefon }}</span>
+      <span class="client-muted">Telefon</span>
+      <span class="font-semibold client-heading text-right">{{ rezerwacja.telefon }}</span>
     </div>
     {% if rezerwacja.pracownik %}
       <div class="flex justify-between gap-4">
-        <span class="text-slate-500">Pracownik</span>
-        <span class="font-semibold text-slate-900 text-right">{{ rezerwacja.pracownik }}</span>
+        <span class="client-muted">Pracownik</span>
+        <span class="font-semibold client-heading text-right">{{ rezerwacja.pracownik }}</span>
       </div>
     {% endif %}
     <div class="flex justify-between gap-4">
-      <span class="text-slate-500">Status</span>
-      <span class="font-semibold text-slate-900 text-right">
+      <span class="client-muted">Status</span>
+      <span class="font-semibold client-heading text-right">
         {% if rezerwacja.status == 'oczekuje' %}Oczekuje na potwierdzenie{% elif rezerwacja.status == 'potwierdzona' %}Potwierdzona{% elif rezerwacja.status == 'anulowana' %}Anulowana{% elif rezerwacja.status == 'odrzucona' %}Odrzucona{% else %}{{ rezerwacja.status }}{% endif %}
       </span>
     </div>
     {% if rezerwacja.uwagi %}
-      <div class="pt-2 border-t border-slate-100">
-        <span class="text-slate-500 text-sm">Uwagi</span>
-        <p class="text-slate-800 mt-1">{{ rezerwacja.uwagi }}</p>
+      <div class="pt-2 border-t border-brand-100 dark:border-brand-900">
+        <span class="client-muted text-sm">Uwagi</span>
+        <p class="client-heading mt-1">{{ rezerwacja.uwagi }}</p>
       </div>
     {% endif %}
   </div>
 
   <div class="flex flex-col gap-3">
     {% if rezerwacja.status not in ['anulowana', 'odrzucona'] %}
-      <a href="{{ url_for('anuluj_rezerwacje_klienta', salon_slug=salon_slug, token=rezerwacja.token_anulowania) }}" class="inline-flex justify-center rounded-xl border border-red-200 px-6 py-3 font-semibold text-red-700 hover:bg-red-50">
+      <a href="{{ url_for('anuluj_rezerwacje_klienta', salon_slug=salon_slug, token=rezerwacja.token_anulowania) }}" class="inline-flex justify-center rounded-xl border border-red-200 dark:border-red-800 px-6 py-3 font-semibold text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40">
         Anuluj wizytę
       </a>
     {% endif %}
     {% if rezerwacja.token_opinii and not rezerwacja.opinia_id %}
-      <a href="{{ url_for('opinia_klienta', salon_slug=salon_slug, token=rezerwacja.token_opinii) }}" class="inline-flex justify-center rounded-xl bg-yellow-400 px-6 py-3 font-semibold text-yellow-950 hover:bg-yellow-300">
+      <a href="{{ url_for('opinia_klienta', salon_slug=salon_slug, token=rezerwacja.token_opinii) }}" class="inline-flex justify-center rounded-xl bg-yellow-400 dark:bg-yellow-500 px-6 py-3 font-semibold text-yellow-950 hover:bg-yellow-300 dark:hover:bg-yellow-400">
         Wystaw opinię po wizycie
       </a>
     {% endif %}
-    <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="inline-flex justify-center rounded-xl border border-slate-300 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">
+    <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="inline-flex justify-center rounded-xl border border-brand-200 dark:border-brand-800 px-6 py-3 font-semibold client-heading hover:bg-brand-50 dark:hover:bg-brand-950/50">
       Wróć na stronę rezerwacji
     </a>
   </div>

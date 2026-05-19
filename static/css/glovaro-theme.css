@@ -1,0 +1,157 @@
+/* Glovaro — motyw klienta (jasny róż + tryb nocny) */
+
+:root {
+  --glo-page: #fff5f8;
+  --glo-page-accent: #ffe4ef;
+  --glo-surface: #ffffff;
+  --glo-surface-muted: #fff0f5;
+  --glo-border: #fbcfe8;
+  --glo-border-soft: #fce7f3;
+  --glo-text: #4a044e;
+  --glo-text-muted: #9d4b7a;
+  --glo-heading: #701a5c;
+  --glo-hero-from: #fce7f3;
+  --glo-hero-via: #fbcfe8;
+  --glo-hero-to: #f9a8d4;
+  --glo-hero-text: #701a5c;
+  --glo-hero-sub: #9d4b7a;
+  --glo-slot-bg: #fff0f5;
+  --glo-slot-border: #f9a8d4;
+  --glo-slot-text: #9d174d;
+}
+
+html.dark {
+  --glo-page: #12060d;
+  --glo-page-accent: #1f0a14;
+  --glo-surface: #1e0b15;
+  --glo-surface-muted: #2a101c;
+  --glo-border: #5c2444;
+  --glo-border-soft: #3d1829;
+  --glo-text: #fce7f3;
+  --glo-text-muted: #f0abce;
+  --glo-heading: #fdf2f8;
+  --glo-hero-from: #3b1028;
+  --glo-hero-via: #2a0a1c;
+  --glo-hero-to: #4a1635;
+  --glo-hero-text: #fdf2f8;
+  --glo-hero-sub: #f9a8d4;
+  --glo-slot-bg: #2a101c;
+  --glo-slot-border: #be185d;
+  --glo-slot-text: #fbcfe8;
+}
+
+body.client-theme {
+  background: linear-gradient(180deg, var(--glo-page) 0%, var(--glo-page-accent) 100%);
+  color: var(--glo-text);
+}
+
+.client-nav {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: var(--glo-border-soft);
+}
+
+html.dark .client-nav {
+  background: rgba(18, 6, 13, 0.92);
+  border-color: var(--glo-border);
+}
+
+.client-footer {
+  background: var(--glo-surface);
+  border-color: var(--glo-border-soft);
+  color: var(--glo-text-muted);
+}
+
+html.dark .client-footer {
+  background: var(--glo-surface);
+  border-color: var(--glo-border);
+}
+
+.client-card {
+  background: var(--glo-surface);
+  border: 1px solid var(--glo-border-soft);
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 24px -4px rgba(190, 24, 93, 0.12);
+}
+
+html.dark .client-card {
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.45);
+}
+
+.client-hero {
+  background: linear-gradient(135deg, var(--glo-hero-from), var(--glo-hero-via), var(--glo-hero-to));
+  color: var(--glo-hero-text);
+}
+
+.client-hero-sub {
+  color: var(--glo-hero-sub);
+}
+
+.client-heading {
+  color: var(--glo-heading);
+}
+
+.client-muted {
+  color: var(--glo-text-muted);
+}
+
+.client-input {
+  background: var(--glo-surface);
+  border: 1px solid var(--glo-border);
+  color: var(--glo-text);
+  border-radius: 1rem;
+}
+
+.client-input:focus {
+  outline: none;
+  border-color: #ec4899;
+  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.25);
+}
+
+html.dark .client-input {
+  background: var(--glo-surface-muted);
+}
+
+.client-slot {
+  background: var(--glo-slot-bg);
+  border: 2px solid var(--glo-slot-border);
+  color: var(--glo-slot-text);
+}
+
+.client-slot:hover {
+  background: #fce7f3;
+  border-color: #ec4899;
+}
+
+html.dark .client-slot:hover {
+  background: #3d1829;
+  border-color: #f472b6;
+}
+
+.client-btn-primary {
+  background: linear-gradient(135deg, #ec4899, #db2777);
+  color: white;
+}
+
+.client-btn-primary:hover {
+  background: linear-gradient(135deg, #f472b6, #ec4899);
+}
+
+.client-sticky-bar {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: var(--glo-border-soft);
+}
+
+html.dark .client-sticky-bar {
+  background: rgba(18, 6, 13, 0.95);
+  border-color: var(--glo-border);
+}
+
+.client-loader-panel {
+  background: var(--glo-surface);
+  color: var(--glo-heading);
+}
+
+.client-review-box {
+  background: var(--glo-surface-muted);
+  border-color: var(--glo-border-soft);
+}

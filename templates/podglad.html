@@ -2,31 +2,31 @@
 {% block title %}Rezerwacja — {{ dane.nazwa_salonu }}{% endblock %}
 
 {% block content %}
-<div id="booking-loader" class="fixed inset-0 z-[120] hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm">
-  <div class="rounded-2xl bg-white px-6 py-5 text-center shadow-2xl">
-    <div class="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-700"></div>
-    <p class="text-sm font-semibold text-slate-800">Ładuję terminy...</p>
+<div id="booking-loader" class="fixed inset-0 z-[120] hidden items-center justify-center bg-brand-900/40 dark:bg-black/70 backdrop-blur-sm">
+  <div class="client-loader-panel rounded-2xl px-6 py-5 text-center shadow-2xl border border-brand-100 dark:border-brand-900">
+    <div class="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600 dark:border-brand-800 dark:border-t-brand-400"></div>
+    <p class="text-sm font-semibold client-heading">Ładuję terminy...</p>
   </div>
 </div>
 
 <div class="max-w-2xl mx-auto">
-  <section class="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-slate-900 to-brand-900 px-6 py-9 text-white shadow-2xl shadow-slate-900/20 mb-6">
-    <div class="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-brand-500/30 blur-3xl"></div>
-    <div class="absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-violet-500/20 blur-3xl"></div>
+  <section class="client-hero relative overflow-hidden rounded-[2rem] px-6 py-9 shadow-2xl shadow-brand-500/20 mb-6">
+    <div class="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-brand-400/40 blur-3xl"></div>
+    <div class="absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-brand-300/30 blur-3xl"></div>
     <div class="relative text-center">
-      <p class="text-sm text-brand-200 font-medium mb-2">Rezerwacja online</p>
-      <h1 class="text-4xl font-bold tracking-tight">{{ dane.nazwa_salonu }}</h1>
-      <p class="text-slate-200 mt-3 leading-relaxed">
+      <p class="text-sm client-hero-sub font-medium mb-2">Rezerwacja online</p>
+      <h1 class="text-4xl font-bold tracking-tight client-heading">{{ dane.nazwa_salonu }}</h1>
+      <p class="client-hero-sub mt-3 leading-relaxed">
       {% if dane.opis %}{{ dane.opis }}{% else %}Wybierz termin i zarezerwuj wizytę w kilka sekund{% endif %}
       </p>
       {% if dane.telefon_kontaktowy or dane.instagram %}
         <div class="mt-5 flex flex-wrap justify-center gap-2 text-sm">
           {% if dane.telefon_kontaktowy %}
-            <a href="tel:{{ dane.telefon_kontaktowy }}" class="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-white hover:bg-white/20">Tel. {{ dane.telefon_kontaktowy }}</a>
+            <a href="tel:{{ dane.telefon_kontaktowy }}" class="rounded-full bg-white/60 dark:bg-white/10 border border-brand-200 dark:border-white/20 px-4 py-2 client-heading hover:bg-white/80 dark:hover:bg-white/20 transition-colors">Tel. {{ dane.telefon_kontaktowy }}</a>
           {% endif %}
           {% if dane.instagram %}
             {% set instagram_url = dane.instagram if dane.instagram.startswith('http') else 'https://instagram.com/' ~ dane.instagram|replace('@', '') %}
-            <a href="{{ instagram_url }}" target="_blank" rel="noopener" class="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-white hover:bg-white/20">Instagram</a>
+            <a href="{{ instagram_url }}" target="_blank" rel="noopener" class="rounded-full bg-white/60 dark:bg-white/10 border border-brand-200 dark:border-white/20 px-4 py-2 client-heading hover:bg-white/80 dark:hover:bg-white/20 transition-colors">Instagram</a>
           {% endif %}
         </div>
       {% endif %}
@@ -34,47 +34,47 @@
   </section>
 
   {% if dane.zdjecia_prac %}
-    <section class="mb-6 rounded-3xl bg-white border border-slate-200 p-4 shadow-sm">
+    <section class="client-card mb-6 p-4">
       <div class="flex items-center justify-between mb-3">
-        <h2 class="font-semibold text-slate-900">Prace salonu</h2>
-        <span class="text-xs text-slate-500">Galeria</span>
+        <h2 class="font-semibold client-heading">Prace salonu</h2>
+        <span class="text-xs client-muted">Galeria</span>
       </div>
       <div class="grid grid-cols-3 gap-2 sm:gap-3">
         {% for zdjecie in dane.zdjecia_prac[:6] %}
-          <button type="button" onclick="openGalleryImage({{ zdjecie|tojson }})" class="{% if loop.first %}col-span-2 row-span-2{% endif %} block overflow-hidden rounded-2xl bg-slate-100 aspect-square focus:ring-2 focus:ring-brand-500 outline-none">
+          <button type="button" onclick="openGalleryImage({{ zdjecie|tojson }})" class="{% if loop.first %}col-span-2 row-span-2{% endif %} block overflow-hidden rounded-2xl bg-brand-50 dark:bg-brand-950/50 aspect-square focus:ring-2 focus:ring-brand-500 outline-none">
             <img src="{{ zdjecie }}" alt="Praca salonu {{ loop.index }}" class="h-full w-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy">
           </button>
         {% endfor %}
       </div>
-      <p class="text-xs text-slate-500 mt-3 text-center">Kliknij zdjęcie, aby powiększyć.</p>
+      <p class="text-xs client-muted mt-3 text-center">Kliknij zdjęcie, aby powiększyć.</p>
     </section>
   {% endif %}
 
   {% if opinie %}
-    <section class="mb-6 rounded-3xl bg-white border border-slate-200 p-5 shadow-sm">
+    <section class="client-card mb-6 p-5">
       <div class="flex items-center justify-between gap-4 mb-4">
         <div>
-          <h2 class="font-semibold text-slate-900">Opinie klientów</h2>
-          <p class="text-sm text-slate-500">Średnia ocena: <span class="font-semibold text-slate-800">{{ srednia_ocena }}/5</span></p>
+          <h2 class="font-semibold client-heading">Opinie klientów</h2>
+          <p class="text-sm client-muted">Średnia ocena: <span class="font-semibold client-heading">{{ srednia_ocena }}/5</span></p>
         </div>
-        <div class="rounded-full bg-yellow-100 px-4 py-2 text-sm font-bold text-yellow-800">
+        <div class="rounded-full bg-yellow-100 dark:bg-yellow-900/40 px-4 py-2 text-sm font-bold text-yellow-800 dark:text-yellow-200">
           {{ opinie|length }} opinii
         </div>
       </div>
       <div class="space-y-3">
         {% for opinia in opinie[:3] %}
-          <article class="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+          <article class="client-review-box rounded-2xl border p-4">
             <div class="flex items-center justify-between gap-3 mb-2">
-              <p class="font-semibold text-slate-900">{{ opinia.imie }}</p>
-              <p class="text-yellow-500 font-bold">
+              <p class="font-semibold client-heading">{{ opinia.imie }}</p>
+              <p class="text-yellow-500 dark:text-yellow-400 font-bold">
                 {% for _ in range(opinia.ocena) %}★{% endfor %}
               </p>
             </div>
             {% if opinia.komentarz %}
-              <p class="text-sm text-slate-600 leading-relaxed">{{ opinia.komentarz }}</p>
+              <p class="text-sm client-muted leading-relaxed">{{ opinia.komentarz }}</p>
             {% endif %}
             {% if opinia.pracownik %}
-              <p class="text-xs text-slate-400 mt-2">Pracownik: {{ opinia.pracownik }}</p>
+              <p class="text-xs client-muted mt-2 opacity-80">Pracownik: {{ opinia.pracownik }}</p>
             {% endif %}
           </article>
         {% endfor %}
@@ -82,46 +82,46 @@
     </section>
   {% endif %}
 
-  <form id="date-picker-form" method="get" action="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="mb-6 rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
-    <label for="data" class="block text-sm font-medium text-slate-700 mb-2">Wybierz dzień wizyty</label>
+  <form id="date-picker-form" method="get" action="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="client-card mb-6 p-5">
+    <label for="data" class="block text-sm font-medium client-heading mb-2">Wybierz dzień wizyty</label>
     <div class="flex gap-3">
       <input type="date" id="data" name="data" value="{{ wybrana_data }}"
-        class="flex-1 rounded-2xl border border-slate-300 px-4 py-4 text-lg focus:ring-2 focus:ring-brand-500 outline-none"
+        class="client-input flex-1 px-4 py-4 text-lg w-full"
         onchange="showBookingLoader(); this.form.submit()">
       <noscript>
-        <button type="submit" class="rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-semibold px-5 py-3 transition-colors">
+        <button type="submit" class="client-btn-primary rounded-xl font-semibold px-5 py-3 transition-colors">
           Pokaż terminy
         </button>
       </noscript>
     </div>
-    <p class="text-xs text-slate-500 mt-2">Terminy odświeżą się automatycznie po zmianie daty.</p>
+    <p class="text-xs client-muted mt-2">Terminy odświeżą się automatycznie po zmianie daty.</p>
   </form>
 
-  <div class="rounded-3xl bg-white border border-slate-200 p-6 shadow-sm mb-6">
-    <h2 class="text-sm font-medium text-slate-500 uppercase tracking-wide mb-3">Godziny otwarcia</h2>
+  <div class="client-card p-6 mb-6">
+    <h2 class="text-sm font-medium client-muted uppercase tracking-wide mb-3">Godziny otwarcia</h2>
     {% if godziny.zamkniety %}
-      <p class="text-red-600 font-medium">Salon jest zamknięty w ten dzień.</p>
+      <p class="text-red-600 dark:text-red-400 font-medium">Salon jest zamknięty w ten dzień.</p>
     {% else %}
-      <p class="text-xl font-semibold text-slate-900">{{ godziny.otwarcie }} — {{ godziny.zamkniecie }}</p>
-      <p class="text-sm text-slate-500 mt-1">{{ dni_tygodnia[dzien_tygodnia] }}, {{ wybrana_data }}</p>
+      <p class="text-xl font-semibold client-heading">{{ godziny.otwarcie }} — {{ godziny.zamkniecie }}</p>
+      <p class="text-sm client-muted mt-1">{{ dni_tygodnia[dzien_tygodnia] }}, {{ wybrana_data }}</p>
     {% endif %}
   </div>
 
   {% if not godziny.zamkniety %}
-    <div class="rounded-3xl bg-white border border-slate-200 p-6 shadow-sm">
-      <h2 class="text-sm font-medium text-slate-500 uppercase tracking-wide mb-4">Wolne terminy</h2>
+    <div class="client-card p-6">
+      <h2 class="text-sm font-medium client-muted uppercase tracking-wide mb-4">Wolne terminy</h2>
       {% if terminy %}
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {% for t in terminy %}
             <a href="{{ url_for('rezerwacja_formularz', salon_slug=salon_slug, data=wybrana_data, godzina=t) }}"
-              class="rounded-2xl border-2 border-brand-200 bg-brand-50 text-brand-800 font-bold py-5 text-center text-lg hover:bg-brand-100 hover:border-brand-500 hover:-translate-y-0.5 transition-all shadow-sm">
+              class="client-slot rounded-2xl font-bold py-5 text-center text-lg hover:-translate-y-0.5 transition-all shadow-sm">
               {{ t }}
             </a>
           {% endfor %}
         </div>
-        <p class="text-xs text-slate-500 mt-4 text-center">Kliknij godzinę, podaj dane — gotowe.</p>
+        <p class="text-xs client-muted mt-4 text-center">Kliknij godzinę, podaj dane — gotowe.</p>
       {% else %}
-        <p class="text-slate-500">Brak wolnych terminów na ten dzień. Wybierz inną datę.</p>
+        <p class="client-muted">Brak wolnych terminów na ten dzień. Wybierz inną datę.</p>
       {% endif %}
     </div>
   {% endif %}

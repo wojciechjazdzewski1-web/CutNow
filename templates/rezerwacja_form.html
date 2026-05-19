@@ -3,40 +3,40 @@
 
 {% block content %}
 <div class="max-w-md mx-auto pb-28 sm:pb-0">
-  <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug, data=wybrana_data) }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6">
+  <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug, data=wybrana_data) }}" class="inline-flex items-center gap-1 text-sm client-muted hover:text-brand-600 dark:hover:text-brand-400 mb-6">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
     Wróć do terminów
   </a>
 
-  <h1 class="text-3xl font-bold text-slate-900 mb-2">Twoja rezerwacja</h1>
-  <p class="text-slate-600 mb-6 leading-relaxed">
-    <span class="font-semibold text-slate-800">{{ dane.nazwa_salonu }}</span><br>
-    {{ dni_tygodnia[dzien_tygodnia] }}, {{ wybrana_data }} o <span class="text-brand-700 font-bold">{{ godzina }}</span>
+  <h1 class="text-3xl font-bold client-heading mb-2">Twoja rezerwacja</h1>
+  <p class="client-muted mb-6 leading-relaxed">
+    <span class="font-semibold client-heading">{{ dane.nazwa_salonu }}</span><br>
+    {{ dni_tygodnia[dzien_tygodnia] }}, {{ wybrana_data }} o <span class="text-brand-700 dark:text-brand-400 font-bold">{{ godzina }}</span>
   </p>
 
-  <form method="post" class="rounded-3xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
+  <form method="post" class="client-card p-6 space-y-5">
     <input type="hidden" name="data" value="{{ wybrana_data }}">
     <input type="hidden" name="godzina" value="{{ godzina }}">
 
     <div>
-      <label for="imie" class="block text-sm font-medium text-slate-700 mb-2">Imię i nazwisko *</label>
+      <label for="imie" class="block text-sm font-medium client-heading mb-2">Imię i nazwisko *</label>
       <input type="text" id="imie" name="imie" required
-        class="w-full rounded-2xl border border-slate-300 px-4 py-4 text-lg focus:ring-2 focus:ring-brand-500 outline-none"
+        class="client-input w-full px-4 py-4 text-lg"
         placeholder="np. Anna Kowalska">
     </div>
 
     <div>
-      <label for="telefon" class="block text-sm font-medium text-slate-700 mb-2">Telefon *</label>
+      <label for="telefon" class="block text-sm font-medium client-heading mb-2">Telefon *</label>
       <input type="tel" id="telefon" name="telefon" required
-        class="w-full rounded-2xl border border-slate-300 px-4 py-4 text-lg focus:ring-2 focus:ring-brand-500 outline-none"
+        class="client-input w-full px-4 py-4 text-lg"
         placeholder="np. 500 123 456">
     </div>
 
     {% if pracownicy %}
       <div>
-        <label for="pracownik" class="block text-sm font-medium text-slate-700 mb-2">Wybierz pracownika *</label>
+        <label for="pracownik" class="block text-sm font-medium client-heading mb-2">Wybierz pracownika *</label>
         <select id="pracownik" name="pracownik" required
-          class="w-full rounded-2xl border border-slate-300 px-4 py-4 text-lg focus:ring-2 focus:ring-brand-500 outline-none">
+          class="client-input w-full px-4 py-4 text-lg">
           <option value="">Wybierz osobę</option>
           <option value="__dowolny__">Dowolny dostępny pracownik</option>
           {% for pracownik in pracownicy %}
@@ -47,14 +47,14 @@
     {% endif %}
 
     <div>
-      <label for="uwagi" class="block text-sm font-medium text-slate-700 mb-2">Uwagi (opcjonalnie)</label>
+      <label for="uwagi" class="block text-sm font-medium client-heading mb-2">Uwagi (opcjonalnie)</label>
       <textarea id="uwagi" name="uwagi" rows="3"
-        class="w-full rounded-2xl border border-slate-300 px-4 py-4 focus:ring-2 focus:ring-brand-500 outline-none resize-none"
+        class="client-input w-full px-4 py-4 resize-none"
         placeholder="np. strzyżenie męskie"></textarea>
     </div>
 
-    <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 p-4 shadow-2xl backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
-      <button type="submit" class="w-full rounded-2xl bg-gradient-to-r from-brand-600 to-brand-700 text-white font-bold py-4 text-lg hover:from-brand-500 hover:to-brand-600 transition-all shadow-lg shadow-brand-500/25">
+    <div class="fixed inset-x-0 bottom-0 z-40 client-sticky-bar border-t p-4 shadow-2xl backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+      <button type="submit" class="client-btn-primary w-full rounded-2xl font-bold py-4 text-lg transition-all shadow-lg shadow-brand-500/25">
         Zarezerwuj wizytę
       </button>
     </div>

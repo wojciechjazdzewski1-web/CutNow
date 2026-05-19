@@ -3,21 +3,21 @@
 
 {% block content %}
 <div class="max-w-md mx-auto text-center">
-  <div class="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm">
-    <h1 class="text-2xl font-bold text-slate-900 mb-2">Anulować wizytę?</h1>
-    <p class="text-slate-600 mb-6">Po anulowaniu termin wróci do wolnych i będzie dostępny dla innych klientów.</p>
+  <div class="client-card p-6">
+    <h1 class="text-2xl font-bold client-heading mb-2">Anulować wizytę?</h1>
+    <p class="client-muted mb-6">Po anulowaniu termin wróci do wolnych i będzie dostępny dla innych klientów.</p>
 
-    <div class="rounded-xl bg-slate-50 p-4 text-left space-y-2 mb-6">
-      <p><span class="text-slate-500">Salon:</span> <strong>{{ dane.nazwa_salonu }}</strong></p>
-      <p><span class="text-slate-500">Termin:</span> <strong>{{ dzien_nazwa }}, {{ rezerwacja.data }} o {{ rezerwacja.godzina }}</strong></p>
+    <div class="client-review-box rounded-xl border p-4 text-left space-y-2 mb-6">
+      <p><span class="client-muted">Salon:</span> <strong class="client-heading">{{ dane.nazwa_salonu }}</strong></p>
+      <p><span class="client-muted">Termin:</span> <strong class="client-heading">{{ dzien_nazwa }}, {{ rezerwacja.data }} o {{ rezerwacja.godzina }}</strong></p>
       {% if rezerwacja.pracownik %}
-        <p><span class="text-slate-500">Pracownik:</span> <strong>{{ rezerwacja.pracownik }}</strong></p>
+        <p><span class="client-muted">Pracownik:</span> <strong class="client-heading">{{ rezerwacja.pracownik }}</strong></p>
       {% endif %}
-      <p><span class="text-slate-500">Klient:</span> <strong>{{ rezerwacja.imie }}</strong></p>
+      <p><span class="client-muted">Klient:</span> <strong class="client-heading">{{ rezerwacja.imie }}</strong></p>
     </div>
 
     {% if rezerwacja.status in ['anulowana', 'odrzucona'] %}
-      <p class="rounded-xl bg-amber-50 text-amber-800 px-4 py-3 text-sm font-medium">Ta rezerwacja nie jest już aktywna.</p>
+      <p class="rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 px-4 py-3 text-sm font-medium">Ta rezerwacja nie jest już aktywna.</p>
     {% else %}
       <form method="post" onsubmit="return confirm('Na pewno anulować wizytę?');">
         <button type="submit" class="w-full rounded-xl bg-red-600 text-white font-semibold py-3 hover:bg-red-700">
@@ -26,7 +26,7 @@
       </form>
     {% endif %}
 
-    <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="mt-4 inline-flex text-sm text-slate-500 hover:text-brand-700">Wróć do rezerwacji</a>
+    <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="mt-4 inline-flex text-sm client-muted hover:text-brand-600 dark:hover:text-brand-400">Wróć do rezerwacji</a>
   </div>
 </div>
 {% endblock %}
