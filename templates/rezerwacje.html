@@ -8,71 +8,121 @@
 </a>
 
 <h1 class="text-2xl font-bold text-slate-900 mb-2">Rezerwacje klientów</h1>
-<p class="text-slate-600 mb-8">Lista wizyt zarezerwowanych online. Możesz potwierdzić, odrzucić albo anulować rezerwację.</p>
+<p class="text-slate-600 mb-6 leading-relaxed">
+  Potwierdzaj, odrzucaj lub anuluj wizyty. Po terminie wpis trafia do <strong>archiwum</strong> (ok. godzinę po wizycie).
+  W archiwum zostaje <strong>{{ dni_archiwum }} dni</strong>, potem jest usuwany automatycznie. Opinie klientów zostają na stronie salonu.
+</p>
 
-{% if nadchodzace %}
-  <div class="space-y-3 mb-10">
-    <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wide">Nadchodzące</h2>
-    {% for r in nadchodzace %}
-      <article class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <p class="font-semibold text-lg text-slate-900">{{ r.imie }}</p>
-          <p class="text-brand-700 font-medium">{{ r.data }} · {{ r.godzina }}</p>
-          {% if r.pracownik %}
-            <p class="text-slate-700 text-sm mt-1">Pracownik: <span class="font-medium">{{ r.pracownik }}</span></p>
-          {% endif %}
-          <p class="mt-2">
-            {% if r.status == 'oczekuje' %}
-              <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Oczekuje</span>
-            {% elif r.status == 'potwierdzona' %}
-              <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Potwierdzona</span>
-            {% else %}
-              <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{{ r.status }}</span>
+<nav class="flex gap-2 mb-8 border-b border-slate-200">
+  <a href="{{ url_for('panel_rezerwacje', salon_slug=salon_slug, widok='nadchodzace') }}"
+    class="px-4 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors {% if widok == 'nadchodzace' %}border-brand-600 text-brand-700{% else %}border-transparent text-slate-500 hover:text-slate-800{% endif %}">
+    Nadchodzące
+    <span class="ml-1 rounded-full bg-brand-100 text-brand-800 px-2 py-0.5 text-xs">{{ nadchodzace|length }}</span>
+  </a>
+  <a href="{{ url_for('panel_rezerwacje', salon_slug=salon_slug, widok='archiwum') }}"
+    class="px-4 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors {% if widok == 'archiwum' %}border-brand-600 text-brand-700{% else %}border-transparent text-slate-500 hover:text-slate-800{% endif %}">
+    Archiwum
+    <span class="ml-1 rounded-full bg-slate-100 text-slate-700 px-2 py-0.5 text-xs">{{ archiwum|length }}</span>
+  </a>
+</nav>
+
+{% if widok == 'nadchodzace' %}
+  {% if nadchodzace %}
+    <div class="space-y-3">
+      {% for r in nadchodzace %}
+        <article class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p class="font-semibold text-lg text-slate-900">{{ r.imie }}</p>
+            <p class="text-brand-700 font-medium">{{ r.data }} · {{ r.godzina }}</p>
+            {% if r.pracownik %}
+              <p class="text-slate-700 text-sm mt-1">Pracownik: <span class="font-medium">{{ r.pracownik }}</span></p>
             {% endif %}
-          </p>
-          <p class="text-slate-600 text-sm mt-1">
-            <a href="tel:{{ r.telefon }}" class="hover:underline">{{ r.telefon }}</a>
-          </p>
-          {% if r.uwagi %}
-            <p class="text-slate-500 text-sm mt-2">{{ r.uwagi }}</p>
-          {% endif %}
-        </div>
-        <div class="flex flex-wrap gap-2">
-          {% if r.status == 'oczekuje' %}
-            <form method="post">
-              <input type="hidden" name="akcja" value="potwierdz">
+            <p class="mt-2">
+              {% if r.status == 'oczekuje' %}
+                <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Oczekuje</span>
+              {% elif r.status == 'potwierdzona' %}
+                <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Potwierdzona</span>
+              {% else %}
+                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{{ r.status }}</span>
+              {% endif %}
+            </p>
+            <p class="text-slate-600 text-sm mt-1">
+              <a href="tel:{{ r.telefon }}" class="hover:underline">{{ r.telefon }}</a>
+            </p>
+            {% if r.uwagi %}
+              <p class="text-slate-500 text-sm mt-2">{{ r.uwagi }}</p>
+            {% endif %}
+          </div>
+          <div class="flex flex-wrap gap-2">
+            {% if r.status == 'oczekuje' %}
+              <form method="post">
+                <input type="hidden" name="akcja" value="potwierdz">
+                <input type="hidden" name="id" value="{{ r.id }}">
+                <button type="submit" class="text-sm text-emerald-700 font-medium px-4 py-2 rounded-lg border border-emerald-200 hover:bg-emerald-50">Potwierdź</button>
+              </form>
+              <form method="post" onsubmit="return confirm('Odrzucić tę rezerwację? Termin wróci do wolnych.');">
+                <input type="hidden" name="akcja" value="odrzuc">
+                <input type="hidden" name="id" value="{{ r.id }}">
+                <button type="submit" class="text-sm text-amber-700 font-medium px-4 py-2 rounded-lg border border-amber-200 hover:bg-amber-50">Odrzuć</button>
+              </form>
+            {% endif %}
+            <form method="post" onsubmit="return confirm('Anulować tę rezerwację? Termin wróci do wolnych.');">
+              <input type="hidden" name="akcja" value="anuluj">
               <input type="hidden" name="id" value="{{ r.id }}">
-              <button type="submit" class="text-sm text-emerald-700 font-medium px-4 py-2 rounded-lg border border-emerald-200 hover:bg-emerald-50">Potwierdź</button>
+              <button type="submit" class="text-sm text-red-600 hover:text-red-800 font-medium px-4 py-2 rounded-lg border border-red-200 hover:bg-red-50">
+                Anuluj
+              </button>
             </form>
-            <form method="post" onsubmit="return confirm('Odrzucić tę rezerwację? Termin wróci do wolnych.');">
-              <input type="hidden" name="akcja" value="odrzuc">
-              <input type="hidden" name="id" value="{{ r.id }}">
-              <button type="submit" class="text-sm text-amber-700 font-medium px-4 py-2 rounded-lg border border-amber-200 hover:bg-amber-50">Odrzuć</button>
-            </form>
-          {% endif %}
-          <form method="post" onsubmit="return confirm('Anulować tę rezerwację? Termin wróci do wolnych.');">
-            <input type="hidden" name="akcja" value="anuluj">
-            <input type="hidden" name="id" value="{{ r.id }}">
-            <button type="submit" class="text-sm text-red-600 hover:text-red-800 font-medium px-4 py-2 rounded-lg border border-red-200 hover:bg-red-50">
-              Anuluj
-            </button>
-          </form>
-        </div>
-      </article>
-    {% endfor %}
-  </div>
-{% else %}
-  <p class="text-slate-500 rounded-2xl bg-white border border-slate-200 p-6 mb-10">Brak nadchodzących rezerwacji.</p>
-{% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-slate-500 rounded-2xl bg-white border border-slate-200 p-6">Brak nadchodzących rezerwacji.</p>
+  {% endif %}
 
-{% if archiwum %}
-  <div class="space-y-3">
-    <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wide">Archiwum (ostatnie)</h2>
-    {% for r in archiwum|reverse %}
-      <div class="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3 text-sm text-slate-600">
-        {{ r.data }} {{ r.godzina }} — {{ r.imie }}{% if r.pracownik %} / {{ r.pracownik }}{% endif %} ({{ r.telefon }}) — {{ r.status }}
-      </div>
-    {% endfor %}
-  </div>
+{% else %}
+  {% if archiwum %}
+    <div class="space-y-3">
+      {% for r in archiwum %}
+        <article class="rounded-2xl bg-slate-50 border border-slate-200 p-5 text-sm">
+          <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div>
+              <p class="font-semibold text-slate-900 text-base">{{ r.imie }}</p>
+              <p class="text-brand-700 font-medium mt-1">{{ r.data }} · {{ r.godzina }}</p>
+              {% if r.pracownik %}
+                <p class="text-slate-600 mt-1">Pracownik: {{ r.pracownik }}</p>
+              {% endif %}
+              <p class="text-slate-600 mt-1"><a href="tel:{{ r.telefon }}" class="hover:underline">{{ r.telefon }}</a></p>
+              {% if r.uwagi %}
+                <p class="text-slate-500 mt-2">{{ r.uwagi }}</p>
+              {% endif %}
+            </div>
+            <div class="text-right shrink-0">
+              {% if r.status == 'zakonczona' %}
+                <span class="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">Zakończona</span>
+              {% elif r.status == 'anulowana' %}
+                <span class="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">Anulowana</span>
+              {% elif r.status == 'odrzucona' %}
+                <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Odrzucona</span>
+              {% elif r.status == 'potwierdzona' %}
+                <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Potwierdzona</span>
+              {% else %}
+                <span class="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{{ r.status }}</span>
+              {% endif %}
+              {% if r.zarchiwizowano_at %}
+                <p class="text-xs text-slate-400 mt-2">W archiwum od {{ r.zarchiwizowano_at }}</p>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+    {% if archiwum|length >= 200 %}
+      <p class="text-xs text-slate-400 mt-4 text-center">Wyświetlono ostatnie 200 wpisów w archiwum.</p>
+    {% endif %}
+  {% else %}
+    <p class="text-slate-500 rounded-2xl bg-white border border-slate-200 p-6">Archiwum jest puste. Zakończone wizyty pojawią się tutaj automatycznie.</p>
+  {% endif %}
 {% endif %}
 {% endblock %}
