@@ -1,4 +1,10 @@
-# Opcjonalny plik „Blueprint” — Render może utworzyć serwis automatycznie z repo.
+# Blueprint Render — po zmianach: Deploy z repo + dodaj bazę PostgreSQL w panelu.
+databases:
+  - name: glovaro-db
+    databaseName: glovaro
+    user: glovaro
+    plan: free
+
 services:
   - type: web
     name: glovaro
@@ -16,3 +22,7 @@ services:
         sync: false
       - key: FLASK_DEBUG
         value: "false"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: glovaro-db
+          property: connectionString

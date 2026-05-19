@@ -10,7 +10,6 @@ import json
 import os
 import re
 import secrets
-import shutil
 import smtplib
 import time
 import uuid
@@ -32,9 +31,8 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = bool(os.environ.get("RENDER"))
 
-DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent / "data"))
-DATA_FILE = DATA_DIR / "salon.json"
-BACKUP_DIR = DATA_DIR / "backups"
+from storage import init_storage, tryb_magazynu, wczytaj_raw, zapisz_raw
+
 PANEL_PASSWORD = os.environ.get("PANEL_PASSWORD", "").strip()
 SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "587").strip() or "587")
@@ -195,14 +193,11 @@ def migracja_danych(dane: dict) -> dict:
 
 
 def wczytaj_dane() -> dict:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    if not DATA_FILE.exists():
+    dane = wczytaj_raw()
+    if dane is None:
         dane = {"salony": {"demo": {**nowy_salon("Mój Salon", PANEL_PASSWORD), "slug": "demo"}}}
         zapisz_dane(dane)
         return dane
-
-    with DATA_FILE.open(encoding="utf-8") as f:
-        dane = json.load(f)
 
     zmigrowane = migracja_danych(dane)
     if zmigrowane != dane:
@@ -211,23 +206,7 @@ def wczytaj_dane() -> dict:
 
 
 def zapisz_dane(dane: dict) -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    wykonaj_backup_danych()
-    with DATA_FILE.open("w", encoding="utf-8") as f:
-        json.dump(dane, f, ensure_ascii=False, indent=2)
-
-
-def wykonaj_backup_danych() -> None:
-    if not DATA_FILE.exists():
-        return
-    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    backup_file = BACKUP_DIR / f"salon-{timestamp}.json"
-    shutil.copy2(DATA_FILE, backup_file)
-
-    kopie = sorted(BACKUP_DIR.glob("salon-*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
-    for stara_kopia in kopie[30:]:
-        stara_kopia.unlink(missing_ok=True)
+    zapisz_raw(dane)
 
 
 def pobierz_salon(dane: dict, salon_slug: str) -> dict | None:
@@ -811,7 +790,7 @@ def panel_wyloguj(salon_slug: str | None = None):
 
 @app.route("/health")
 def health():
-    return jsonify({"status": "ok", "app": "Glovaro"}), 200
+    return jsonify({"status": "ok", "app": "Glovaro", "storage": tryb_magazynu()}), 200
 
 
 @app.route("/tasks/send-reminders")
