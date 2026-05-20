@@ -77,6 +77,8 @@ DEFAULT_SALON = {
     "oplata_miesieczna": 100,
     "oplacone_do": "",
     "notatka_rozliczeniowa": "",
+    "platnosc_online_wlaczona": False,
+    "cena_wizyty": 0,
     "godziny_pracy": {
         key: {"otwarcie": "09:00", "zamkniecie": "18:00", "zamkniety": key == "niedziela"}
         for key, _ in DNI_TYGODNIA
@@ -169,6 +171,8 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("oplata_miesieczna", 100)
             salon.setdefault("oplacone_do", "")
             salon.setdefault("notatka_rozliczeniowa", "")
+            salon.setdefault("platnosc_online_wlaczona", False)
+            salon.setdefault("cena_wizyty", 0)
             salon.setdefault("godziny_pracy", copy.deepcopy(DEFAULT_SALON["godziny_pracy"]))
             salon.setdefault("wolne_terminy", {})
             salon.setdefault("blokady", [])
@@ -313,6 +317,13 @@ def abonament_po_terminie(salon: dict) -> bool:
 
 def stripe_skonfigurowany() -> bool:
     return bool(STRIPE_SECRET_KEY)
+
+
+def kwota_wizyty_zl(salon: dict) -> int:
+    try:
+        return max(int(salon.get("cena_wizyty", 0)), 0)
+    except (TypeError, ValueError):
+        return 0
 
 
 def przedluz_abonament(salon: dict, dni: int = 31) -> str:
@@ -560,6 +571,71 @@ def utworz_sesje_stripe(salon: dict, salon_slug: str) -> str | None:
         return None
     except (URLError, json.JSONDecodeError) as exc:
         app.logger.warning("Nie udało się utworzyć sesji Stripe: %s", exc)
+        return None
+
+
+def utworz_sesje_stripe_wizyta(salon: dict, salon_slug: str, rezerwacja: dict) -> str | None:
+    if not stripe_skonfigurowany():
+        return None
+    if not salon.get("platnosc_online_wlaczona"):
+        return None
+
+    cena_zl = kwota_wizyty_zl(salon)
+    if cena_zl <= 0:
+        return None
+
+    kwota_grosze = cena_zl * 100
+    rezerwacja_id = rezerwacja.get("id", "")
+    payload = urlencode(
+        {
+            "mode": "payment",
+            "success_url": url_for(
+                "platnosc_rezerwacji_sukces",
+                salon_slug=salon_slug,
+                id=rezerwacja_id,
+                _external=True,
+            ),
+            "cancel_url": url_for(
+                "rezerwacja_potwierdzenie",
+                salon_slug=salon_slug,
+                id=rezerwacja_id,
+                _external=True,
+            ),
+            "client_reference_id": f"{salon_slug}:{rezerwacja_id}",
+            "line_items[0][quantity]": "1",
+            "line_items[0][price_data][currency]": "pln",
+            "line_items[0][price_data][unit_amount]": str(kwota_grosze),
+            "line_items[0][price_data][product_data][name]": f"Wizyta - {salon.get('nazwa_salonu', salon_slug)}",
+            "line_items[0][price_data][product_data][description]": (
+                f"{rezerwacja.get('data', '')} o {rezerwacja.get('godzina', '')}"
+            ),
+            "metadata[typ_platnosci]": "wizyta",
+            "metadata[salon_slug]": salon_slug,
+            "metadata[rezerwacja_id]": rezerwacja_id,
+            "metadata[kwota_zl]": str(cena_zl),
+        }
+    ).encode("utf-8")
+    req = urlrequest.Request(
+        "https://api.stripe.com/v1/checkout/sessions",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {STRIPE_SECRET_KEY}",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "Glovaro/1.0",
+        },
+        method="POST",
+    )
+
+    try:
+        with urlrequest.urlopen(req, timeout=15) as response:
+            body = json.loads(response.read().decode("utf-8"))
+            return body.get("url")
+    except HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        app.logger.warning("Stripe odrzucił sesję płatności wizyty: HTTP %s %s", exc.code, body)
+        return None
+    except (URLError, json.JSONDecodeError) as exc:
+        app.logger.warning("Nie udało się utworzyć sesji Stripe dla wizyty: %s", exc)
         return None
 
 
@@ -1044,6 +1120,44 @@ def stripe_checkout(salon_slug: str):
     return redirect(checkout_url)
 
 
+@app.route("/rezerwacja/<salon_slug>/oplac", methods=["POST"])
+def oplac_rezerwacje_online(salon_slug: str):
+    dane = wczytaj_dane()
+    salon = pobierz_salon(dane, salon_slug)
+    if not salon:
+        return render_template("404.html", sciezka=request.path, domyslny_slug=domyslny_slug(dane)), 404
+
+    rezerwacja_id = request.form.get("id", "").strip()
+    rezerwacja = znajdz_rezerwacje(salon, rezerwacja_id)
+    if not rezerwacja:
+        flash("Nie znaleziono rezerwacji do opłacenia.", "error")
+        return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug))
+    if rezerwacja.get("status") in {"anulowana", "odrzucona"}:
+        flash("Nie można opłacić anulowanej lub odrzuconej rezerwacji.", "error")
+        return redirect(url_for("rezerwacja_potwierdzenie", salon_slug=salon_slug, id=rezerwacja_id))
+    if rezerwacja.get("oplacona_online"):
+        flash("Ta rezerwacja jest już opłacona online.", "success")
+        return redirect(url_for("rezerwacja_potwierdzenie", salon_slug=salon_slug, id=rezerwacja_id))
+    if not salon.get("platnosc_online_wlaczona"):
+        flash("Płatność online jest wyłączona dla tego salonu.", "error")
+        return redirect(url_for("rezerwacja_potwierdzenie", salon_slug=salon_slug, id=rezerwacja_id))
+    if not stripe_skonfigurowany():
+        flash("Płatności online są chwilowo niedostępne.", "error")
+        return redirect(url_for("rezerwacja_potwierdzenie", salon_slug=salon_slug, id=rezerwacja_id))
+
+    checkout_url = utworz_sesje_stripe_wizyta(salon, salon_slug, rezerwacja)
+    if not checkout_url:
+        flash("Nie udało się uruchomić płatności online. Spróbuj ponownie za chwilę.", "error")
+        return redirect(url_for("rezerwacja_potwierdzenie", salon_slug=salon_slug, id=rezerwacja_id))
+    return redirect(checkout_url)
+
+
+@app.route("/rezerwacja/<salon_slug>/platnosc/sukces")
+def platnosc_rezerwacji_sukces(salon_slug: str):
+    flash("Dziękujemy! Płatność online została przyjęta.", "success")
+    return redirect(url_for("rezerwacja_potwierdzenie", salon_slug=salon_slug, id=request.args.get("id", "")))
+
+
 @app.route("/panel/<salon_slug>/stripe/sukces")
 def stripe_sukces(salon_slug: str):
     flash("Dziękujemy za płatność. Stripe potwierdzi ją automatycznie po webhooku.", "success")
@@ -1071,7 +1185,27 @@ def stripe_webhook():
         or obiekt.get("client_reference_id")
     )
 
-    if event_type in {"checkout.session.completed", "invoice.paid"} and salon_slug:
+    if event_type == "checkout.session.completed" and metadata.get("typ_platnosci") == "wizyta":
+        rezerwacja_id = metadata.get("rezerwacja_id", "")
+        if salon_slug and rezerwacja_id:
+            dane = wczytaj_dane()
+            salon = pobierz_salon(dane, salon_slug)
+            rezerwacja = znajdz_rezerwacje(salon, rezerwacja_id) if salon else None
+            if rezerwacja and not rezerwacja.get("oplacona_online"):
+                try:
+                    kwota_zl = int(metadata.get("kwota_zl", kwota_wizyty_zl(salon)))
+                except (TypeError, ValueError):
+                    kwota_zl = kwota_wizyty_zl(salon)
+                rezerwacja["oplacona_online"] = True
+                rezerwacja["oplacono_online_at"] = datetime.now().isoformat(timespec="minutes")
+                rezerwacja["oplacono_kwota_zl"] = kwota_zl
+                zapisz_dane(dane)
+                app.logger.info(
+                    "Stripe potwierdził płatność wizyty dla salonu %s, rezerwacja %s",
+                    salon_slug,
+                    rezerwacja_id,
+                )
+    elif event_type in {"checkout.session.completed", "invoice.paid"} and salon_slug:
         dane = wczytaj_dane()
         salon = pobierz_salon(dane, salon_slug)
         if salon:
@@ -1144,6 +1278,12 @@ def ustawienia_salonu(salon_slug: str):
         telefon = request.form.get("telefon_kontaktowy", "").strip()
         instagram = request.form.get("instagram", "").strip()
         email_powiadomien = request.form.get("email_powiadomien", "").strip()
+        platnosc_online_wlaczona = request.form.get("platnosc_online_wlaczona") == "on"
+        try:
+            cena_wizyty = int(request.form.get("cena_wizyty", "0").strip() or "0")
+        except ValueError:
+            cena_wizyty = 0
+        cena_wizyty = max(cena_wizyty, 0)
         pracownicy = parsuj_pracownikow(request.form.get("pracownicy", ""))
         zdjecia_z_linkow = parsuj_linki_zdjec(request.form.get("zdjecia_prac", ""))
         nowe_zdjecia = parsuj_upload_zdjec(request.files.getlist("zdjecia_upload"))
@@ -1161,6 +1301,8 @@ def ustawienia_salonu(salon_slug: str):
             salon["telefon_kontaktowy"] = telefon
             salon["instagram"] = instagram
             salon["email_powiadomien"] = email_powiadomien
+            salon["platnosc_online_wlaczona"] = platnosc_online_wlaczona
+            salon["cena_wizyty"] = cena_wizyty
             salon["pracownicy"] = pracownicy
             salon["zdjecia_prac"] = zdjecia
             if haslo:
@@ -1487,6 +1629,11 @@ def rezerwacja_potwierdzenie(salon_slug: str):
         salon_slug=salon_slug,
         rezerwacja=rezerwacja,
         dzien_nazwa=dict(DNI_TYGODNIA)[dzien],
+        stripe_online_rezerwacje=(
+            stripe_skonfigurowany()
+            and salon.get("platnosc_online_wlaczona")
+            and kwota_wizyty_zl(salon) > 0
+        ),
     )
 
 

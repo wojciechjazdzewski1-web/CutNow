@@ -39,6 +39,14 @@
         {% if rezerwacja.status == 'oczekuje' %}Oczekuje na potwierdzenie{% elif rezerwacja.status == 'potwierdzona' %}Potwierdzona{% elif rezerwacja.status == 'anulowana' %}Anulowana{% elif rezerwacja.status == 'odrzucona' %}Odrzucona{% else %}{{ rezerwacja.status }}{% endif %}
       </span>
     </div>
+    {% if stripe_online_rezerwacje %}
+      <div class="flex justify-between gap-4">
+        <span class="client-muted">Płatność online</span>
+        <span class="font-semibold text-right {% if rezerwacja.oplacona_online %}text-emerald-600 dark:text-emerald-400{% else %}client-heading{% endif %}">
+          {% if rezerwacja.oplacona_online %}Opłacona{% else %}Do opłacenia{% endif %}
+        </span>
+      </div>
+    {% endif %}
     {% if rezerwacja.uwagi %}
       <div class="pt-2 border-t border-brand-100 dark:border-brand-900">
         <span class="client-muted text-sm">Uwagi</span>
@@ -48,6 +56,14 @@
   </div>
 
   <div class="flex flex-col gap-3">
+    {% if stripe_online_rezerwacje and rezerwacja.status not in ['anulowana', 'odrzucona'] and not rezerwacja.oplacona_online %}
+      <form method="post" action="{{ url_for('oplac_rezerwacje_online', salon_slug=salon_slug) }}">
+        <input type="hidden" name="id" value="{{ rezerwacja.id }}">
+        <button type="submit" class="w-full inline-flex justify-center rounded-xl bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-3 font-semibold text-white hover:from-brand-500 hover:to-brand-600">
+          Opłać online ({{ dane.cena_wizyty }} zł)
+        </button>
+      </form>
+    {% endif %}
     {% if rezerwacja.status not in ['anulowana', 'odrzucona'] %}
       <a href="{{ url_for('anuluj_rezerwacje_klienta', salon_slug=salon_slug, token=rezerwacja.token_anulowania) }}" class="inline-flex justify-center rounded-xl border border-red-200 dark:border-red-800 px-6 py-3 font-semibold text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40">
         Anuluj wizytę
