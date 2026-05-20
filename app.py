@@ -1,4 +1,4 @@
-"""Glovaro — panel rezerwacji dla wielu salonów/fryzjerów."""
+"""Glovaro — panel rezerwacji dla salonów beauty & wellness."""
 
 from __future__ import annotations
 

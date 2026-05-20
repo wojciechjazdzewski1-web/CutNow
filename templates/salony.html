@@ -4,7 +4,7 @@
 {% block content %}
 <div class="mb-8">
   <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Salony w Glovaro</h1>
-  <p class="text-slate-600 mt-1">Dodaj fryzjera lub salon i wyślij mu osobny link do rezerwacji.</p>
+  <p class="text-slate-600 mt-1">Dodaj salon beauty &amp; wellness i wyślij mu osobny link do rezerwacji.</p>
 </div>
 
 <div class="grid lg:grid-cols-3 gap-6">
@@ -77,7 +77,7 @@
     <h2 class="font-semibold text-slate-900 mb-4">Dodaj nowy salon</h2>
     <form method="post" action="{{ url_for('panel_nowy_salon') }}" class="space-y-4">
       <div>
-        <label for="nazwa_salonu" class="block text-sm font-medium text-slate-700 mb-2">Nazwa salonu/fryzjera</label>
+        <label for="nazwa_salonu" class="block text-sm font-medium text-slate-700 mb-2">Nazwa salonu</label>
         <input id="nazwa_salonu" name="nazwa_salonu" required class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none" placeholder="np. Barber Jan">
       </div>
       <div>
