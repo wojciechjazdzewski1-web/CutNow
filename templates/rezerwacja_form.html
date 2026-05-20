@@ -18,6 +18,18 @@
     <input type="hidden" name="data" value="{{ wybrana_data }}">
     <input type="hidden" name="godzina" value="{{ godzina }}">
 
+    {% if uslugi %}
+      <div>
+        <label for="usluga" class="block text-sm font-medium client-heading mb-2">Usługa *</label>
+        <select id="usluga" name="usluga" required class="client-input w-full px-4 py-4 text-lg">
+          <option value="">Wybierz usługę</option>
+          {% for usluga in uslugi %}
+            <option value="{{ usluga.nazwa }}">{{ usluga.nazwa }} — {{ usluga.cena_zl }} zł</option>
+          {% endfor %}
+        </select>
+      </div>
+    {% endif %}
+
     <div>
       <label for="imie" class="block text-sm font-medium client-heading mb-2">Imię i nazwisko *</label>
       <input type="text" id="imie" name="imie" required

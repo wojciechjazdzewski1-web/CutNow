@@ -73,6 +73,7 @@ DEFAULT_SALON = {
     "email_powiadomien": "",
     "zdjecia_prac": [],
     "pracownicy": [],
+    "uslugi": [],
     "abonament_status": "trial",
     "oplata_miesieczna": 100,
     "oplacone_do": "",
@@ -167,6 +168,7 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("email_powiadomien", "")
             salon.setdefault("zdjecia_prac", [])
             salon.setdefault("pracownicy", [])
+            salon.setdefault("uslugi", [])
             salon.setdefault("abonament_status", "trial")
             salon.setdefault("oplata_miesieczna", 100)
             salon.setdefault("oplacone_do", "")
@@ -191,6 +193,7 @@ def migracja_danych(dane: dict) -> dict:
     salon["wolne_terminy"] = dane.get("wolne_terminy", {})
     salon["rezerwacje"] = dane.get("rezerwacje", [])
     salon["opinie"] = dane.get("opinie", [])
+    salon["uslugi"] = dane.get("uslugi", [])
     for rezerwacja in salon["rezerwacje"]:
         rezerwacja.setdefault("status", "potwierdzona")
         rezerwacja.setdefault("token_anulowania", uuid.uuid4().hex)
@@ -324,6 +327,51 @@ def kwota_wizyty_zl(salon: dict) -> int:
         return max(int(salon.get("cena_wizyty", 0)), 0)
     except (TypeError, ValueError):
         return 0
+
+
+def uslugi_salonu(salon: dict) -> list[dict]:
+    wynik = []
+    for wpis in salon.get("uslugi", []):
+        if not isinstance(wpis, dict):
+            continue
+        nazwa = str(wpis.get("nazwa", "")).strip()
+        if not nazwa:
+            continue
+        try:
+            cena = max(int(wpis.get("cena_zl", 0)), 0)
+        except (TypeError, ValueError):
+            cena = 0
+        wynik.append({"nazwa": nazwa, "cena_zl": cena})
+    return wynik
+
+
+def parsuj_uslugi(wartosc: str) -> list[dict]:
+    uslugi = []
+    for linia in wartosc.splitlines():
+        linia = linia.strip()
+        if not linia:
+            continue
+        if "|" in linia:
+            nazwa, cena_txt = linia.split("|", 1)
+        else:
+            nazwa, cena_txt = linia, "0"
+        nazwa = nazwa.strip()
+        if not nazwa:
+            continue
+        try:
+            cena = max(int(cena_txt.strip() or "0"), 0)
+        except ValueError:
+            cena = 0
+        uslugi.append({"nazwa": nazwa, "cena_zl": cena})
+    return uslugi[:30]
+
+
+def kwota_rezerwacji_zl(salon: dict, rezerwacja: dict) -> int:
+    try:
+        cena_uslugi = max(int(rezerwacja.get("usluga_cena_zl", 0) or 0), 0)
+    except (TypeError, ValueError):
+        cena_uslugi = 0
+    return cena_uslugi or kwota_wizyty_zl(salon)
 
 
 def przedluz_abonament(salon: dict, dni: int = 31) -> str:
@@ -580,7 +628,7 @@ def utworz_sesje_stripe_wizyta(salon: dict, salon_slug: str, rezerwacja: dict) -
     if not salon.get("platnosc_online_wlaczona"):
         return None
 
-    cena_zl = kwota_wizyty_zl(salon)
+    cena_zl = kwota_rezerwacji_zl(salon, rezerwacja)
     if cena_zl <= 0:
         return None
 
@@ -607,7 +655,7 @@ def utworz_sesje_stripe_wizyta(salon: dict, salon_slug: str, rezerwacja: dict) -
             "line_items[0][price_data][unit_amount]": str(kwota_grosze),
             "line_items[0][price_data][product_data][name]": f"Wizyta - {salon.get('nazwa_salonu', salon_slug)}",
             "line_items[0][price_data][product_data][description]": (
-                f"{rezerwacja.get('data', '')} o {rezerwacja.get('godzina', '')}"
+                f"{rezerwacja.get('data', '')} o {rezerwacja.get('godzina', '')} - {rezerwacja.get('usluga_nazwa', 'Wizyta')}"
             ),
             "metadata[typ_platnosci]": "wizyta",
             "metadata[salon_slug]": salon_slug,
@@ -1144,6 +1192,9 @@ def oplac_rezerwacje_online(salon_slug: str):
     if not stripe_skonfigurowany():
         flash("Płatności online są chwilowo niedostępne.", "error")
         return redirect(url_for("rezerwacja_potwierdzenie", salon_slug=salon_slug, id=rezerwacja_id))
+    if kwota_rezerwacji_zl(salon, rezerwacja) <= 0:
+        flash("Brak ceny usługi do opłacenia online.", "error")
+        return redirect(url_for("rezerwacja_potwierdzenie", salon_slug=salon_slug, id=rezerwacja_id))
 
     checkout_url = utworz_sesje_stripe_wizyta(salon, salon_slug, rezerwacja)
     if not checkout_url:
@@ -1285,6 +1336,7 @@ def ustawienia_salonu(salon_slug: str):
             cena_wizyty = 0
         cena_wizyty = max(cena_wizyty, 0)
         pracownicy = parsuj_pracownikow(request.form.get("pracownicy", ""))
+        uslugi = parsuj_uslugi(request.form.get("uslugi", ""))
         zdjecia_z_linkow = parsuj_linki_zdjec(request.form.get("zdjecia_prac", ""))
         nowe_zdjecia = parsuj_upload_zdjec(request.files.getlist("zdjecia_upload"))
         dotychczasowe_uploady = [
@@ -1304,6 +1356,7 @@ def ustawienia_salonu(salon_slug: str):
             salon["platnosc_online_wlaczona"] = platnosc_online_wlaczona
             salon["cena_wizyty"] = cena_wizyty
             salon["pracownicy"] = pracownicy
+            salon["uslugi"] = uslugi
             salon["zdjecia_prac"] = zdjecia
             if haslo:
                 salon["haslo_panelu"] = haslo
@@ -1510,6 +1563,7 @@ def kontekst_rezerwacji(salon: dict, salon_slug: str, wybrana_data: str) -> dict
         "terminy": dostepne_terminy(salon, wybrana_data),
         "dni_tygodnia": dict(DNI_TYGODNIA),
         "pracownicy": aktywni_pracownicy(salon),
+        "uslugi": uslugi_salonu(salon),
         "opinie": sorted(opinie, key=lambda o: o.get("utworzono", ""), reverse=True)[:6],
         "srednia_ocena": srednia_ocen(opinie),
     }
@@ -1561,7 +1615,10 @@ def rezerwacja_formularz(salon_slug: str):
     uwagi = request.form.get("uwagi", "").strip()
     godzina = request.form.get("godzina", "").strip()
     pracownik = request.form.get("pracownik", "").strip()
+    usluga_nazwa = request.form.get("usluga", "").strip()
     pracownicy = aktywni_pracownicy(salon)
+    uslugi = uslugi_salonu(salon)
+    mapa_uslug = {u["nazwa"]: u["cena_zl"] for u in uslugi}
 
     if przekroczono_limit_rezerwacji(salon_slug):
         flash("Zbyt wiele prób rezerwacji. Spróbuj ponownie za kilka minut.", "error")
@@ -1570,6 +1627,9 @@ def rezerwacja_formularz(salon_slug: str):
         pracownik = next((p for p in pracownicy if not pracownik_zajety(salon, data_iso, godzina, p)), "")
     if pracownicy and pracownik not in pracownicy:
         flash("Wybierz pracownika z listy.", "error")
+        return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
+    if uslugi and usluga_nazwa not in mapa_uslug:
+        flash("Wybierz usługę z listy.", "error")
         return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
     if pracownik and pracownik_zajety(salon, data_iso, godzina, pracownik):
         flash("Ten pracownik jest już zajęty o tej godzinie. Wybierz inną osobę albo termin.", "error")
@@ -1595,6 +1655,8 @@ def rezerwacja_formularz(salon_slug: str):
         "imie": imie,
         "telefon": telefon,
         "pracownik": pracownik,
+        "usluga_nazwa": usluga_nazwa,
+        "usluga_cena_zl": mapa_uslug.get(usluga_nazwa, 0),
         "uwagi": uwagi,
         "utworzono": datetime.now().isoformat(timespec="minutes"),
     }
@@ -1632,8 +1694,9 @@ def rezerwacja_potwierdzenie(salon_slug: str):
         stripe_online_rezerwacje=(
             stripe_skonfigurowany()
             and salon.get("platnosc_online_wlaczona")
-            and kwota_wizyty_zl(salon) > 0
+            and kwota_rezerwacji_zl(salon, rezerwacja) > 0
         ),
+        kwota_rezerwacji_zl=kwota_rezerwacji_zl(salon, rezerwacja),
     )
 
 

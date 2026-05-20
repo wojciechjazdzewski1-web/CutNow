@@ -37,6 +37,9 @@
             {% if r.pracownik %}
               <p class="text-slate-700 text-sm mt-1">Pracownik: <span class="font-medium">{{ r.pracownik }}</span></p>
             {% endif %}
+            {% if r.usluga_nazwa %}
+              <p class="text-slate-700 text-sm mt-1">Usługa: <span class="font-medium">{{ r.usluga_nazwa }}{% if r.usluga_cena_zl %} ({{ r.usluga_cena_zl }} zł){% endif %}</span></p>
+            {% endif %}
             <p class="mt-2">
               {% if r.status == 'oczekuje' %}
                 <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Oczekuje</span>
@@ -92,6 +95,9 @@
               <p class="text-brand-700 font-medium mt-1">{{ r.data }} · {{ r.godzina }}</p>
               {% if r.pracownik %}
                 <p class="text-slate-600 mt-1">Pracownik: {{ r.pracownik }}</p>
+              {% endif %}
+              {% if r.usluga_nazwa %}
+                <p class="text-slate-600 mt-1">Usługa: {{ r.usluga_nazwa }}{% if r.usluga_cena_zl %} ({{ r.usluga_cena_zl }} zł){% endif %}</p>
               {% endif %}
               <p class="text-slate-600 mt-1"><a href="tel:{{ r.telefon }}" class="hover:underline">{{ r.telefon }}</a></p>
               {% if r.uwagi %}

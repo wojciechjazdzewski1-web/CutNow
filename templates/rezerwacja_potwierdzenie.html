@@ -33,6 +33,16 @@
         <span class="font-semibold client-heading text-right">{{ rezerwacja.pracownik }}</span>
       </div>
     {% endif %}
+    {% if rezerwacja.usluga_nazwa %}
+      <div class="flex justify-between gap-4">
+        <span class="client-muted">Usługa</span>
+        <span class="font-semibold client-heading text-right">{{ rezerwacja.usluga_nazwa }}</span>
+      </div>
+      <div class="flex justify-between gap-4">
+        <span class="client-muted">Cena</span>
+        <span class="font-semibold client-heading text-right">{{ kwota_rezerwacji_zl }} zł</span>
+      </div>
+    {% endif %}
     <div class="flex justify-between gap-4">
       <span class="client-muted">Status</span>
       <span class="font-semibold client-heading text-right">
@@ -60,7 +70,7 @@
       <form method="post" action="{{ url_for('oplac_rezerwacje_online', salon_slug=salon_slug) }}">
         <input type="hidden" name="id" value="{{ rezerwacja.id }}">
         <button type="submit" class="w-full inline-flex justify-center rounded-xl bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-3 font-semibold text-white hover:from-brand-500 hover:to-brand-600">
-          Opłać online ({{ dane.cena_wizyty }} zł)
+          Opłać online ({{ kwota_rezerwacji_zl }} zł)
         </button>
       </form>
     {% endif %}
