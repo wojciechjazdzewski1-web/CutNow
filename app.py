@@ -83,6 +83,10 @@ DEFAULT_SALON = {
     "oplata_miesieczna": 100,
     "oplacone_do": "",
     "notatka_rozliczeniowa": "",
+    "tryb_platnosci_wizyty": "w_salonie",
+    "konto_bankowe": "",
+    "odbiorca_przelewu": "",
+    "link_szybkiej_platnosci": "",
     "platnosc_online_wlaczona": False,
     "cena_wizyty": 0,
     "godziny_pracy": {
@@ -180,6 +184,10 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("oplata_miesieczna", 100)
             salon.setdefault("oplacone_do", "")
             salon.setdefault("notatka_rozliczeniowa", "")
+            salon.setdefault("tryb_platnosci_wizyty", "w_salonie")
+            salon.setdefault("konto_bankowe", "")
+            salon.setdefault("odbiorca_przelewu", "")
+            salon.setdefault("link_szybkiej_platnosci", "")
             salon.setdefault("platnosc_online_wlaczona", False)
             salon.setdefault("cena_wizyty", 0)
             salon.setdefault("godziny_pracy", copy.deepcopy(DEFAULT_SALON["godziny_pracy"]))
@@ -438,6 +446,51 @@ def parsuj_uslugi(wartosc: str) -> list[dict]:
             cena = 0
         uslugi.append({"nazwa": nazwa, "cena_zl": cena})
     return uslugi[:30]
+
+
+TRYBY_PLATNOSCI_WIZYTY = frozenset({"w_salonie", "przelew", "wylaczone"})
+
+
+def tryb_platnosci_wizyty_salonu(salon: dict) -> str:
+    tryb = (salon.get("tryb_platnosci_wizyty") or "w_salonie").strip()
+    return tryb if tryb in TRYBY_PLATNOSCI_WIZYTY else "w_salonie"
+
+
+def tytul_przelewu_rezerwacji(salon: dict, rezerwacja: dict) -> str:
+    tytul = f"Rezerwacja {rezerwacja.get('data', '')} {rezerwacja.get('imie', '')}"
+    return tytul.strip()[:140]
+
+
+def rezerwacja_oplacona(rezerwacja: dict) -> bool:
+    return bool(rezerwacja.get("oplacona_online") or rezerwacja.get("oplacona_recznie"))
+
+
+def kontekst_platnosci_wizyty(salon: dict, rezerwacja: dict | None = None) -> dict:
+    tryb = tryb_platnosci_wizyty_salonu(salon)
+    kwota = kwota_rezerwacji_zl(salon, rezerwacja) if rezerwacja else 0
+    konto = (salon.get("konto_bankowe") or "").strip()
+    odbiorca = (salon.get("odbiorca_przelewu") or salon.get("nazwa_salonu") or "").strip()
+    link_szybki = normalizuj_url_https(str(salon.get("link_szybkiej_platnosci", "")))
+    stripe_wizyta = bool(
+        rezerwacja
+        and stripe_skonfigurowany()
+        and salon.get("platnosc_online_wlaczona")
+        and kwota > 0
+    )
+    return {
+        "tryb_platnosci_wizyty": tryb,
+        "platnosc_w_salonie": tryb == "w_salonie",
+        "platnosc_przelewem": tryb == "przelew",
+        "platnosc_info_wylaczona": tryb == "wylaczone",
+        "konto_bankowe": konto,
+        "odbiorca_przelewu": odbiorca,
+        "link_szybkiej_platnosci": link_szybki,
+        "ma_dane_przelewu": bool(konto),
+        "kwota_rezerwacji_zl": kwota,
+        "tytul_przelewu": tytul_przelewu_rezerwacji(salon, rezerwacja) if rezerwacja else "",
+        "stripe_online_rezerwacje": stripe_wizyta,
+        "rezerwacja_oplacona": rezerwacja_oplacona(rezerwacja) if rezerwacja else False,
+    }
 
 
 def kwota_rezerwacji_zl(salon: dict, rezerwacja: dict) -> int:
@@ -1407,6 +1460,12 @@ def ustawienia_salonu(salon_slug: str):
         link_google_maps = normalizuj_url_https(request.form.get("link_google_maps", ""))
         instagram = request.form.get("instagram", "").strip()
         email_powiadomien = request.form.get("email_powiadomien", "").strip()
+        tryb_platnosci = request.form.get("tryb_platnosci_wizyty", "w_salonie").strip()
+        if tryb_platnosci not in TRYBY_PLATNOSCI_WIZYTY:
+            tryb_platnosci = "w_salonie"
+        konto_bankowe = request.form.get("konto_bankowe", "").strip()
+        odbiorca_przelewu = request.form.get("odbiorca_przelewu", "").strip()
+        link_szybkiej_platnosci = normalizuj_url_https(request.form.get("link_szybkiej_platnosci", ""))
         platnosc_online_wlaczona = request.form.get("platnosc_online_wlaczona") == "on"
         try:
             cena_wizyty = int(request.form.get("cena_wizyty", "0").strip() or "0")
@@ -1427,6 +1486,10 @@ def ustawienia_salonu(salon_slug: str):
         zdjecia = (zdjecia_z_linkow + dotychczasowe_uploady + nowe_zdjecia)[:12]
         salon["adres_lokalizacji"] = adres_lokalizacji
         salon["link_google_maps"] = link_google_maps
+        salon["tryb_platnosci_wizyty"] = tryb_platnosci
+        salon["konto_bankowe"] = konto_bankowe
+        salon["odbiorca_przelewu"] = odbiorca_przelewu
+        salon["link_szybkiej_platnosci"] = link_szybkiej_platnosci
         if nazwa:
             salon["nazwa_salonu"] = nazwa
             salon["opis"] = opis
@@ -1441,7 +1504,12 @@ def ustawienia_salonu(salon_slug: str):
             if haslo:
                 salon["haslo_panelu"] = haslo
             zapisz_dane(dane)
-            if adres_lokalizacji or link_google_maps:
+            if tryb_platnosci == "przelew" and not konto_bankowe:
+                flash(
+                    "Zapisano. Uzupełnij numer konta — bez niego klienci nie zobaczą danych do przelewu.",
+                    "error",
+                )
+            elif adres_lokalizacji or link_google_maps:
                 flash("Ustawienia zapisane (w tym lokalizacja).", "success")
             else:
                 flash("Ustawienia salonu zostały zapisane.", "success")
@@ -1784,13 +1852,8 @@ def rezerwacja_potwierdzenie(salon_slug: str):
         salon_slug=salon_slug,
         rezerwacja=rezerwacja,
         dzien_nazwa=dict(DNI_TYGODNIA)[dzien],
-        stripe_online_rezerwacje=(
-            stripe_skonfigurowany()
-            and salon.get("platnosc_online_wlaczona")
-            and kwota_rezerwacji_zl(salon, rezerwacja) > 0
-        ),
-        kwota_rezerwacji_zl=kwota_rezerwacji_zl(salon, rezerwacja),
         **kontekst_lokalizacji_salonu(salon),
+        **kontekst_platnosci_wizyty(salon, rezerwacja),
     )
 
 
@@ -1903,7 +1966,17 @@ def panel_rezerwacje(salon_slug: str):
         rezerwacja_id = request.form.get("id", "")
         rezerwacja = znajdz_rezerwacje(salon, rezerwacja_id)
 
-        if akcja in {"potwierdz", "odrzuc", "anuluj"} and rezerwacja:
+        if akcja in {"oznacz_oplacone", "cofnij_oplacone"} and rezerwacja:
+            if akcja == "oznacz_oplacone":
+                rezerwacja["oplacona_recznie"] = True
+                rezerwacja["oplacono_recznie_at"] = datetime.now().isoformat(timespec="minutes")
+                flash(f"Oznaczono jako opłacone: {rezerwacja['imie']}.", "success")
+            else:
+                rezerwacja.pop("oplacona_recznie", None)
+                rezerwacja.pop("oplacono_recznie_at", None)
+                flash(f"Cofnięto oznaczenie opłaty: {rezerwacja['imie']}.", "success")
+            zapisz_dane(dane)
+        elif akcja in {"potwierdz", "odrzuc", "anuluj"} and rezerwacja:
             if akcja == "potwierdz":
                 rezerwacja["status"] = "potwierdzona"
                 rezerwacja["potwierdzono"] = datetime.now().isoformat(timespec="minutes")
@@ -1949,6 +2022,7 @@ def panel_rezerwacje(salon_slug: str):
         archiwum=archiwum[:200],
         dni_tygodnia=dict(DNI_TYGODNIA),
         dni_archiwum=DNI_W_ARCHIWUM_PRZED_USUNIECIEM,
+        tryb_platnosci_wizyty=tryb_platnosci_wizyty_salonu(salon),
     )
 
 

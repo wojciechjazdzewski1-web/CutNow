@@ -1,0 +1,93 @@
+{% if not platnosc_info_wylaczona and rezerwacja.status not in ['anulowana', 'odrzucona'] %}
+  <div class="client-card p-5 text-left space-y-4 mb-6">
+    <h2 class="font-semibold client-heading text-lg">Płatność</h2>
+
+    {% if platnosc_w_salonie %}
+      <div class="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-4 py-3">
+        <p class="font-semibold text-emerald-900 dark:text-emerald-200">Zapłać w salonie przy wizycie</p>
+        {% if kwota_rezerwacji_zl > 0 %}
+          <p class="text-sm text-emerald-800 dark:text-emerald-300 mt-1">Orientacyjna kwota: <strong>{{ kwota_rezerwacji_zl }} zł</strong> (gotówka lub karta u {{ dane.nazwa_salonu }}).</p>
+        {% else %}
+          <p class="text-sm text-emerald-800 dark:text-emerald-300 mt-1">Szczegóły ceny ustalisz z salonem przy wizycie.</p>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if platnosc_przelewem %}
+      {% if rezerwacja_oplacona %}
+        <p class="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-4 py-3 text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+          Płatność została odnotowana. Do zobaczenia w salonie!
+        </p>
+      {% elif ma_dane_przelewu %}
+        <p class="text-sm client-muted">Przelej na konto salonu{% if kwota_rezerwacji_zl > 0 %} — <strong class="client-heading">{{ kwota_rezerwacji_zl }} zł</strong>{% endif %}:</p>
+        <dl class="space-y-2 text-sm">
+          {% if odbiorca_przelewu %}
+            <div class="flex flex-col sm:flex-row sm:justify-between gap-1 rounded-lg bg-brand-50/80 dark:bg-brand-950/40 px-3 py-2">
+              <dt class="client-muted">Odbiorca</dt>
+              <dd class="font-semibold client-heading font-mono text-right break-all">{{ odbiorca_przelewu }}</dd>
+            </div>
+          {% endif %}
+          <div class="flex flex-col sm:flex-row sm:justify-between gap-1 rounded-lg bg-brand-50/80 dark:bg-brand-950/40 px-3 py-2">
+            <dt class="client-muted">Numer konta</dt>
+            <dd class="font-semibold client-heading font-mono text-right break-all" id="copy-konto">{{ konto_bankowe }}</dd>
+          </div>
+          {% if kwota_rezerwacji_zl > 0 %}
+            <div class="flex flex-col sm:flex-row sm:justify-between gap-1 rounded-lg bg-brand-50/80 dark:bg-brand-950/40 px-3 py-2">
+              <dt class="client-muted">Kwota</dt>
+              <dd class="font-semibold client-heading text-right">{{ kwota_rezerwacji_zl }} zł</dd>
+            </div>
+          {% endif %}
+          <div class="flex flex-col sm:flex-row sm:justify-between gap-1 rounded-lg bg-brand-50/80 dark:bg-brand-950/40 px-3 py-2">
+            <dt class="client-muted">Tytuł przelewu</dt>
+            <dd class="font-semibold client-heading text-right break-all" id="copy-tytul">{{ tytul_przelewu }}</dd>
+          </div>
+        </dl>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="glovaroCopyText('copy-konto')" class="rounded-lg border border-brand-300 dark:border-brand-700 px-4 py-2 text-sm font-semibold client-heading hover:bg-brand-50 dark:hover:bg-brand-950/50">
+            Kopiuj konto
+          </button>
+          <button type="button" onclick="glovaroCopyText('copy-tytul')" class="rounded-lg border border-brand-300 dark:border-brand-700 px-4 py-2 text-sm font-semibold client-heading hover:bg-brand-50 dark:hover:bg-brand-950/50">
+            Kopiuj tytuł
+          </button>
+          {% if link_szybkiej_platnosci %}
+            <a href="{{ link_szybkiej_platnosci }}" target="_blank" rel="noopener noreferrer"
+              class="rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-semibold">
+              Szybka płatność (BLIK / link)
+            </a>
+          {% endif %}
+        </div>
+      {% else %}
+        <p class="text-sm text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3">
+          Salon nie podał jeszcze numeru konta. Zapłać na miejscu lub skontaktuj się: {% if dane.telefon_kontaktowy %}<a href="tel:{{ dane.telefon_kontaktowy }}" class="font-semibold underline">{{ dane.telefon_kontaktowy }}</a>{% else %}telefonicznie z salonem{% endif %}.
+        </p>
+      {% endif %}
+    {% endif %}
+
+    {% if stripe_online_rezerwacje and not rezerwacja.oplacona_online %}
+      <div class="pt-2 border-t border-brand-100 dark:border-brand-900/50">
+        <p class="text-xs client-muted mb-2">Alternatywnie — płatność kartą online:</p>
+        <form method="post" action="{{ url_for('oplac_rezerwacje_online', salon_slug=salon_slug) }}">
+          <input type="hidden" name="id" value="{{ rezerwacja.id }}">
+          <button type="submit" class="w-full inline-flex justify-center rounded-xl border border-brand-300 dark:border-brand-700 px-6 py-3 font-semibold client-heading hover:bg-brand-50 dark:hover:bg-brand-950/50">
+            Opłać kartą online ({{ kwota_rezerwacji_zl }} zł)
+          </button>
+        </form>
+      </div>
+    {% elif stripe_online_rezerwacje and rezerwacja.oplacona_online %}
+      <p class="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Opłacono kartą online.</p>
+    {% endif %}
+  </div>
+{% endif %}
+
+<script>
+  function glovaroCopyText(elementId) {
+    var el = document.getElementById(elementId);
+    if (!el) return;
+    var text = (el.textContent || '').trim();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() { alert('Skopiowano do schowka.'); });
+    } else {
+      prompt('Skopiuj:', text);
+    }
+  }
+</script>

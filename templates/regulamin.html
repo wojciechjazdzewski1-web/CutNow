@@ -95,12 +95,11 @@
       <h3 class="font-semibold text-slate-800 mt-4 mb-2">7.1. Abonament Glovaro (Salon → Operator)</h3>
       <p>Korzystanie z Panelu może być odpłatne według stawki wskazanej w Panelu (np. miesięczny abonament). Płatności abonamentu realizowane są przez Stripe na rzecz Usługodawcy Glovaro. Brak opłaty po terminie może skutkować wstrzymaniem publicznej strony rezerwacji Salonu.</p>
       <h3 class="font-semibold text-slate-800 mt-4 mb-2">7.2. Płatność za wizytę (Klient → Salon)</h3>
-      <p>Jeżeli Salon włączy płatność online, Klient może uiścić opłatę za wizytę (pełna kwota wskazana przy usłudze) przez Stripe Checkout. W takim przypadku:</p>
+      <p>Domyślnie Salon przyjmuje płatność <strong>w punkcie usługowym</strong> albo przez <strong>przelew/BLIK na rachunek Salonu</strong> — dane i kwota są wyświetlane Klientowi po rezerwacji. Pieniądze nie są zbierane na rachunek Operatora Glovaro, o ile Salon nie włączy dodatkowo płatności kartą przez Stripe (opcja zaawansowana).</p>
       <ul class="list-disc list-inside mt-2 space-y-1">
         <li>sprzedawcą usługi beauty &amp; wellness pozostaje <strong>Salon</strong>,</li>
-        <li>Operator udostępnia wyłącznie mechanizm techniczny płatności,</li>
-        <li>reklamacje dotyczące samej usługi (jakości, wykonania) należy kierować do Salonu,</li>
-        <li>reklamacje techniczne płatności w Serwisie — do Operatora na adres z §3.</li>
+        <li>reklamacje dotyczące usługi kieruje się do Salonu,</li>
+        <li>przy przelewie Salon może w Panelu oznaczyć rezerwację jako opłaconą.</li>
       </ul>
       <p class="mt-3">Stripe działa jako niezależny operator płatności i stosuje własne regulaminy: <a href="https://stripe.com/pl/legal" class="text-brand-700 hover:underline" rel="noopener noreferrer">stripe.com/pl/legal</a>.</p>
     </section>

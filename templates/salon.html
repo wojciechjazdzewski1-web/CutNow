@@ -81,21 +81,78 @@
       <p class="text-xs text-slate-500 mt-2">Na ten adres wyślemy wiadomość po każdej nowej rezerwacji, jeśli SMTP jest skonfigurowane na Renderze.</p>
     </div>
 
-    <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-4">
-      <div class="flex items-start gap-3">
-        <input type="checkbox" id="platnosc_online_wlaczona" name="platnosc_online_wlaczona" {% if dane.platnosc_online_wlaczona %}checked{% endif %}
-          class="mt-1 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+    <div class="rounded-xl border border-brand-200 bg-brand-50/60 p-4 space-y-4">
+      <div>
+        <h3 class="text-sm font-semibold text-slate-900">Płatność za wizytę (u klienta)</h3>
+        <p class="text-xs text-slate-600 mt-1">Pieniądze trafiają bezpośrednio do salonu — Glovaro tylko pokazuje instrukcję.</p>
+      </div>
+
+      <fieldset class="space-y-2">
+        <legend class="sr-only">Tryb płatności</legend>
+        <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 cursor-pointer hover:border-brand-300">
+          <input type="radio" name="tryb_platnosci_wizyty" value="w_salonie" {% if (dane.tryb_platnosci_wizyty or 'w_salonie') == 'w_salonie' %}checked{% endif %}
+            class="mt-1 text-brand-600 focus:ring-brand-500">
+          <span>
+            <span class="block text-sm font-semibold text-slate-900">Płatność w salonie</span>
+            <span class="block text-xs text-slate-500 mt-0.5">Najprościej — klient płaci przy wizycie gotówką lub kartą u Was.</span>
+          </span>
+        </label>
+        <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 cursor-pointer hover:border-brand-300">
+          <input type="radio" name="tryb_platnosci_wizyty" value="przelew" {% if dane.tryb_platnosci_wizyty == 'przelew' %}checked{% endif %}
+            class="mt-1 text-brand-600 focus:ring-brand-500">
+          <span>
+            <span class="block text-sm font-semibold text-slate-900">Przelew / BLIK na konto salonu</span>
+            <span class="block text-xs text-slate-500 mt-0.5">Klient dostanie numer konta i tytuł przelewu po rezerwacji.</span>
+          </span>
+        </label>
+        <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 cursor-pointer hover:border-brand-300">
+          <input type="radio" name="tryb_platnosci_wizyty" value="wylaczone" {% if dane.tryb_platnosci_wizyty == 'wylaczone' %}checked{% endif %}
+            class="mt-1 text-brand-600 focus:ring-brand-500">
+          <span>
+            <span class="block text-sm font-semibold text-slate-900">Bez informacji o płatności</span>
+            <span class="block text-xs text-slate-500 mt-0.5">Tylko rezerwacja terminu, bez kwoty i danych do przelewu.</span>
+          </span>
+        </label>
+      </fieldset>
+
+      <div id="dane-przelewu" class="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
+        <p class="text-xs font-semibold text-slate-700">Dane do przelewu (gdy wybrany przelew / BLIK)</p>
         <div>
-          <label for="platnosc_online_wlaczona" class="block text-sm font-semibold text-slate-800">Włącz płatność wizyty online</label>
-          <p class="text-xs text-slate-500 mt-1">Klient zobaczy przycisk „Opłać online” po wysłaniu rezerwacji. Wymaga skonfigurowanego Stripe.</p>
+          <label for="odbiorca_przelewu" class="block text-sm font-medium text-slate-700 mb-2">Odbiorca przelewu</label>
+          <input type="text" id="odbiorca_przelewu" name="odbiorca_przelewu" value="{{ dane.odbiorca_przelewu }}"
+            class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 outline-none"
+            placeholder="{{ dane.nazwa_salonu }}">
+        </div>
+        <div>
+          <label for="konto_bankowe" class="block text-sm font-medium text-slate-700 mb-2">Numer konta (IBAN)</label>
+          <input type="text" id="konto_bankowe" name="konto_bankowe" value="{{ dane.konto_bankowe }}"
+            class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 font-mono text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+            placeholder="PL00 0000 0000 0000 0000 0000 0000">
+        </div>
+        <div>
+          <label for="link_szybkiej_platnosci" class="block text-sm font-medium text-slate-700 mb-2">Link szybkiej płatności (opcjonalnie)</label>
+          <input type="text" id="link_szybkiej_platnosci" name="link_szybkiej_platnosci" value="{{ dane.link_szybkiej_platnosci }}"
+            class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 outline-none"
+            placeholder="Link BLIK / Revolut / szybki przelew z banku">
         </div>
       </div>
-      <div>
-        <label for="cena_wizyty" class="block text-sm font-medium text-slate-700 mb-2">Cena wizyty (zł)</label>
-        <input type="number" id="cena_wizyty" name="cena_wizyty" value="{{ dane.cena_wizyty or 0 }}" min="0" step="1"
-          class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow"
-          placeholder="np. 120">
-      </div>
+
+      <details class="rounded-lg border border-slate-200 bg-white p-3 text-sm">
+        <summary class="cursor-pointer font-semibold text-slate-700">Zaawansowane: płatność kartą przez Stripe (opcjonalnie)</summary>
+        <div class="mt-3 space-y-3 pt-3 border-t border-slate-100">
+          <label class="flex items-start gap-3">
+            <input type="checkbox" id="platnosc_online_wlaczona" name="platnosc_online_wlaczona" {% if dane.platnosc_online_wlaczona %}checked{% endif %}
+              class="mt-1 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+            <span class="text-slate-600">Dodatkowo pokaż przycisk „Opłać online” (pieniądze przez konto operatora Glovaro, nie bezpośrednio do salonu).</span>
+          </label>
+          <div>
+            <label for="cena_wizyty" class="block text-sm font-medium text-slate-700 mb-2">Domyślna cena wizyty (zł), gdy brak usługi w cenniku</label>
+            <input type="number" id="cena_wizyty" name="cena_wizyty" value="{{ dane.cena_wizyty or 0 }}" min="0" step="1"
+              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 outline-none"
+              placeholder="np. 120">
+          </div>
+        </div>
+      </details>
     </div>
 
     <div>
