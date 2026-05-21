@@ -42,6 +42,37 @@
       </div>
     </div>
 
+    <div class="rounded-xl border border-brand-100 bg-brand-50/50 p-4 space-y-4">
+      <div>
+        <h3 class="text-sm font-semibold text-slate-900">Lokalizacja salonu</h3>
+        <p class="text-xs text-slate-500 mt-1">Adres i mapa są widoczne na stronie rezerwacji dla klientów.</p>
+      </div>
+      <div>
+        <label for="adres_lokalizacji" class="block text-sm font-medium text-slate-700 mb-2">Adres (ulica, miasto)</label>
+        <input type="text" id="adres_lokalizacji" name="adres_lokalizacji" value="{{ dane.adres_lokalizacji }}"
+          class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow"
+          placeholder="np. ul. Kwiatowa 12, 00-001 Warszawa">
+      </div>
+      <div>
+        <label for="link_google_maps" class="block text-sm font-medium text-slate-700 mb-2">Link Google Maps (opcjonalnie)</label>
+        <input type="text" id="link_google_maps" name="link_google_maps" value="{{ dane.link_google_maps }}"
+          class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow"
+          placeholder="https://maps.app.goo.gl/... lub maps.google.com/...">
+        <p class="text-xs text-slate-500 mt-2">Wklej link z Google Maps („Udostępnij”). Jeśli zostawisz puste, link powstanie automatycznie z adresu powyżej.</p>
+      </div>
+      {% if ma_lokalizacje %}
+        <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+          <p class="font-semibold mb-1">Podgląd (zapisane w bazie)</p>
+          {% if dane.adres_lokalizacji %}<p>{{ dane.adres_lokalizacji }}</p>{% endif %}
+          {% if maps_url %}
+            <a href="{{ maps_url }}" target="_blank" rel="noopener noreferrer" class="inline-block mt-2 font-semibold text-brand-700 hover:underline">Testuj link do mapy →</a>
+          {% endif %}
+        </div>
+      {% else %}
+        <p class="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-3">Uzupełnij adres lub link i kliknij „Zapisz”, aby lokalizacja pojawiła się u klientów.</p>
+      {% endif %}
+    </div>
+
     <div>
       <label for="email_powiadomien" class="block text-sm font-medium text-slate-700 mb-2">E-mail do powiadomień o rezerwacjach</label>
       <input type="email" id="email_powiadomien" name="email_powiadomien" value="{{ dane.email_powiadomien }}"

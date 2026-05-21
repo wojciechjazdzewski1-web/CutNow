@@ -18,7 +18,7 @@ from email.message import EmailMessage
 from pathlib import Path
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode, urlparse
+from urllib.parse import quote, urlencode, urlparse
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -48,6 +48,9 @@ LEGAL_COMPANY_NAME = os.environ.get("LEGAL_COMPANY_NAME", "Glovaro").strip()
 LEGAL_COMPANY_ADDRESS = os.environ.get("LEGAL_COMPANY_ADDRESS", "Uzupełnij adres firmy").strip()
 LEGAL_COMPANY_EMAIL = os.environ.get("LEGAL_COMPANY_EMAIL", "kontakt@example.com").strip()
 LEGAL_COMPANY_NIP = os.environ.get("LEGAL_COMPANY_NIP", "Uzupełnij NIP").strip()
+LEGAL_PLACEHOLDERS = frozenset(
+    {"", "Uzupełnij adres firmy", "Uzupełnij NIP", "kontakt@example.com", "0000000000"}
+)
 REZERWACJA_RATE_LIMIT: dict[str, list[float]] = {}
 GODZIN_PO_WIZYCIE_DO_ARCHIWUM = 1
 DNI_W_ARCHIWUM_PRZED_USUNIECIEM = 90
@@ -69,6 +72,8 @@ DEFAULT_SALON = {
     "haslo_panelu": "",
     "opis": "",
     "telefon_kontaktowy": "",
+    "adres_lokalizacji": "",
+    "link_google_maps": "",
     "instagram": "",
     "email_powiadomien": "",
     "zdjecia_prac": [],
@@ -164,6 +169,8 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("haslo_panelu", "")
             salon.setdefault("opis", "")
             salon.setdefault("telefon_kontaktowy", "")
+            salon.setdefault("adres_lokalizacji", "")
+            salon.setdefault("link_google_maps", "")
             salon.setdefault("instagram", "")
             salon.setdefault("email_powiadomien", "")
             salon.setdefault("zdjecia_prac", [])
@@ -320,6 +327,73 @@ def abonament_po_terminie(salon: dict) -> bool:
 
 def stripe_skonfigurowany() -> bool:
     return bool(STRIPE_SECRET_KEY)
+
+
+def normalizuj_url_https(url: str) -> str:
+    url = (url or "").strip()
+    if not url:
+        return ""
+    if 'src="' in url:
+        dopasowanie = re.search(r'src="([^"]+)"', url)
+        if dopasowanie:
+            url = dopasowanie.group(1).strip()
+    if url.startswith("//"):
+        url = f"https:{url}"
+    elif not re.match(r"^https?://", url, re.IGNORECASE):
+        url = f"https://{url}"
+    parsed = urlparse(url)
+    return url if parsed.netloc else ""
+
+
+def link_google_maps_salonu(salon: dict) -> str:
+    """Link do map — z pola salonu lub wyszukiwanie po adresie tekstowym."""
+    link = normalizuj_url_https(str(salon.get("link_google_maps", "")))
+    if link:
+        return link
+    adres = (salon.get("adres_lokalizacji") or "").strip()
+    if adres:
+        return f"https://www.google.com/maps/search/?api=1&query={quote(adres)}"
+    return ""
+
+
+def embed_google_maps_salonu(salon: dict) -> str:
+    """URL do osadzenia mapy w iframe (bez klucza API)."""
+    adres = (salon.get("adres_lokalizacji") or "").strip()
+    if adres:
+        return f"https://www.google.com/maps?q={quote(adres)}&hl=pl&z=16&output=embed"
+    link = link_google_maps_salonu(salon)
+    if not link:
+        return ""
+    if "output=embed" in link:
+        return link
+    return f"{link}{'&' if '?' in link else '?'}output=embed"
+
+
+def kontekst_lokalizacji_salonu(salon: dict) -> dict:
+    adres = (salon.get("adres_lokalizacji") or "").strip()
+    maps_url = link_google_maps_salonu(salon)
+    maps_embed_url = embed_google_maps_salonu(salon)
+    return {
+        "maps_url": maps_url,
+        "maps_embed_url": maps_embed_url,
+        "ma_lokalizacje": bool(adres or maps_url),
+    }
+
+
+@app.template_global()
+def maps_link_salonu(salon: dict) -> str:
+    return link_google_maps_salonu(salon)
+
+
+def legal_skonfigurowany() -> bool:
+    """Czy dane operatora w ENV nie są placeholderami (do banera na stronach prawnych)."""
+    return (
+        LEGAL_COMPANY_NAME not in LEGAL_PLACEHOLDERS
+        and LEGAL_COMPANY_ADDRESS not in LEGAL_PLACEHOLDERS
+        and LEGAL_COMPANY_NIP not in LEGAL_PLACEHOLDERS
+        and LEGAL_COMPANY_EMAIL not in LEGAL_PLACEHOLDERS
+        and "@" in LEGAL_COMPANY_EMAIL
+    )
 
 
 def kwota_wizyty_zl(salon: dict) -> int:
@@ -961,6 +1035,8 @@ def inject_globals():
             "company_email": LEGAL_COMPANY_EMAIL,
             "company_nip": LEGAL_COMPANY_NIP,
         },
+        "legal_skonfigurowany": legal_skonfigurowany(),
+        "dni_archiwum_rezerwacji": DNI_W_ARCHIWUM_PRZED_USUNIECIEM,
     }
 
 
@@ -1327,6 +1403,8 @@ def ustawienia_salonu(salon_slug: str):
         haslo = request.form.get("haslo_panelu", "").strip()
         opis = request.form.get("opis", "").strip()
         telefon = request.form.get("telefon_kontaktowy", "").strip()
+        adres_lokalizacji = request.form.get("adres_lokalizacji", "").strip()
+        link_google_maps = normalizuj_url_https(request.form.get("link_google_maps", ""))
         instagram = request.form.get("instagram", "").strip()
         email_powiadomien = request.form.get("email_powiadomien", "").strip()
         platnosc_online_wlaczona = request.form.get("platnosc_online_wlaczona") == "on"
@@ -1347,6 +1425,8 @@ def ustawienia_salonu(salon_slug: str):
         if request.form.get("usun_wgrane_zdjecia") == "on":
             dotychczasowe_uploady = []
         zdjecia = (zdjecia_z_linkow + dotychczasowe_uploady + nowe_zdjecia)[:12]
+        salon["adres_lokalizacji"] = adres_lokalizacji
+        salon["link_google_maps"] = link_google_maps
         if nazwa:
             salon["nazwa_salonu"] = nazwa
             salon["opis"] = opis
@@ -1361,11 +1441,20 @@ def ustawienia_salonu(salon_slug: str):
             if haslo:
                 salon["haslo_panelu"] = haslo
             zapisz_dane(dane)
-            flash("Ustawienia salonu zostały zapisane.", "success")
+            if adres_lokalizacji or link_google_maps:
+                flash("Ustawienia zapisane (w tym lokalizacja).", "success")
+            else:
+                flash("Ustawienia salonu zostały zapisane.", "success")
         else:
-            flash("Podaj nazwę salonu.", "error")
+            zapisz_dane(dane)
+            flash("Podaj nazwę salonu. Lokalizacja została zapisana.", "error")
         return redirect(url_for("ustawienia_salonu", salon_slug=salon_slug))
-    return render_template("salon.html", dane=salon, salon_slug=salon_slug)
+    return render_template(
+        "salon.html",
+        dane=salon,
+        salon_slug=salon_slug,
+        **kontekst_lokalizacji_salonu(salon),
+    )
 
 
 @app.route("/panel/<salon_slug>/godziny", methods=["GET", "POST"])
@@ -1566,6 +1655,7 @@ def kontekst_rezerwacji(salon: dict, salon_slug: str, wybrana_data: str) -> dict
         "uslugi": uslugi_salonu(salon),
         "opinie": sorted(opinie, key=lambda o: o.get("utworzono", ""), reverse=True)[:6],
         "srednia_ocena": srednia_ocen(opinie),
+        **kontekst_lokalizacji_salonu(salon),
     }
 
 
@@ -1640,6 +1730,9 @@ def rezerwacja_formularz(salon_slug: str):
     if not waliduj_telefon(telefon):
         flash("Podaj poprawny numer telefonu (min. 9 cyfr).", "error")
         return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
+    if request.form.get("zgoda_rodo") != "on":
+        flash("Zaakceptuj informację o przetwarzaniu danych, aby złożyć rezerwację.", "error")
+        return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
     if godzina not in dostepne_terminy(salon, data_iso):
         flash("Ten termin został właśnie zajęty. Wybierz inną godzinę.", "error")
         return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug, data=data_iso))
@@ -1697,6 +1790,7 @@ def rezerwacja_potwierdzenie(salon_slug: str):
             and kwota_rezerwacji_zl(salon, rezerwacja) > 0
         ),
         kwota_rezerwacji_zl=kwota_rezerwacji_zl(salon, rezerwacja),
+        **kontekst_lokalizacji_salonu(salon),
     )
 
 

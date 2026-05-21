@@ -35,7 +35,7 @@
         <textarea id="komentarz" name="komentarz" rows="4" maxlength="600"
           class="client-input w-full px-4 py-4 resize-none"
           placeholder="Napisz krótko, co było dobre albo co można poprawić."></textarea>
-        <p class="text-xs client-muted mt-2">Opinia może pojawić się na stronie salonu.</p>
+        <p class="text-xs client-muted mt-2">Opinia może pojawić się publicznie na stronie {{ dane.nazwa_salonu }}. Wysłanie jest dobrowolne. Zasady danych: <a href="{{ url_for('polityka_prywatnosci') }}" class="text-brand-700 dark:text-brand-400 hover:underline">polityka prywatności</a>.</p>
       </div>
 
       <button type="submit" class="client-btn-primary w-full rounded-2xl px-6 py-4 text-lg font-bold shadow-lg shadow-brand-500/20">

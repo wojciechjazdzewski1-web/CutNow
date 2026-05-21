@@ -4,38 +4,84 @@
 {% block content %}
 <article class="mx-auto max-w-3xl rounded-3xl bg-white p-6 sm:p-8 shadow-sm border border-slate-200">
   <p class="text-sm font-semibold text-brand-700 mb-2">Cookies</p>
-  <h1 class="text-3xl font-bold text-slate-900 mb-4">Polityka cookies</h1>
-  <p class="text-sm text-slate-500 mb-8">Ostatnia aktualizacja: 2026-05-18</p>
+  <h1 class="text-3xl font-bold text-slate-900 mb-2">Polityka cookies</h1>
+  <p class="text-sm text-slate-500 mb-6">Ostatnia aktualizacja: 20 maja 2026 r.</p>
 
-  <div class="space-y-7 text-slate-700 leading-relaxed">
+  <nav class="mb-8 rounded-xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-600">
+    <p class="font-semibold text-slate-800 mb-2">Powiązane dokumenty</p>
+    <ul class="list-disc list-inside space-y-1">
+      <li><a href="{{ url_for('regulamin') }}" class="text-brand-700 hover:underline">Regulamin</a></li>
+      <li><a href="{{ url_for('polityka_prywatnosci') }}" class="text-brand-700 hover:underline">Polityka prywatności</a></li>
+    </ul>
+  </nav>
+
+  <div class="space-y-8 text-slate-700 leading-relaxed">
     <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-2">1. Czym są cookies</h2>
-      <p>Cookies to małe pliki lub dane zapisywane w przeglądarce użytkownika. Pomagają utrzymać sesję logowania, zapamiętać ustawienia i zapewnić prawidłowe działanie serwisu.</p>
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">1. Czym są pliki cookies</h2>
+      <p>Cookies to małe pliki zapisywane w przeglądarce. <strong>LocalStorage</strong> to pamięć lokalna przeglądarki — w Glovaro używamy jej do ustawień wyświetlania (nie do śledzenia reklamowego).</p>
     </section>
 
     <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-2">2. Jakich cookies używa Glovaro</h2>
-      <p>Glovaro używa cookies i podobnych technologii niezbędnych do działania aplikacji, w szczególności sesji Flask służącej do logowania do panelu oraz lokalnego zapamiętania informacji, że użytkownik widział baner cookies.</p>
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">2. Jakie technologie stosujemy</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm border border-slate-200 rounded-xl">
+          <thead class="bg-slate-50">
+            <tr>
+              <th class="text-left p-3 border-b">Nazwa</th>
+              <th class="text-left p-3 border-b">Typ</th>
+              <th class="text-left p-3 border-b">Cel</th>
+              <th class="text-left p-3 border-b">Czas</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="p-3 font-mono text-xs">session (Flask)</td>
+              <td class="p-3">Cookie — niezbędne</td>
+              <td class="p-3">Logowanie do Panelu, ochrona formularzy</td>
+              <td class="p-3">Sesja / do wygaśnięcia</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-mono text-xs">glovaro_cookie_notice</td>
+              <td class="p-3">localStorage</td>
+              <td class="p-3">Zapamiętanie akceptacji banera cookies</td>
+              <td class="p-3">Do usunięcia przez użytkownika</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-mono text-xs">glovaro_theme</td>
+              <td class="p-3">localStorage</td>
+              <td class="p-3">Tryb jasny / ciemny na stronach rezerwacji</td>
+              <td class="p-3">Do usunięcia przez użytkownika</td>
+            </tr>
+            <tr>
+              <td class="p-3">Stripe</td>
+              <td class="p-3">Cookie strony trzeciej</td>
+              <td class="p-3">Płatność abonamentu lub wizyty (gdy użytkownik przechodzi do Stripe)</td>
+              <td class="p-3">Zgodnie z <a href="https://stripe.com/pl/privacy" class="text-brand-700 hover:underline" rel="noopener noreferrer">polityką Stripe</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-3"><strong>Glovaro nie używa</strong> własnych cookies marketingowych ani narzędzi analitycznych (Google Analytics itp.) w obecnej wersji Serwisu.</p>
     </section>
 
     <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-2">3. Cookies marketingowe</h2>
-      <p>Aktualnie Glovaro nie używa własnych cookies reklamowych ani analitycznych. Jeżeli w przyszłości zostaną dodane narzędzia analityczne lub marketingowe, polityka zostanie zaktualizowana, a użytkownik otrzyma odpowiednie opcje zgody.</p>
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">3. Zasoby zewnętrzne</h2>
+      <p>Strona może ładować skrypty i style z CDN (np. Tailwind) oraz czcionki (np. Google Fonts). Dostawcy ci mogą otrzymywać adres IP i informacje o przeglądarce — zgodnie z własnymi politykami prywatności.</p>
     </section>
 
     <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-2">4. Zewnętrzni dostawcy</h2>
-      <p>Serwis może korzystać z zewnętrznych zasobów technicznych, takich jak CDN Tailwind, Google Fonts, Stripe lub dostawcy e-mail. Ci dostawcy mogą przetwarzać dane techniczne, np. adres IP lub informacje o przeglądarce, zgodnie z własnymi zasadami prywatności.</p>
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">4. Podstawa prawna</h2>
+      <p>Cookies niezbędne do działania Serwisu (sesja, bezpieczeństwo) — art. 6 ust. 1 lit. f RODO oraz ustawa Prawo telekomunikacyjne (bez zbędnej zgody). LocalStorage dla trybu wyświetlania — uzasadniony interes / preferencje użytkownika. Stripe — w związku z płatnością wybranej przez użytkownika.</p>
     </section>
 
     <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-2">5. Jak zarządzać cookies</h2>
-      <p>Możesz usunąć lub zablokować cookies w ustawieniach swojej przeglądarki. Zablokowanie niezbędnych cookies może spowodować, że logowanie do panelu lub niektóre funkcje rezerwacji nie będą działały poprawnie.</p>
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">5. Zarządzanie cookies</h2>
+      <p>Możesz usunąć cookies i dane localStorage w ustawieniach przeglądarki. Zablokowanie cookies sesyjnych uniemożliwi logowanie do Panelu. Baner na dole strony zapisuje akceptację informacji o cookies.</p>
     </section>
 
     <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-2">6. Kontakt</h2>
-      <p>W sprawach cookies i prywatności skontaktuj się z nami pod adresem: <strong>{{ legal.company_email }}</strong>.</p>
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">6. Kontakt</h2>
+      <p>Pytania: <strong>{{ legal.company_email }}</strong> ({{ legal.company_name }}). Więcej o danych osobowych: <a href="{{ url_for('polityka_prywatnosci') }}" class="text-brand-700 hover:underline">polityka prywatności</a>.</p>
     </section>
   </div>
 </article>

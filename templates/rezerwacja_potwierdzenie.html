@@ -15,6 +15,11 @@
       <span class="client-muted">Salon</span>
       <span class="font-semibold client-heading text-right">{{ dane.nazwa_salonu }}</span>
     </div>
+    {% if ma_lokalizacje %}
+      <div class="pt-2 border-t border-brand-100 dark:border-brand-900/50">
+        {% include "_lokalizacja_salonu.html" with context %}
+      </div>
+    {% endif %}
     <div class="flex justify-between gap-4">
       <span class="client-muted">Termin</span>
       <span class="font-semibold client-heading text-right">{{ dzien_nazwa }}, {{ rezerwacja.data }} o {{ rezerwacja.godzina }}</span>

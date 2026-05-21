@@ -9,10 +9,13 @@
   </a>
 
   <h1 class="text-3xl font-bold client-heading mb-2">Twoja rezerwacja</h1>
-  <p class="client-muted mb-6 leading-relaxed">
+  <p class="client-muted mb-4 leading-relaxed">
     <span class="font-semibold client-heading">{{ dane.nazwa_salonu }}</span><br>
     {{ dni_tygodnia[dzien_tygodnia] }}, {{ wybrana_data }} o <span class="text-brand-700 dark:text-brand-400 font-bold">{{ godzina }}</span>
   </p>
+  {% with compact=true %}
+    {% include "_lokalizacja_salonu.html" %}
+  {% endwith %}
 
   <form method="post" class="client-card p-6 space-y-5">
     <input type="hidden" name="data" value="{{ wybrana_data }}">
@@ -63,6 +66,22 @@
       <textarea id="uwagi" name="uwagi" rows="3"
         class="client-input w-full px-4 py-4 resize-none"
         placeholder="np. preferowany styl, alergie, dodatkowe życzenia"></textarea>
+    </div>
+
+    <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-brand-50/80 dark:bg-brand-950/30 p-4">
+      <label class="flex items-start gap-3 cursor-pointer">
+        <input type="checkbox" name="zgoda_rodo" value="on" required
+          class="mt-1 h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-500">
+        <span class="text-sm client-muted leading-relaxed">
+          Wyrażam zgodę na przetwarzanie moich danych (imię, telefon, termin wizyty i uwagi) w celu obsługi rezerwacji.
+          Administratorem danych jest <strong class="client-heading">{{ dane.nazwa_salonu }}</strong>;
+          Glovaro przetwarza dane jako podmiot techniczny.
+          Zapoznałem/am się z
+          <a href="{{ url_for('polityka_prywatnosci') }}" target="_blank" rel="noopener" class="text-brand-700 dark:text-brand-400 font-semibold hover:underline">polityką prywatności</a>
+          i
+          <a href="{{ url_for('regulamin') }}" target="_blank" rel="noopener" class="text-brand-700 dark:text-brand-400 font-semibold hover:underline">regulaminem</a>.
+        </span>
+      </label>
     </div>
 
     <div class="fixed inset-x-0 bottom-0 z-40 client-sticky-bar border-t p-4 shadow-2xl backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">

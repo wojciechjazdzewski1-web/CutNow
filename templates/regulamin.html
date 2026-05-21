@@ -4,54 +4,147 @@
 {% block content %}
 <article class="mx-auto max-w-3xl rounded-3xl bg-white p-6 sm:p-8 shadow-sm border border-slate-200">
   <p class="text-sm font-semibold text-brand-700 mb-2">Dokument prawny</p>
-  <h1 class="text-3xl font-bold text-slate-900 mb-4">Regulamin serwisu Glovaro</h1>
-  <p class="text-sm text-slate-500 mb-8">Ostatnia aktualizacja: 2026-05-18</p>
+  <h1 class="text-3xl font-bold text-slate-900 mb-2">Regulamin serwisu Glovaro</h1>
+  <p class="text-sm text-slate-500 mb-6">Ostatnia aktualizacja: 20 maja 2026 r.</p>
 
-  <div class="space-y-7 text-slate-700 leading-relaxed">
-    <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-2">1. Dane usługodawcy</h2>
-      <p>Serwis Glovaro jest prowadzony przez: <strong>{{ legal.company_name }}</strong>, adres: <strong>{{ legal.company_address }}</strong>, NIP: <strong>{{ legal.company_nip }}</strong>, e-mail kontaktowy: <strong>{{ legal.company_email }}</strong>.</p>
-      <p class="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-3">Uzupełnij te dane w Render Environment przed publicznym startem.</p>
+  {% if not legal_skonfigurowany %}
+  <p class="mb-8 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-4">
+    Uwaga dla operatora: uzupełnij dane firmy w zmiennych <code>LEGAL_*</code> (Render Environment), zanim udostępnisz serwis publicznie.
+  </p>
+  {% endif %}
+
+  <nav class="mb-8 rounded-xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-600">
+    <p class="font-semibold text-slate-800 mb-2">Powiązane dokumenty</p>
+    <ul class="list-disc list-inside space-y-1">
+      <li><a href="{{ url_for('polityka_prywatnosci') }}" class="text-brand-700 hover:underline">Polityka prywatności</a></li>
+      <li><a href="{{ url_for('polityka_cookies') }}" class="text-brand-700 hover:underline">Polityka cookies</a></li>
+    </ul>
+  </nav>
+
+  <div class="space-y-8 text-slate-700 leading-relaxed legal-prose">
+    <section id="postanowienia">
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">§1. Postanowienia ogólne</h2>
+      <ol class="list-decimal list-inside space-y-2">
+        <li>Niniejszy regulamin określa zasady korzystania z serwisu internetowego Glovaro dostępnego pod adresem glovaro.pl oraz powiązanymi subdomenami (dalej: <strong>Serwis</strong>).</li>
+        <li>Serwis jest platformą technologiczną dla branży <strong>beauty &amp; wellness</strong>, umożliwiającą prowadzenie profilu punktu usługowego, zarządzanie terminami oraz przyjmowanie rezerwacji online.</li>
+        <li>Korzystanie z Serwisu oznacza zapoznanie się z regulaminem i — w zakresie wymaganym prawem — jego akceptację.</li>
+      </ol>
     </section>
 
-    <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-2">2. Opis usługi</h2>
-      <p>Glovaro umożliwia salonom beauty &amp; wellness tworzenie profilu, ustawianie godzin pracy, wolnych terminów, usług, pracowników, blokad czasowych oraz obsługę rezerwacji online klientów.</p>
+    <section id="definicje">
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">§2. Definicje</h2>
+      <ul class="space-y-2">
+        <li><strong>Usługodawca / Operator</strong> — podmiot wskazany w §3, świadczący usługę Glovaro.</li>
+        <li><strong>Salon</strong> — przedsiębiorca lub osoba prowadząca punkt usługowy beauty &amp; wellness korzystający z panelu Glovaro.</li>
+        <li><strong>Klient</strong> — osoba fizyczna rezerwująca wizytę za pośrednictwem publicznej strony rezerwacji Salonu.</li>
+        <li><strong>Panel</strong> — chroniona hasłem część Serwisu do zarządzania profilem, terminami i rezerwacjami.</li>
+        <li><strong>Rezerwacja</strong> — zgłoszenie terminu wizyty złożone przez Klienta w Serwisie.</li>
+        <li><strong>Abonament</strong> — opłata okresowa za korzystanie z narzędzia Glovaro przez Salon.</li>
+      </ul>
     </section>
 
-    <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-2">3. Konto i panel salonu</h2>
-      <p>Dostęp do panelu salonu jest chroniony hasłem. Właściciel salonu odpowiada za zachowanie hasła w poufności oraz za poprawność danych wprowadzanych w panelu, w tym danych kontaktowych, opisów, zdjęć, terminów i pracowników.</p>
+    <section id="uslugodawca">
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">§3. Dane Usługodawcy</h2>
+      <p>Usługodawcą Serwisu Glovaro jest:</p>
+      <ul class="mt-3 space-y-1">
+        <li><strong>Nazwa:</strong> {{ legal.company_name }}</li>
+        <li><strong>Adres:</strong> {{ legal.company_address }}</li>
+        <li><strong>NIP:</strong> {{ legal.company_nip }}</li>
+        <li><strong>E-mail:</strong> <a href="mailto:{{ legal.company_email }}" class="text-brand-700 hover:underline">{{ legal.company_email }}</a></li>
+      </ul>
     </section>
 
-    <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-2">4. Rezerwacje klientów</h2>
-      <p>Klient może złożyć rezerwację online, podając imię, numer telefonu oraz opcjonalne uwagi. Salon może potwierdzić, odrzucić lub anulować rezerwację. Klient może anulować wizytę za pomocą indywidualnego linku.</p>
+    <section id="zakres">
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">§4. Zakres usługi Glovaro</h2>
+      <p>Usługodawca świadczy usługę polegającą na udostępnieniu oprogramowania (SaaS), w tym m.in.:</p>
+      <ul class="list-disc list-inside mt-3 space-y-1">
+        <li>profilu Salonu (opis, kontakt, zdjęcia, lista usług z cenami),</li>
+        <li>konfiguracji godzin pracy, wolnych terminów, pracowników i blokad czasowych,</li>
+        <li>publicznej strony rezerwacji pod indywidualnym linkiem,</li>
+        <li>obsługi rezerwacji (potwierdzenie, odrzucenie, anulowanie),</li>
+        <li>archiwum rezerwacji i automatycznego usuwania wpisów po upływie {{ dni_archiwum_rezerwacji }} dni od terminu wizyty,</li>
+        <li>opcjonalnych powiadomień e-mail oraz płatności online obsługiwanych przez Stripe (abonament i — jeśli włączone — opłata za wizytę).</li>
+      </ul>
+      <p class="mt-3">Glovaro <strong>nie świadczy usług beauty &amp; wellness</strong> wobec Klienta — wykonuje je wyłącznie Salon.</p>
     </section>
 
-    <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-2">5. Płatności i abonament</h2>
-      <p>Korzystanie z usługi może być płatne według stawki wskazanej w panelu, np. 100 zł miesięcznie za salon. Płatności online są obsługiwane przez Stripe. Operator płatności może stosować własne regulaminy i zasady prywatności.</p>
+    <section id="salon">
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">§5. Zasady korzystania przez Salon</h2>
+      <ol class="list-decimal list-inside space-y-2">
+        <li>Salon otrzymuje dostęp do Panelu po utworzeniu konta i ustawieniu hasła (hasło globalne lub indywidualne dla Salonu).</li>
+        <li>Salon odpowiada za prawdziwość danych w Panelu: godzin, cen, pracowników, zdjęć i opisów.</li>
+        <li>Salon oświadcza, że posiada prawa do publikowanych treści (w tym zdjęć) i nie narusza praw osób trzecich.</li>
+        <li>Salon jest <strong>administratorem danych osobowych Klientów</strong> w zakresie rezerwacji i realizacji wizyty. Glovaro przetwarza te dane jako <strong>podmiot przetwarzający</strong> na zlecenie Salonu — szczegóły w <a href="{{ url_for('polityka_prywatnosci') }}" class="text-brand-700 hover:underline">polityce prywatności</a>.</li>
+        <li>Zakazane jest wykorzystywanie Serwisu do działań bezprawnych, spamu, podszywania się pod inne podmioty lub obchodzenia zabezpieczeń.</li>
+      </ol>
     </section>
 
-    <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-2">6. Treści dodawane przez salony</h2>
-      <p>Salon oświadcza, że ma prawa do zdjęć, opisów i innych treści publikowanych w profilu. Zabronione jest dodawanie treści bezprawnych, obraźliwych, naruszających prawa osób trzecich lub wprowadzających klientów w błąd.</p>
+    <section id="klient">
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">§6. Rezerwacje Klienta</h2>
+      <ol class="list-decimal list-inside space-y-2">
+        <li>Klient składa rezerwację, podając co najmniej imię i nazwisko oraz numer telefonu; może dodać uwagi, wybrać usługę i pracownika — jeśli Salon je udostępnił.</li>
+        <li>Rezerwacja może mieć status m.in.: oczekująca, potwierdzona, odrzucona, anulowana lub zakończona — zgodnie z działaniami Salonu i Klienta.</li>
+        <li>Klient może anulować wizytę za pomocą indywidualnego linku otrzymanego po rezerwacji, o ile termin nie został już zrealizowany lub anulowany.</li>
+        <li>Składając rezerwację, Klient akceptuje przetwarzanie danych opisane w polityce prywatności oraz zasady rezerwacji ustalone przez Salon (w tym ewentualną politykę anulowania poza Serwisem).</li>
+        <li>Umowa o wykonanie usługi beauty &amp; wellness zawierana jest <strong>między Klientem a Salonem</strong>, nie z Operatorem Glovaro.</li>
+      </ol>
     </section>
 
-    <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-2">7. Odpowiedzialność</h2>
-      <p>Glovaro udostępnia narzędzie techniczne do obsługi rezerwacji. Salon odpowiada za wykonanie usługi beauty &amp; wellness, kontakt z klientem, poprawność terminów oraz rozliczenia z klientami, jeśli takie występują poza platformą.</p>
+    <section id="platnosci">
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">§7. Płatności</h2>
+      <h3 class="font-semibold text-slate-800 mt-4 mb-2">7.1. Abonament Glovaro (Salon → Operator)</h3>
+      <p>Korzystanie z Panelu może być odpłatne według stawki wskazanej w Panelu (np. miesięczny abonament). Płatności abonamentu realizowane są przez Stripe na rzecz Usługodawcy Glovaro. Brak opłaty po terminie może skutkować wstrzymaniem publicznej strony rezerwacji Salonu.</p>
+      <h3 class="font-semibold text-slate-800 mt-4 mb-2">7.2. Płatność za wizytę (Klient → Salon)</h3>
+      <p>Jeżeli Salon włączy płatność online, Klient może uiścić opłatę za wizytę (pełna kwota wskazana przy usłudze) przez Stripe Checkout. W takim przypadku:</p>
+      <ul class="list-disc list-inside mt-2 space-y-1">
+        <li>sprzedawcą usługi beauty &amp; wellness pozostaje <strong>Salon</strong>,</li>
+        <li>Operator udostępnia wyłącznie mechanizm techniczny płatności,</li>
+        <li>reklamacje dotyczące samej usługi (jakości, wykonania) należy kierować do Salonu,</li>
+        <li>reklamacje techniczne płatności w Serwisie — do Operatora na adres z §3.</li>
+      </ul>
+      <p class="mt-3">Stripe działa jako niezależny operator płatności i stosuje własne regulaminy: <a href="https://stripe.com/pl/legal" class="text-brand-700 hover:underline" rel="noopener noreferrer">stripe.com/pl/legal</a>.</p>
     </section>
 
-    <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-2">8. Reklamacje i kontakt</h2>
-      <p>Reklamacje dotyczące działania serwisu można zgłaszać na adres: <strong>{{ legal.company_email }}</strong>. Zgłoszenie powinno zawierać opis problemu, nazwę salonu oraz dane kontaktowe osoby zgłaszającej.</p>
+    <section id="opinie">
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">§8. Opinie i treści użytkowników</h2>
+      <p>Po zakończonej wizycie Klient może wystawić opinię za pomocą indywidualnego linku. Salon może moderować opinie w Panelu. Operator może usunąć treści oczywiście bezprawne po zgłoszeniu. Opublikowanie opinii nie oznacza jej poparcia przez Operatora.</p>
     </section>
 
-    <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-2">9. Zmiany regulaminu</h2>
-      <p>Regulamin może być aktualizowany w przypadku zmian funkcji, prawa, operatorów płatności lub sposobu świadczenia usługi. Aktualna wersja regulaminu jest zawsze dostępna na tej stronie.</p>
+    <section id="odpowiedzialnosc">
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">§9. Odpowiedzialność</h2>
+      <ol class="list-decimal list-inside space-y-2">
+        <li>Operator dokłada starań, aby Serwis działał poprawnie, jednak nie gwarantuje nieprzerwanego działania (m.in. przerwy techniczne, hosting, siła wyższa).</li>
+        <li>Operator nie odpowiada za szkody wynikłe z: błędnych danych wprowadzonych przez Salon, nieobecności Klienta (no-show), jakości usług Salonu ani sporów między Salonem a Klientem.</li>
+        <li>Odpowiedzialność Operatora wobec Salonu z tytułu świadczenia usługi SaaS — o ile przepisy nie stanowią inaczej — ograniczona jest do wysokości opłaty abonamentowej zapłaconej przez dany Salon w okresie ostatnich 3 miesięcy poprzedzających zdarzenie.</li>
+        <li>Postanowienia powyższe nie wyłączają odpowiedzialności, której wyłączyć nie można na mocy bezwzględnie obowiązujących przepisów prawa.</li>
+      </ol>
+    </section>
+
+    <section id="rodo">
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">§10. Dane osobowe</h2>
+      <p>Zasady przetwarzania danych osobowych, podstawy prawne, okresy przechowywania i prawa osób opisane są w <a href="{{ url_for('polityka_prywatnosci') }}" class="text-brand-700 hover:underline">polityce prywatności</a> oraz <a href="{{ url_for('polityka_cookies') }}" class="text-brand-700 hover:underline">polityce cookies</a>.</p>
+    </section>
+
+    <section id="reklamacje">
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">§11. Reklamacje</h2>
+      <p>Reklamacje dotyczące działania Serwisu (błędy techniczne, dostęp do Panelu, płatności abonamentu) można zgłaszać na: <strong>{{ legal.company_email }}</strong>, podając opis problemu, nazwę Salonu (jeśli dotyczy) oraz dane kontaktowe.</p>
+      <p class="mt-2">Operator rozpatruje zgłoszenie w terminie do <strong>14 dni</strong> roboczych, chyba że wymagają tego przepisy ustawowe innego terminu.</p>
+      <p class="mt-2">Salon prowadzący działalność na rzecz konsumentów jest zobowiązany do własnej obsługi reklamacji dotyczących umów z Klientami.</p>
+    </section>
+
+    <section id="zawieszenie">
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">§12. Zawieszenie i zakończenie</h2>
+      <p>Operator może czasowo wstrzymać dostęp do publicznej strony Salonu przy zaległym abonamencie lub rażącym naruszeniu regulaminu. Salon może zaprzestać korzystania z Serwisu w dowolnym momencie; dane mogą być usunięte na żądanie zgodnie z polityką prywatności, z zastrzeżeniem obowiązków prawnych (np. rozliczenia).</p>
+    </section>
+
+    <section id="prawo">
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">§13. Prawo właściwe i spory</h2>
+      <p>Regulamin podlega prawu polskiemu. Spory z Salonem będącym przedsiębiorcą rozstrzygane będą przez sąd właściwy dla siedziby Usługodawcy, o ile przepisy szczególne nie stanowią inaczej. W sprawach konsumenckich Klienta przysługują uprawnienia wynikające z ustawy.</p>
+    </section>
+
+    <section id="zmiany">
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">§14. Zmiany regulaminu</h2>
+      <p>Operator może zmienić regulamin z ważnych przyczyn (zmiana funkcji, prawa, operatorów płatności). Aktualna wersja jest publikowana w Serwisie z datą aktualizacji. Dalsze korzystanie po wejściu zmian w życie oznacza akceptację, o ile prawo nie wymaga wyraźnej zgody.</p>
     </section>
   </div>
 </article>

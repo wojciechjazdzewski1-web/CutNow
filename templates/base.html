@@ -227,7 +227,7 @@
     <div class="mx-auto flex max-w-5xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div class="text-sm {% if motyw_rozowy %}client-muted{% else %}text-slate-600{% endif %}">
         <p class="font-semibold {% if motyw_rozowy %}client-heading{% else %}text-slate-900{% endif %}">Pliki cookies</p>
-        <p>Używamy niezbędnych cookies do działania logowania, rezerwacji i bezpieczeństwa. Szczegóły znajdziesz w <a href="{{ url_for('polityka_cookies') }}" class="font-semibold text-brand-600 dark:text-brand-400 hover:underline">polityce cookies</a>.</p>
+        <p>Używamy niezbędnych cookies i localStorage do logowania, rezerwacji i ustawień wyświetlania. Szczegóły: <a href="{{ url_for('polityka_cookies') }}" class="font-semibold text-brand-600 dark:text-brand-400 hover:underline">cookies</a>, <a href="{{ url_for('polityka_prywatnosci') }}" class="font-semibold text-brand-600 dark:text-brand-400 hover:underline">prywatność</a>.</p>
       </div>
       <button type="button" onclick="acceptCookies()" class="rounded-xl px-5 py-3 text-sm font-semibold text-white {% if motyw_rozowy %}client-btn-primary{% else %}bg-slate-900 hover:bg-slate-800{% endif %}">
         Rozumiem
