@@ -101,6 +101,7 @@ DEFAULT_SALON = {
     "opinie": [],
     "klienci": [],
     "pytania_wywiadu": [],
+    "tresc_wywiadu_zdrowotnego": "",
     "wywiad_wlaczony": False,
     "wywiad_przy_rezerwacji": False,
 }
@@ -205,8 +206,10 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("opinie", [])
             salon.setdefault("klienci", [])
             salon.setdefault("pytania_wywiadu", [])
+            salon.setdefault("tresc_wywiadu_zdrowotnego", "")
             salon.setdefault("wywiad_wlaczony", False)
             salon.setdefault("wywiad_przy_rezerwacji", False)
+            synchronizuj_tresc_wywiadu_z_pytan(salon)
             for rezerwacja in salon["rezerwacje"]:
                 rezerwacja.setdefault("status", "potwierdzona")
                 rezerwacja.setdefault("token_anulowania", uuid.uuid4().hex)
@@ -340,7 +343,11 @@ def wczytaj_dane() -> dict:
     zmigrowane = migracja_danych(dane)
     zapisz = zmigrowane != dane
     for salon in zmigrowane.get("salony", {}).values():
-        if oczysc_uslugi_w_salonie(salon) or oczysc_anulowane_rezerwacje_salonu(salon):
+        if (
+            oczysc_uslugi_w_salonie(salon)
+            or oczysc_anulowane_rezerwacje_salonu(salon)
+            or synchronizuj_tresc_wywiadu_z_pytan(salon)
+        ):
             zapisz = True
     if zapisz:
         zapisz_dane(zmigrowane)
@@ -1000,11 +1007,70 @@ def pytania_wywiadu_salonu(salon: dict) -> list[dict]:
     return wynik
 
 
+def tresc_wywiadu_salonu(salon: dict) -> str:
+    tresc = str(salon.get("tresc_wywiadu_zdrowotnego", "") or "").strip()
+    if tresc:
+        return tresc
+    pytania = pytania_wywiadu_salonu(salon)
+    if not pytania:
+        return ""
+    linie = [
+        "Oświadczenie zdrowotne",
+        "",
+        "Przed wizytą prosimy o zapoznanie się z poniższymi informacjami:",
+        "",
+    ]
+    for indeks, pytanie in enumerate(pytania, start=1):
+        linie.append(f"{indeks}. {pytanie['tresc']}")
+    linie.extend(
+        [
+            "",
+            "Rezerwując wizytę, potwierdzam zapoznanie się z powyższą treścią.",
+        ]
+    )
+    return "\n".join(linie)
+
+
+def synchronizuj_tresc_wywiadu_z_pytan(salon: dict) -> bool:
+    if str(salon.get("tresc_wywiadu_zdrowotnego", "") or "").strip():
+        return False
+    pytania = pytania_wywiadu_salonu(salon)
+    if not pytania:
+        return False
+    salon["tresc_wywiadu_zdrowotnego"] = tresc_wywiadu_salonu(salon)
+    return True
+
+
 def wywiad_przy_rezerwacji_wlaczony(salon: dict) -> bool:
     return bool(
         salon.get("wywiad_wlaczony")
         and salon.get("wywiad_przy_rezerwacji")
-        and pytania_wywiadu_salonu(salon)
+        and tresc_wywiadu_salonu(salon)
+    )
+
+
+def wywiad_to_oswiadczenie(odpowiedzi: dict | None) -> bool:
+    if not odpowiedzi:
+        return False
+    return odpowiedzi.get("_typ") == "oswiadczenie" or bool(odpowiedzi.get("zaakceptowano"))
+
+
+def akceptacja_wywiadu_z_rezerwacji() -> tuple[dict[str, str] | None, list[str]]:
+    bledy: list[str] = []
+    if request.form.get("przeczytalem_wywiad") != "on":
+        bledy.append("Potwierdź, że przeczytałeś/aś oświadczenie zdrowotne.")
+    if request.form.get("zgoda_wywiad") != "on":
+        bledy.append("Zaakceptuj przetwarzanie danych zdrowotnych na potrzeby tej wizyty.")
+    if bledy:
+        return None, bledy
+    teraz = datetime.now().isoformat(timespec="minutes")
+    return (
+        {
+            "_typ": "oswiadczenie",
+            "zaakceptowano": teraz,
+            "zgoda_rodo": "tak",
+        },
+        [],
     )
 
 
@@ -1126,9 +1192,19 @@ def parsuj_odpowiedzi_wywiadu_z_formularza(salon: dict) -> tuple[dict, list[str]
 
 
 def etykieta_odpowiedzi_wywiadu(pytania: list[dict], odpowiedzi: dict) -> list[dict]:
+    if wywiad_to_oswiadczenie(odpowiedzi):
+        return [
+            {
+                "pytanie": "Oświadczenie zdrowotne",
+                "typ": "oswiadczenie",
+                "odpowiedz": f"Zaakceptowano: {odpowiedzi.get('zaakceptowano', '—')}",
+            }
+        ]
     mapa = {p["id"]: p for p in pytania}
     wynik = []
     for pid, odp in odpowiedzi.items():
+        if pid.startswith("_"):
+            continue
         pytanie = mapa.get(pid)
         if not pytanie:
             continue
@@ -1614,7 +1690,7 @@ def panel_wyloguj(salon_slug: str | None = None):
     return redirect(url_for("strona_glowna"))
 
 
-BUILD_ID = "2026-05-20-bez-anulowanych-w-panelu"
+BUILD_ID = "2026-05-20-wywiad-oswiadczenie"
 
 
 @app.route("/health")
@@ -2237,7 +2313,7 @@ def kontekst_rezerwacji(salon: dict, salon_slug: str, wybrana_data: str) -> dict
         "uslugi": uslugi_salonu(salon),
         "opinie": sorted(opinie, key=lambda o: o.get("utworzono", ""), reverse=True)[:6],
         "srednia_ocena": srednia_ocen(opinie),
-        "pytania_wywiadu": pytania_wywiadu_salonu(salon),
+        "tresc_wywiadu": tresc_wywiadu_salonu(salon),
         "wywiad_przy_rezerwacji": wywiad_przy_rezerwacji_wlaczony(salon),
         **kontekst_lokalizacji_salonu(salon),
     }
@@ -2325,10 +2401,7 @@ def rezerwacja_formularz(salon_slug: str):
         return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
     wywiad_odpowiedzi: dict[str, str] = {}
     if wywiad_przy_rezerwacji_wlaczony(salon):
-        if request.form.get("zgoda_wywiad") != "on":
-            flash("Zaakceptuj przetwarzanie danych wywiadu zdrowotnego.", "error")
-            return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
-        wywiad_odpowiedzi, bledy_wywiad = parsuj_odpowiedzi_wywiadu_z_formularza(salon)
+        wywiad_odpowiedzi, bledy_wywiad = akceptacja_wywiadu_z_rezerwacji()
         if bledy_wywiad:
             flash(bledy_wywiad[0], "error")
             return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
@@ -2714,23 +2787,14 @@ def panel_klient_szczegoly(salon_slug: str, klient_id: str):
         if akcja == "zapisz":
             klient["notatka_wewnetrzna"] = request.form.get("notatka_wewnetrzna", "").strip()[:2000]
             klient["email"] = request.form.get("email", "").strip()[:120]
-            ma_pola_wywiadu = any(
-                request.form.get(f"wywiad_{pytanie['id']}") for pytanie in pytania
-            )
-            if ma_pola_wywiadu:
-                wywiad: dict[str, str] = {}
-                for pytanie in pytania:
-                    pid = pytanie["id"]
-                    if pytanie["typ"] == "tak_nie":
-                        wartosc = request.form.get(f"wywiad_{pid}", "").strip().lower()
-                        if wartosc in {"tak", "nie"}:
-                            wywiad[pid] = wartosc
-                    else:
-                        wartosc = request.form.get(f"wywiad_{pid}", "").strip()
-                        if wartosc:
-                            wywiad[pid] = wartosc[:500]
-                klient["wywiad_zdrowotny"] = wywiad
-                klient["wywiad_aktualizacja"] = datetime.now().isoformat(timespec="minutes")
+            if request.form.get("wywiad_zaakceptowany_salon") == "on":
+                klient["wywiad_zdrowotny"] = {
+                    "_typ": "oswiadczenie",
+                    "zaakceptowano": datetime.now().isoformat(timespec="minutes"),
+                    "zgoda_rodo": "tak",
+                    "potwierdzil": "salon",
+                }
+                klient["wywiad_aktualizacja"] = klient["wywiad_zdrowotny"]["zaakceptowano"]
             zapisz_dane(dane)
             flash("Zapisano kartotekę klienta.", "success")
         return redirect(url_for("panel_klient_szczegoly", salon_slug=salon_slug, klient_id=klient_id))
@@ -2748,6 +2812,8 @@ def panel_klient_szczegoly(salon_slug: str, klient_id: str):
         pytania=pytania,
         pytania_map=pytania_map,
         wywiad_etykiety=wywiad_etykiety,
+        tresc_wywiadu=tresc_wywiadu_salonu(salon),
+        wywiad_oswiadczenie=wywiad_to_oswiadczenie(klient.get("wywiad_zdrowotny")),
         dni_tygodnia=dict(DNI_TYGODNIA),
     )
 
@@ -2763,25 +2829,19 @@ def panel_wywiad(salon_slug: str):
     if request.method == "POST":
         salon["wywiad_wlaczony"] = request.form.get("wywiad_wlaczony") == "on"
         salon["wywiad_przy_rezerwacji"] = request.form.get("wywiad_przy_rezerwacji") == "on"
-        salon["pytania_wywiadu"] = parsuj_pytania_wywiadu(request.form.get("pytania_wywiadu", ""))
+        salon["tresc_wywiadu_zdrowotnego"] = request.form.get("tresc_wywiadu_zdrowotnego", "").strip()[:12000]
         zapisz_dane(dane)
-        if salon["wywiad_przy_rezerwacji"] and not salon["pytania_wywiadu"]:
-            flash("Zapisano. Dodaj pytania, aby wywiad pojawił się przy rezerwacji.", "error")
+        if salon["wywiad_przy_rezerwacji"] and not tresc_wywiadu_salonu(salon):
+            flash("Zapisano. Dodaj treść oświadczenia, aby pojawiło się przy rezerwacji.", "error")
         else:
             flash("Ustawienia wywiadu zdrowotnego zapisane.", "success")
         return redirect(url_for("panel_wywiad", salon_slug=salon_slug))
-
-    pytania = pytania_wywiadu_salonu(salon)
-    tekst_pytan = "\n".join(
-        (f"? {p['tresc']}" if p["typ"] == "tak_nie" else p["tresc"]) for p in pytania
-    )
 
     return render_template(
         "wywiad.html",
         dane=salon,
         salon_slug=salon_slug,
-        pytania=pytania,
-        tekst_pytan=tekst_pytan,
+        tresc_wywiadu=tresc_wywiadu_salonu(salon),
     )
 
 

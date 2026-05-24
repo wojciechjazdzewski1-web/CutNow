@@ -7,8 +7,11 @@
   Wróć do panelu
 </a>
 
-<h1 class="text-2xl font-bold text-slate-900 mb-2">Wywiad zdrowotny</h1>
-<p class="text-slate-600 mb-8 leading-relaxed">Ustal pytania dla klientów. Odpowiedzi trafiają do kartoteki i historii wizyt. Dane zdrowotne przetwarza salon jako administrator.</p>
+<h1 class="text-2xl font-bold text-slate-900 mb-2">Wywiad zdrowotne</h1>
+<p class="text-slate-600 mb-8 leading-relaxed">
+  Klient <strong>przegląda treść</strong> i zaznacza akceptację — bez odpowiadania na każde pytanie osobno.
+  Zapis trafia do kartoteki i historii wizyt.
+</p>
 
 <form method="post" class="max-w-2xl rounded-2xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
   <label class="flex items-start gap-3 cursor-pointer">
@@ -24,29 +27,25 @@
     <input type="checkbox" name="wywiad_przy_rezerwacji" {% if dane.wywiad_przy_rezerwacji %}checked{% endif %}
       class="mt-1 h-4 w-4 rounded border-slate-300 text-brand-600">
     <span>
-      <span class="block text-sm font-semibold text-slate-900">Pytaj klienta przy rezerwacji online</span>
-      <span class="block text-xs text-slate-500 mt-1">Formularz pojawi się przed potwierdzeniem wizyty.</span>
+      <span class="block text-sm font-semibold text-slate-900">Pokaż oświadczenie przy rezerwacji online</span>
+      <span class="block text-xs text-slate-500 mt-1">Klient musi przeczytać i zaakceptować przed potwierdzeniem wizyty.</span>
     </span>
   </label>
 
   <div>
-    <label for="pytania_wywiadu" class="block text-sm font-medium text-slate-700 mb-2">Pytania (jedno w linii)</label>
-    <textarea id="pytania_wywiadu" name="pytania_wywiadu" rows="12"
-      class="w-full rounded-xl border border-slate-300 px-4 py-3 font-mono text-sm resize-y"
-      placeholder="? Czy masz alergie skórne?&#10;? Czy jesteś w ciąży?&#10;Przyjmowane leki&#10;Alergie na składniki kosmetyków">{{ tekst_pytan }}</textarea>
+    <label for="tresc_wywiadu_zdrowotnego" class="block text-sm font-medium text-slate-700 mb-2">Treść oświadczenia zdrowotnego</label>
+    <textarea id="tresc_wywiadu_zdrowotnego" name="tresc_wywiadu_zdrowotnego" rows="16"
+      class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm leading-relaxed resize-y"
+      placeholder="Np. informacje o przeciwwskazaniach, alergiach, ciąży, przyjmowanych lekach, zaleceniach przed zabiegiem…&#10;&#10;Klient zobaczy ten tekst w całości i zaznaczy: „Przeczytałem/am i akceptuję”.">{{ dane.tresc_wywiadu_zdrowotnego or tresc_wywiadu }}</textarea>
     <p class="text-xs text-slate-500 mt-2">
-      Linia z prefiksem <code>? </code> lub <code>[T/N] </code> = pytanie tak/nie. Pozostałe = pole tekstowe.
+      Wpisz pełny tekst jak w regulaminie — listę punktów, ostrzeżenia, zgody. Możesz używać wielu akapitów.
     </p>
   </div>
 
-  {% if pytania %}
+  {% if tresc_wywiadu %}
     <div class="rounded-xl bg-slate-50 border border-slate-200 p-4">
-      <p class="text-sm font-semibold text-slate-800 mb-2">Podgląd ({{ pytania|length }} pytań)</p>
-      <ol class="list-decimal list-inside text-sm text-slate-600 space-y-1">
-        {% for p in pytania %}
-          <li>{{ p.tresc }} <span class="text-xs text-slate-400">({{ 'tak/nie' if p.typ == 'tak_nie' else 'tekst' }})</span></li>
-        {% endfor %}
-      </ol>
+      <p class="text-sm font-semibold text-slate-800 mb-2">Podgląd (tak zobaczy klient)</p>
+      <div class="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">{{ tresc_wywiadu }}</div>
     </div>
   {% endif %}
 
