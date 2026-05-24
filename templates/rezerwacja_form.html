@@ -27,7 +27,7 @@
         <select id="usluga" name="usluga" required class="client-input w-full px-4 py-4 text-lg">
           <option value="">Wybierz usługę</option>
           {% for usluga in uslugi %}
-            <option value="{{ usluga.nazwa }}">{{ usluga.nazwa }} — {{ usluga.cena_zl }} zł</option>
+            <option value="{{ usluga.nazwa }}">{{ usluga.nazwa }}</option>
           {% endfor %}
         </select>
       </div>

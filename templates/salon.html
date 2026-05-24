@@ -168,9 +168,9 @@
       <label for="uslugi" class="block text-sm font-medium text-slate-700 mb-2">Usługi i ceny</label>
       <textarea id="uslugi" name="uslugi" rows="5"
         class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow resize-none"
-        placeholder="Strzyżenie damskie|120&#10;Manicure hybrydowy|90&#10;Masaż relaksacyjny|150">{% for usluga in dane.uslugi or [] %}{{ usluga.nazwa }}|{{ usluga.cena_zl }}
+        placeholder="Strzyżenie damskie|120&#10;Manicure hybrydowy|90&#10;Masaż relaksacyjny|150">{% for usluga in dane.uslugi or [] %}{{ usluga.nazwa }}{% if usluga.cena_zl %}|{{ usluga.cena_zl }}{% endif %}
 {% endfor %}</textarea>
-      <p class="text-xs text-slate-500 mt-2">Każda linia: <code>Nazwa usługi|Cena</code> (np. <code>Manicure|90</code>). Klient wybierze usługę przy rezerwacji.</p>
+      <p class="text-xs text-slate-500 mt-2">Każda linia: <code>Nazwa usługi|Cena</code> (np. <code>Manicure|90</code>). Cena po <code>|</code> jest opcjonalna — możesz wpisać cennik w samej nazwie (np. <code>Masaż klasyczny 100 zł 1h</code>).</p>
     </div>
 
     <div>

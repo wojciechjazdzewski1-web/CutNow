@@ -308,11 +308,13 @@ def wczytaj_dane() -> dict:
         return dane
 
     zmigrowane = migracja_danych(dane)
-    if zmigrowane != dane:
+    zapisz = zmigrowane != dane
+    for salon in zmigrowane.get("salony", {}).values():
+        if oczysc_uslugi_w_salonie(salon):
+            zapisz = True
+    if zapisz:
         zapisz_dane(zmigrowane)
-        dane = zmigrowane
-    else:
-        dane = zmigrowane
+    dane = zmigrowane
 
     if moze_wykonac_czyszczenie_rezerwacji():
         zarchiwizowane, usuniete = utrzymuj_rezerwacje(dane)
@@ -422,19 +424,41 @@ def kwota_wizyty_zl(salon: dict) -> int:
         return 0
 
 
+_WYMIAT_CENA_ZERO_W_NAZWIE = re.compile(
+    r"(?:\s*[-–—]\s*0\s*(?:zł|zl)\s*|\s*\|\s*0)\s*$",
+    re.IGNORECASE,
+)
+
+
+def oczysc_nazwe_uslugi(nazwa: str) -> str:
+    """Usuwa pozostałości po starym szablonie (np. „— 0 zł” lub „|0”)."""
+    nazwa = (nazwa or "").strip()
+    while True:
+        oczyszczona = _WYMIAT_CENA_ZERO_W_NAZWIE.sub("", nazwa).strip()
+        if oczyszczona == nazwa:
+            return nazwa
+        nazwa = oczyszczona
+
+
+def normalizuj_wpis_uslugi(wpis: dict) -> dict | None:
+    if not isinstance(wpis, dict):
+        return None
+    nazwa = oczysc_nazwe_uslugi(str(wpis.get("nazwa", "")))
+    if not nazwa:
+        return None
+    try:
+        cena = max(int(wpis.get("cena_zl", 0) or 0), 0)
+    except (TypeError, ValueError):
+        cena = 0
+    return {"nazwa": nazwa, "cena_zl": cena}
+
+
 def uslugi_salonu(salon: dict) -> list[dict]:
     wynik = []
     for wpis in salon.get("uslugi", []):
-        if not isinstance(wpis, dict):
-            continue
-        nazwa = str(wpis.get("nazwa", "")).strip()
-        if not nazwa:
-            continue
-        try:
-            cena = max(int(wpis.get("cena_zl", 0)), 0)
-        except (TypeError, ValueError):
-            cena = 0
-        wynik.append({"nazwa": nazwa, "cena_zl": cena})
+        znormalizowany = normalizuj_wpis_uslugi(wpis)
+        if znormalizowany:
+            wynik.append(znormalizowany)
     return wynik
 
 
@@ -448,7 +472,7 @@ def parsuj_uslugi(wartosc: str) -> list[dict]:
             nazwa, cena_txt = linia.split("|", 1)
         else:
             nazwa, cena_txt = linia, "0"
-        nazwa = nazwa.strip()
+        nazwa = oczysc_nazwe_uslugi(nazwa.strip())
         if not nazwa:
             continue
         try:
@@ -457,6 +481,16 @@ def parsuj_uslugi(wartosc: str) -> list[dict]:
             cena = 0
         uslugi.append({"nazwa": nazwa, "cena_zl": cena})
     return uslugi[:30]
+
+
+def oczysc_uslugi_w_salonie(salon: dict) -> bool:
+    """Zapisuje oczyszczone nazwy usług w danych salonu (np. po migracji)."""
+    stare = salon.get("uslugi") or []
+    nowe = uslugi_salonu(salon)
+    if nowe != stare:
+        salon["uslugi"] = nowe
+        return True
+    return False
 
 
 TRYBY_PLATNOSCI_WIZYTY = frozenset({"w_salonie", "przelew", "wylaczone"})
@@ -1077,6 +1111,11 @@ def wyslij_email_przez_resend(odbiorca: str, temat: str, tresc: str) -> bool:
     except HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
         app.logger.warning("Resend odrzucił e-mail: HTTP %s %s", exc.code, body)
+        if exc.code == 403 and "verify a domain" in body.lower():
+            app.logger.warning(
+                "Resend (tryb testowy): e-mail może trafić tylko na adres właściciela konta Resend. "
+                "Zweryfikuj domenę na resend.com/domains i ustaw RESEND_FROM na adres @twoja-domena.pl"
+            )
         return False
     except URLError as exc:
         app.logger.warning("Nie udało się wysłać e-maila przez Resend: %s", exc)
@@ -1123,7 +1162,11 @@ Panel rezerwacji:
             smtp.send_message(msg)
         return True
     except Exception as exc:
-        app.logger.warning("Nie udało się wysłać e-maila z rezerwacją: %s", exc)
+        app.logger.warning("Nie udało się wysłać e-maila z rezerwacją (SMTP): %s", exc)
+        if os.environ.get("RENDER"):
+            app.logger.warning(
+                "Na Renderze SMTP (port 587) często jest zablokowane — użyj Resend z zweryfikowaną domeną zamiast SMTP."
+            )
         return False
 
 
@@ -1337,9 +1380,19 @@ def panel_wyloguj(salon_slug: str | None = None):
     return redirect(url_for("strona_glowna"))
 
 
+BUILD_ID = "2026-05-20-uslugi-bez-zera"
+
+
 @app.route("/health")
 def health():
-    return jsonify({"status": "ok", "app": "Glovaro", "storage": tryb_magazynu()}), 200
+    return jsonify(
+        {
+            "status": "ok",
+            "app": "Glovaro",
+            "build": BUILD_ID,
+            "storage": tryb_magazynu(),
+        }
+    ), 200
 
 
 @app.route("/tasks/send-reminders")
