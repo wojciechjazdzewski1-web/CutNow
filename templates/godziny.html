@@ -36,14 +36,9 @@
   {% endfor %}
 
   <div class="rounded-2xl bg-brand-50 border border-brand-100 p-5 mt-6">
-    <h2 class="font-semibold text-slate-900 mb-3">Terminy dla klientów online</h2>
-    <label class="inline-flex items-center gap-2 cursor-pointer mb-4">
-      <input type="checkbox" name="automatyczne_terminy" {% if dane.automatyczne_terminy is not false %}checked{% endif %}
-        class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
-      <span class="text-sm text-slate-700">Pokazuj klientom wolne godziny automatycznie z harmonogramu (zalecane)</span>
-    </label>
+    <h2 class="font-semibold text-slate-900 mb-3">Generowanie terminów w panelu</h2>
     <div>
-      <label for="interwal_terminow" class="block text-sm font-medium text-slate-700 mb-2">Co ile minut slot rezerwacji</label>
+      <label for="interwal_terminow" class="block text-sm font-medium text-slate-700 mb-2">Domyślny interwał przy „Wygeneruj terminy”</label>
       <select id="interwal_terminow" name="interwal_terminow"
         class="rounded-xl border border-slate-300 px-4 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
         <option value="15" {% if dane.interwal_terminow == 15 %}selected{% endif %}>15 minut</option>
@@ -51,7 +46,7 @@
         <option value="45" {% if dane.interwal_terminow == 45 %}selected{% endif %}>45 minut</option>
         <option value="60" {% if dane.interwal_terminow == 60 %}selected{% endif %}>60 minut</option>
       </select>
-      <p class="text-xs text-slate-500 mt-2">Klienci zobaczą najbliższe wolne dni bez ręcznego dodawania każdego slotu.</p>
+      <p class="text-xs text-slate-500 mt-2">Klienci widzą tylko terminy dodane w <strong>Wolne terminy</strong> — nie cały harmonogram otwarcia.</p>
     </div>
   </div>
 

@@ -90,7 +90,7 @@ DEFAULT_SALON = {
     "platnosc_online_wlaczona": False,
     "cena_wizyty": 0,
     "interwal_terminow": 30,
-    "automatyczne_terminy": True,
+    "automatyczne_terminy": False,
     "godziny_pracy": {
         key: {"otwarcie": "09:00", "zamkniecie": "18:00", "zamkniety": key == "niedziela"}
         for key, _ in DNI_TYGODNIA
@@ -197,7 +197,7 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("platnosc_online_wlaczona", False)
             salon.setdefault("cena_wizyty", 0)
             salon.setdefault("interwal_terminow", 30)
-            salon.setdefault("automatyczne_terminy", True)
+            salon.setdefault("automatyczne_terminy", False)
             salon.setdefault("godziny_pracy", copy.deepcopy(DEFAULT_SALON["godziny_pracy"]))
             salon.setdefault("wolne_terminy", {})
             salon.setdefault("blokady", [])
@@ -719,7 +719,7 @@ def slot_w_przeszlosci(data_iso: str, godzina: str) -> bool:
 def zajete_godziny(salon: dict, data_iso: str) -> set[str]:
     return {
         godzina
-        for godzina in wszystkie_sloty_dnia(salon, data_iso)
+        for godzina in salon.get("wolne_terminy", {}).get(data_iso, [])
         if slot_w_pelni_zajety(salon, data_iso, godzina)
     }
 
@@ -746,9 +746,11 @@ def godzina_zablokowana(salon: dict, data_iso: str, godzina: str) -> bool:
 
 
 def dostepne_terminy(salon: dict, data_iso: str) -> list[str]:
+    """Tylko godziny dodane przez salon w „Wolne terminy” (nie z harmonogramu otwarcia)."""
+    wolne = salon.get("wolne_terminy", {}).get(data_iso, [])
     return sorted(
         godzina
-        for godzina in wszystkie_sloty_dnia(salon, data_iso)
+        for godzina in wolne
         if not slot_w_pelni_zajety(salon, data_iso, godzina)
         and not godzina_zablokowana(salon, data_iso, godzina)
         and not slot_w_przeszlosci(data_iso, godzina)
@@ -760,10 +762,15 @@ def najblizsze_daty_z_terminami(
     limit: int = 8,
     max_dni: int = HORYZONT_REZERWACJI_DNI,
 ) -> list[dict]:
+    """Najbliższe dni, w których salon ma wpisane wolne terminy z dostępnymi godzinami."""
     wynik = []
-    start = date.today()
-    for offset in range(max_dni):
-        data_iso = (start + timedelta(days=offset)).isoformat()
+    dzisiaj = date.today().isoformat()
+    kandydaci = sorted(
+        data_iso
+        for data_iso in salon.get("wolne_terminy", {})
+        if data_iso >= dzisiaj
+    )
+    for data_iso in kandydaci:
         terminy = dostepne_terminy(salon, data_iso)
         if not terminy:
             continue
@@ -1581,7 +1588,7 @@ def panel_wyloguj(salon_slug: str | None = None):
     return redirect(url_for("strona_glowna"))
 
 
-BUILD_ID = "2026-05-20-terminarz-auto"
+BUILD_ID = "2026-05-20-tylko-terminy-salonu"
 
 
 @app.route("/health")
@@ -2020,7 +2027,6 @@ def godziny_pracy(salon_slug: str):
         interwal = request.form.get("interwal_terminow", "30")
         if interwal in {"15", "30", "45", "60"}:
             salon["interwal_terminow"] = int(interwal)
-        salon["automatyczne_terminy"] = request.form.get("automatyczne_terminy") == "on"
         zapisz_dane(dane)
         flash("Godziny pracy zostały zapisane.", "success")
         return redirect(url_for("godziny_pracy", salon_slug=salon_slug))
@@ -2199,7 +2205,6 @@ def kontekst_rezerwacji(salon: dict, salon_slug: str, wybrana_data: str) -> dict
         "terminy": terminy,
         "najblizsze_daty": najblizsze,
         "najblizszy_inny": next((d for d in najblizsze if d["data"] != wybrana_data), None),
-        "automatyczne_terminy": automatyczne_terminy_wlaczone(salon),
         "dni_tygodnia": dict(DNI_TYGODNIA),
         "pracownicy": aktywni_pracownicy(salon),
         "uslugi": uslugi_salonu(salon),
@@ -2522,7 +2527,6 @@ def panel_terminarz(salon_slug: str):
         nastepny_tydzien=nastepny_tydzien,
         uslugi=uslugi_salonu(salon),
         pracownicy=aktywni_pracownicy(salon),
-        automatyczne_terminy=automatyczne_terminy_wlaczone(salon),
         interwal=interwal_terminow_salonu(salon),
     )
 

@@ -11,9 +11,7 @@
   <div>
     <h1 class="text-2xl font-bold text-slate-900">Terminarz</h1>
     <p class="text-slate-600 mt-1">{{ dane.nazwa_salonu }} — podgląd wizyt i ręczne wpisy</p>
-    {% if automatyczne_terminy %}
-      <p class="text-xs text-emerald-700 mt-2 rounded-lg bg-emerald-50 px-3 py-1.5 inline-block">Terminy dla klientów generują się z godzin pracy (co {{ interwal }} min)</p>
-    {% endif %}
+    <p class="text-xs text-slate-500 mt-2">Klienci widzą tylko terminy z sekcji Wolne terminy.</p>
   </div>
   <div class="flex flex-wrap gap-2">
     {% if poprzedni_tydzien %}
