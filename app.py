@@ -215,6 +215,7 @@ def migracja_danych(dane: dict) -> dict:
                 rezerwacja.setdefault("klient_id", "")
                 rezerwacja.setdefault("wywiad_wizyty", {})
             synchronizuj_kartoteke_salonu(salon)
+            oczysc_anulowane_rezerwacje_salonu(salon)
         return dane
 
     # Stary format jednej strony zamieniamy na salon "demo", żeby nie stracić danych.
@@ -246,6 +247,31 @@ def datetime_rezerwacji(rezerwacja: dict) -> datetime | None:
 
 def rezerwacja_w_archiwum(rezerwacja: dict) -> bool:
     return bool(rezerwacja.get("zarchiwizowano_at"))
+
+
+def rezerwacja_aktywna_w_panelu(rezerwacja: dict) -> bool:
+    """Wizyty widoczne w panelu salonu (bez anulowanych i odrzuconych)."""
+    if rezerwacja_w_archiwum(rezerwacja):
+        return False
+    return rezerwacja.get("status", "potwierdzona") not in {"anulowana", "odrzucona"}
+
+
+def usun_rezerwacje_z_salonu(salon: dict, rezerwacja_id: str) -> bool:
+    przed = len(salon.get("rezerwacje", []))
+    salon["rezerwacje"] = [
+        r for r in salon.get("rezerwacje", []) if r.get("id") != rezerwacja_id
+    ]
+    return len(salon["rezerwacje"]) < przed
+
+
+def oczysc_anulowane_rezerwacje_salonu(salon: dict) -> bool:
+    przed = len(salon.get("rezerwacje", []))
+    salon["rezerwacje"] = [
+        r
+        for r in salon.get("rezerwacje", [])
+        if r.get("status") not in {"anulowana", "odrzucona"}
+    ]
+    return len(salon["rezerwacje"]) < przed
 
 
 def rezerwacja_gotowa_do_archiwizacji(rezerwacja: dict, teraz: datetime | None = None) -> bool:
@@ -314,7 +340,7 @@ def wczytaj_dane() -> dict:
     zmigrowane = migracja_danych(dane)
     zapisz = zmigrowane != dane
     for salon in zmigrowane.get("salony", {}).values():
-        if oczysc_uslugi_w_salonie(salon):
+        if oczysc_uslugi_w_salonie(salon) or oczysc_anulowane_rezerwacje_salonu(salon):
             zapisz = True
     if zapisz:
         zapisz_dane(zmigrowane)
@@ -1588,7 +1614,7 @@ def panel_wyloguj(salon_slug: str | None = None):
     return redirect(url_for("strona_glowna"))
 
 
-BUILD_ID = "2026-05-20-tylko-terminy-salonu"
+BUILD_ID = "2026-05-20-bez-anulowanych-w-panelu"
 
 
 @app.route("/health")
@@ -1880,14 +1906,15 @@ def panel(salon_slug: str):
         salon.get("rezerwacje", []),
         key=lambda r: (r.get("data", ""), r.get("godzina", "")),
     )
+    aktywne = [r for r in rezerwacje if rezerwacja_aktywna_w_panelu(r)]
     nadchodzace = [
         r
-        for r in rezerwacje
-        if not rezerwacja_w_archiwum(r) and r.get("status", "potwierdzona") not in {"anulowana", "odrzucona", "zakonczona"}
+        for r in aktywne
+        if r.get("status", "potwierdzona") not in {"zakonczona"}
     ]
-    klienci = {normalizuj_telefon(r.get("telefon", "")) for r in rezerwacje if r.get("telefon")}
+    klienci = {normalizuj_telefon(r.get("telefon", "")) for r in aktywne if r.get("telefon")}
     dni_count: dict[str, int] = {}
-    for r in rezerwacje:
+    for r in aktywne:
         data_rezerwacji = r.get("data", "")
         if waliduj_date_iso(data_rezerwacji):
             dzien = dict(DNI_TYGODNIA)[klucz_dnia_tygodnia(data_rezerwacji)]
@@ -1906,7 +1933,7 @@ def panel(salon_slug: str):
         liczba_rezerwacji=len(nadchodzace),
         ostatnie_rezerwacje=nadchodzace[:5],
         statystyki={
-            "wszystkie_rezerwacje": len(rezerwacje),
+            "wszystkie_rezerwacje": len(aktywne),
             "unikalni_klienci": len([k for k in klienci if k]),
             "najpopularniejszy_dzien": najpopularniejszy_dzien,
             "rezerwacje_7_dni": len(rezerwacje_7_dni),
@@ -2430,7 +2457,7 @@ def anuluj_rezerwacje_klienta(salon_slug: str, token: str):
             rezerwacja["anulowano"] = datetime.now().isoformat(timespec="minutes")
             rezerwacja["anulowal"] = "klient"
             przywroc_wolny_termin(salon, rezerwacja)
-            archiwizuj_rezerwacje(rezerwacja)
+            usun_rezerwacje_z_salonu(salon, rezerwacja["id"])
             zapisz_dane(dane)
             flash("Rezerwacja została anulowana.", "success")
         return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug))
@@ -2560,18 +2587,15 @@ def panel_rezerwacje(salon_slug: str):
                 rezerwacja["potwierdzono"] = datetime.now().isoformat(timespec="minutes")
                 flash(f"Potwierdzono rezerwację: {rezerwacja['imie']}.", "success")
             elif akcja == "odrzuc":
-                rezerwacja["status"] = "odrzucona"
-                rezerwacja["odrzucono"] = datetime.now().isoformat(timespec="minutes")
+                imie_klienta = rezerwacja["imie"]
                 przywroc_wolny_termin(salon, rezerwacja)
-                archiwizuj_rezerwacje(rezerwacja)
-                flash(f"Odrzucono rezerwację: {rezerwacja['imie']}. Termin wrócił do wolnych.", "success")
+                usun_rezerwacje_z_salonu(salon, rezerwacja_id)
+                flash(f"Odrzucono rezerwację: {imie_klienta}. Termin wrócił do wolnych.", "success")
             elif akcja == "anuluj":
-                rezerwacja["status"] = "anulowana"
-                rezerwacja["anulowano"] = datetime.now().isoformat(timespec="minutes")
-                rezerwacja["anulowal"] = "salon"
+                imie_klienta = rezerwacja["imie"]
                 przywroc_wolny_termin(salon, rezerwacja)
-                archiwizuj_rezerwacje(rezerwacja)
-                flash(f"Anulowano rezerwację: {rezerwacja['imie']}. Termin wrócił do wolnych.", "success")
+                usun_rezerwacje_z_salonu(salon, rezerwacja_id)
+                flash(f"Anulowano rezerwację: {imie_klienta}. Termin wrócił do wolnych.", "success")
             zapisz_dane(dane)
         widok = request.args.get("widok", "nadchodzace")
         return redirect(url_for("panel_rezerwacje", salon_slug=salon_slug, widok=widok))
@@ -2584,9 +2608,14 @@ def panel_rezerwacje(salon_slug: str):
         salon.get("rezerwacje", []),
         key=lambda r: (r.get("data", ""), r.get("godzina", "")),
     )
-    nadchodzace = [r for r in rezerwacje if not rezerwacja_w_archiwum(r)]
+    nadchodzace = [r for r in rezerwacje if rezerwacja_aktywna_w_panelu(r)]
     archiwum = sorted(
-        [r for r in rezerwacje if rezerwacja_w_archiwum(r)],
+        [
+            r
+            for r in rezerwacje
+            if rezerwacja_w_archiwum(r)
+            and r.get("status") not in {"anulowana", "odrzucona"}
+        ],
         key=lambda r: (r.get("zarchiwizowano_at", ""), r.get("data", ""), r.get("godzina", "")),
         reverse=True,
     )
