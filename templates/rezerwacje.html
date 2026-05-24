@@ -62,6 +62,9 @@
             </p>
             <p class="text-slate-600 text-sm mt-1">
               <a href="tel:{{ r.telefon }}" class="hover:underline">{{ r.telefon }}</a>
+              {% if r.klient_id %}
+                · <a href="{{ url_for('panel_klient_szczegoly', salon_slug=salon_slug, klient_id=r.klient_id) }}" class="text-brand-600 hover:underline">Kartoteka</a>
+              {% endif %}
             </p>
             {% if r.uwagi %}
               <p class="text-slate-500 text-sm mt-2">{{ r.uwagi }}</p>

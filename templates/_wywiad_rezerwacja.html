@@ -1,0 +1,32 @@
+{% if wywiad_przy_rezerwacji and pytania_wywiadu %}
+  <div class="rounded-xl border border-violet-200 dark:border-violet-900 bg-violet-50/80 dark:bg-violet-950/30 p-4 space-y-4">
+    <h2 class="text-sm font-semibold client-heading">Wywiad zdrowotny</h2>
+    <p class="text-xs client-muted">Dane trafiają do {{ dane.nazwa_salonu }} w celu bezpiecznego wykonania usługi.</p>
+    {% for pytanie in pytania_wywiadu %}
+      <div>
+        <label class="block text-sm font-medium client-heading mb-2">{{ pytanie.tresc }} *</label>
+        {% if pytanie.typ == 'tak_nie' %}
+          <div class="flex gap-4">
+            <label class="inline-flex items-center gap-2 text-sm client-muted">
+              <input type="radio" name="wywiad_{{ pytanie.id }}" value="tak" required class="text-brand-600">
+              Tak
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm client-muted">
+              <input type="radio" name="wywiad_{{ pytanie.id }}" value="nie" required class="text-brand-600">
+              Nie
+            </label>
+          </div>
+        {% else %}
+          <input type="text" name="wywiad_{{ pytanie.id }}" required maxlength="500"
+            class="client-input w-full px-4 py-3" placeholder="Twoja odpowiedź">
+        {% endif %}
+      </div>
+    {% endfor %}
+    <label class="flex items-start gap-3 cursor-pointer">
+      <input type="checkbox" name="zgoda_wywiad" value="on" required class="mt-1 h-4 w-4 rounded text-brand-600">
+      <span class="text-xs client-muted leading-relaxed">
+        Wyrażam zgodę na przetwarzanie danych zdrowotnych przez <strong class="client-heading">{{ dane.nazwa_salonu }}</strong> na potrzeby tej wizyty.
+      </span>
+    </label>
+  </div>
+{% endif %}

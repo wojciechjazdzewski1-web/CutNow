@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}{{ klient.imie or 'Klient' }} — Kartoteka{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('panel_klienci', salon_slug=salon_slug) }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+  Kartoteka klientów
+</a>
+
+<div class="grid lg:grid-cols-3 gap-6">
+  <div class="lg:col-span-1 space-y-4">
+    <section class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+      <h1 class="text-2xl font-bold text-slate-900">{{ klient.imie or 'Klient' }}</h1>
+      <p class="mt-2">
+        <a href="tel:{{ klient.telefon_wyswietl or klient.telefon }}" class="text-brand-700 font-medium hover:underline">
+          {{ klient.telefon_wyswietl or klient.telefon }}
+        </a>
+      </p>
+      {% if klient.ostatnia_wizyta %}
+        <p class="text-sm text-slate-500 mt-3">Ostatnia wizyta: {{ klient.ostatnia_wizyta }}</p>
+      {% endif %}
+      {% if klient.wywiad_aktualizacja %}
+        <p class="text-xs text-slate-400 mt-1">Wywiad aktualizowany: {{ klient.wywiad_aktualizacja }}</p>
+      {% endif %}
+    </section>
+
+    <form method="post" class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm space-y-4">
+      <input type="hidden" name="akcja" value="zapisz">
+      <h2 class="font-semibold text-slate-900">Notatka wewnętrzna</h2>
+      <textarea name="notatka_wewnetrzna" rows="4" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm resize-none"
+        placeholder="Uwagi widoczne tylko w panelu…">{{ klient.notatka_wewnetrzna or '' }}</textarea>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-2">E-mail (opcjonalnie)</label>
+        <input type="email" name="email" value="{{ klient.email or '' }}" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
+      </div>
+      <button type="submit" class="w-full rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white hover:bg-slate-800">Zapisz kartotekę</button>
+    </form>
+  </div>
+
+  <div class="lg:col-span-2 space-y-6">
+  <section class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-semibold text-slate-900">Wywiad zdrowotny</h2>
+      <a href="{{ url_for('panel_wywiad', salon_slug=salon_slug) }}" class="text-sm text-brand-600 hover:underline">Edytuj pytania</a>
+    </div>
+    {% if pytania %}
+      <form method="post" class="space-y-4">
+        <input type="hidden" name="akcja" value="zapisz">
+        {% for pytanie in pytania %}
+          <div>
+            <label class="block text-sm font-medium text-slate-800 mb-2">{{ pytanie.tresc }}</label>
+            {% if pytanie.typ == 'tak_nie' %}
+              {% set aktualna = (klient.wywiad_zdrowotny or {}).get(pytanie.id, '') %}
+              <div class="flex gap-4">
+                <label class="inline-flex items-center gap-2 text-sm">
+                  <input type="radio" name="wywiad_{{ pytanie.id }}" value="tak" {% if aktualna == 'tak' %}checked{% endif %} class="text-brand-600">
+                  Tak
+                </label>
+                <label class="inline-flex items-center gap-2 text-sm">
+                  <input type="radio" name="wywiad_{{ pytanie.id }}" value="nie" {% if aktualna == 'nie' %}checked{% endif %} class="text-brand-600">
+                  Nie
+                </label>
+              </div>
+            {% else %}
+              <input type="text" name="wywiad_{{ pytanie.id }}" value="{{ (klient.wywiad_zdrowotny or {}).get(pytanie.id, '') }}"
+                class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
+            {% endif %}
+          </div>
+        {% endfor %}
+        <button type="submit" class="rounded-xl border border-brand-300 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-800 hover:bg-brand-100">Zapisz wywiad</button>
+      </form>
+    {% else %}
+      <p class="text-sm text-slate-500">Brak pytań wywiadu. <a href="{{ url_for('panel_wywiad', salon_slug=salon_slug) }}" class="text-brand-600 hover:underline">Dodaj pytania w ustawieniach</a>.</p>
+    {% endif %}
+  </section>
+
+  <section class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+    <h2 class="font-semibold text-slate-900 mb-4">Historia wizyt ({{ wizyty|length }})</h2>
+    {% if wizyty %}
+      <div class="space-y-3">
+        {% for w in wizyty %}
+          <article class="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm">
+            <div class="flex flex-wrap justify-between gap-2">
+              <p class="font-semibold text-slate-900">{{ w.data }} · {{ w.godzina }}</p>
+              <span class="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-slate-600 border border-slate-200">{{ w.status }}</span>
+            </div>
+            {% if w.usluga_nazwa %}<p class="text-slate-600 mt-1">{{ w.usluga_nazwa }}{% if w.usluga_cena_zl %} — {{ w.usluga_cena_zl }} zł{% endif %}</p>{% endif %}
+            {% if w.pracownik %}<p class="text-slate-600">Pracownik: {{ w.pracownik }}</p>{% endif %}
+            {% if w.uwagi %}<p class="text-slate-500 mt-1">{{ w.uwagi }}</p>{% endif %}
+            {% if w.wywiad_wizyty %}
+              <details class="mt-2">
+                <summary class="cursor-pointer text-brand-700 font-medium">Wywiad z tej wizyty</summary>
+                <ul class="mt-2 space-y-1 text-slate-600">
+                  {% for pid, odp in w.wywiad_wizyty.items() %}
+                    <li><span class="font-medium">{{ pytania_map.get(pid, pid) }}:</span> {{ odp }}</li>
+                  {% endfor %}
+                </ul>
+              </details>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-slate-500 text-sm">Brak powiązanych wizyt.</p>
+    {% endif %}
+  </section>
+  </div>
+</div>
+{% endblock %}

@@ -97,6 +97,10 @@ DEFAULT_SALON = {
     "blokady": [],
     "rezerwacje": [],
     "opinie": [],
+    "klienci": [],
+    "pytania_wywiadu": [],
+    "wywiad_wlaczony": False,
+    "wywiad_przy_rezerwacji": False,
 }
 
 PUBLIC_ENDPOINTS = {
@@ -195,11 +199,18 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("blokady", [])
             salon.setdefault("rezerwacje", [])
             salon.setdefault("opinie", [])
+            salon.setdefault("klienci", [])
+            salon.setdefault("pytania_wywiadu", [])
+            salon.setdefault("wywiad_wlaczony", False)
+            salon.setdefault("wywiad_przy_rezerwacji", False)
             for rezerwacja in salon["rezerwacje"]:
                 rezerwacja.setdefault("status", "potwierdzona")
                 rezerwacja.setdefault("token_anulowania", uuid.uuid4().hex)
                 rezerwacja.setdefault("token_opinii", uuid.uuid4().hex)
                 rezerwacja.setdefault("pracownik", "")
+                rezerwacja.setdefault("klient_id", "")
+                rezerwacja.setdefault("wywiad_wizyty", {})
+            synchronizuj_kartoteke_salonu(salon)
         return dane
 
     # Stary format jednej strony zamieniamy na salon "demo", żeby nie stracić danych.
@@ -678,6 +689,204 @@ def parsuj_pracownikow(wartosc: str) -> list[str]:
         if imie and imie not in pracownicy:
             pracownicy.append(imie)
     return pracownicy[:20]
+
+
+def parsuj_pytania_wywiadu(wartosc: str) -> list[dict]:
+    pytania = []
+    for indeks, linia in enumerate(wartosc.splitlines(), start=1):
+        linia = linia.strip()
+        if not linia:
+            continue
+        typ = "tekst"
+        tresc = linia
+        if linia.startswith("? "):
+            typ = "tak_nie"
+            tresc = linia[2:].strip()
+        elif linia.upper().startswith("[T/N] "):
+            typ = "tak_nie"
+            tresc = linia[6:].strip()
+        if not tresc:
+            continue
+        pytania.append({"id": f"q{indeks}", "tresc": tresc, "typ": typ})
+    return pytania[:30]
+
+
+def pytania_wywiadu_salonu(salon: dict) -> list[dict]:
+    wynik = []
+    for wpis in salon.get("pytania_wywiadu", []):
+        if not isinstance(wpis, dict):
+            continue
+        tresc = str(wpis.get("tresc", "")).strip()
+        if not tresc:
+            continue
+        typ = wpis.get("typ", "tekst")
+        if typ not in {"tekst", "tak_nie"}:
+            typ = "tekst"
+        wynik.append(
+            {
+                "id": str(wpis.get("id", f"q{len(wynik) + 1}")),
+                "tresc": tresc,
+                "typ": typ,
+            }
+        )
+    return wynik
+
+
+def wywiad_przy_rezerwacji_wlaczony(salon: dict) -> bool:
+    return bool(
+        salon.get("wywiad_wlaczony")
+        and salon.get("wywiad_przy_rezerwacji")
+        and pytania_wywiadu_salonu(salon)
+    )
+
+
+def znajdz_klienta(salon: dict, klient_id: str) -> dict | None:
+    for klient in salon.get("klienci", []):
+        if klient.get("id") == klient_id:
+            return klient
+    return None
+
+
+def znajdz_klienta_po_telefonie(salon: dict, telefon: str) -> dict | None:
+    cyfry = normalizuj_telefon(telefon)
+    if not cyfry:
+        return None
+    for klient in salon.get("klienci", []):
+        if klient.get("telefon") == cyfry:
+            return klient
+    return None
+
+
+def synchronizuj_kartoteke_salonu(salon: dict) -> None:
+    """Powiąż istniejące rezerwacje z kartoteką (telefon = klucz)."""
+    salon.setdefault("klienci", [])
+    mapa = {k.get("telefon"): k for k in salon["klienci"] if k.get("telefon")}
+    for rezerwacja in salon.get("rezerwacje", []):
+        cyfry = normalizuj_telefon(rezerwacja.get("telefon", ""))
+        if not cyfry:
+            continue
+        klient = mapa.get(cyfry)
+        if not klient:
+            klient = {
+                "id": uuid.uuid4().hex[:12],
+                "imie": rezerwacja.get("imie", "").strip(),
+                "telefon": cyfry,
+                "telefon_wyswietl": rezerwacja.get("telefon", "").strip(),
+                "email": "",
+                "notatka_wewnetrzna": "",
+                "wywiad_zdrowotny": dict(rezerwacja.get("wywiad_wizyty") or {}),
+                "wywiad_aktualizacja": rezerwacja.get("utworzono", ""),
+                "utworzono": rezerwacja.get("utworzono", datetime.now().isoformat(timespec="minutes")),
+                "ostatnia_wizyta": "",
+            }
+            salon["klienci"].append(klient)
+            mapa[cyfry] = klient
+        if rezerwacja.get("imie"):
+            klient["imie"] = rezerwacja["imie"].strip()
+        if rezerwacja.get("telefon"):
+            klient["telefon_wyswietl"] = rezerwacja["telefon"].strip()
+        if not rezerwacja.get("klient_id"):
+            rezerwacja["klient_id"] = klient["id"]
+        termin = f"{rezerwacja.get('data', '')} {rezerwacja.get('godzina', '')}".strip()
+        if termin and termin > klient.get("ostatnia_wizyta", ""):
+            klient["ostatnia_wizyta"] = termin
+        if rezerwacja.get("wywiad_wizyty"):
+            klient["wywiad_zdrowotny"] = dict(rezerwacja["wywiad_wizyty"])
+            klient["wywiad_aktualizacja"] = rezerwacja.get("utworzono", klient.get("wywiad_aktualizacja", ""))
+
+
+def utworz_lub_aktualizuj_klienta(
+    salon: dict,
+    imie: str,
+    telefon: str,
+    wywiad_odpowiedzi: dict | None = None,
+) -> dict:
+    synchronizuj_kartoteke_salonu(salon)
+    cyfry = normalizuj_telefon(telefon)
+    klient = znajdz_klienta_po_telefonie(salon, telefon)
+    teraz = datetime.now().isoformat(timespec="minutes")
+    if not klient:
+        klient = {
+            "id": uuid.uuid4().hex[:12],
+            "imie": imie.strip(),
+            "telefon": cyfry,
+            "telefon_wyswietl": telefon.strip(),
+            "email": "",
+            "notatka_wewnetrzna": "",
+            "wywiad_zdrowotny": {},
+            "wywiad_aktualizacja": "",
+            "utworzono": teraz,
+            "ostatnia_wizyta": "",
+        }
+        salon.setdefault("klienci", []).append(klient)
+    klient["imie"] = imie.strip() or klient.get("imie", "")
+    klient["telefon_wyswietl"] = telefon.strip() or klient.get("telefon_wyswietl", "")
+    if wywiad_odpowiedzi:
+        klient["wywiad_zdrowotny"] = wywiad_odpowiedzi
+        klient["wywiad_aktualizacja"] = teraz
+    return klient
+
+
+def historia_wizyt_klienta(salon: dict, klient_id: str) -> list[dict]:
+    wizyty = [
+        r
+        for r in salon.get("rezerwacje", [])
+        if r.get("klient_id") == klient_id
+    ]
+    return sorted(wizyty, key=lambda r: (r.get("data", ""), r.get("godzina", "")), reverse=True)
+
+
+def parsuj_odpowiedzi_wywiadu_z_formularza(salon: dict) -> tuple[dict, list[str]]:
+    pytania = pytania_wywiadu_salonu(salon)
+    odpowiedzi: dict[str, str] = {}
+    bledy: list[str] = []
+    for pytanie in pytania:
+        pid = pytanie["id"]
+        if pytanie["typ"] == "tak_nie":
+            wartosc = request.form.get(f"wywiad_{pid}", "").strip().lower()
+            if wartosc not in {"tak", "nie"}:
+                bledy.append(f"Odpowiedz tak/nie: {pytanie['tresc']}")
+            else:
+                odpowiedzi[pid] = wartosc
+        else:
+            wartosc = request.form.get(f"wywiad_{pid}", "").strip()
+            if not wartosc:
+                bledy.append(f"Uzupełnij pole: {pytanie['tresc']}")
+            else:
+                odpowiedzi[pid] = wartosc[:500]
+    return odpowiedzi, bledy
+
+
+def etykieta_odpowiedzi_wywiadu(pytania: list[dict], odpowiedzi: dict) -> list[dict]:
+    mapa = {p["id"]: p for p in pytania}
+    wynik = []
+    for pid, odp in odpowiedzi.items():
+        pytanie = mapa.get(pid)
+        if not pytanie:
+            continue
+        wynik.append(
+            {
+                "pytanie": pytanie["tresc"],
+                "typ": pytanie["typ"],
+                "odpowiedz": odp,
+            }
+        )
+    return wynik
+
+
+def wyszukaj_klientow(salon: dict, fraza: str = "") -> list[dict]:
+    synchronizuj_kartoteke_salonu(salon)
+    klienci = list(salon.get("klienci", []))
+    fraza = fraza.strip().lower()
+    if fraza:
+        filtrowani = []
+        for klient in klienci:
+            imie = (klient.get("imie") or "").lower()
+            tel = klient.get("telefon_wyswietl") or klient.get("telefon") or ""
+            if fraza in imie or fraza in tel.replace(" ", ""):
+                filtrowani.append(klient)
+        klienci = filtrowani
+    return sorted(klienci, key=lambda k: k.get("ostatnia_wizyta", ""), reverse=True)
 
 
 def parsuj_upload_zdjec(pliki) -> list[str]:
@@ -1723,6 +1932,8 @@ def kontekst_rezerwacji(salon: dict, salon_slug: str, wybrana_data: str) -> dict
         "uslugi": uslugi_salonu(salon),
         "opinie": sorted(opinie, key=lambda o: o.get("utworzono", ""), reverse=True)[:6],
         "srednia_ocena": srednia_ocen(opinie),
+        "pytania_wywiadu": pytania_wywiadu_salonu(salon),
+        "wywiad_przy_rezerwacji": wywiad_przy_rezerwacji_wlaczony(salon),
         **kontekst_lokalizacji_salonu(salon),
     }
 
@@ -1801,10 +2012,20 @@ def rezerwacja_formularz(salon_slug: str):
     if request.form.get("zgoda_rodo") != "on":
         flash("Zaakceptuj informację o przetwarzaniu danych, aby złożyć rezerwację.", "error")
         return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
+    wywiad_odpowiedzi: dict[str, str] = {}
+    if wywiad_przy_rezerwacji_wlaczony(salon):
+        if request.form.get("zgoda_wywiad") != "on":
+            flash("Zaakceptuj przetwarzanie danych wywiadu zdrowotnego.", "error")
+            return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
+        wywiad_odpowiedzi, bledy_wywiad = parsuj_odpowiedzi_wywiadu_z_formularza(salon)
+        if bledy_wywiad:
+            flash(bledy_wywiad[0], "error")
+            return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
     if godzina not in dostepne_terminy(salon, data_iso):
         flash("Ten termin został właśnie zajęty. Wybierz inną godzinę.", "error")
         return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug, data=data_iso))
 
+    klient = utworz_lub_aktualizuj_klienta(salon, imie, telefon, wywiad_odpowiedzi or None)
     rezerwacja_id = uuid.uuid4().hex[:12]
     rezerwacja = {
         "id": rezerwacja_id,
@@ -1819,8 +2040,11 @@ def rezerwacja_formularz(salon_slug: str):
         "usluga_nazwa": usluga_nazwa,
         "usluga_cena_zl": mapa_uslug.get(usluga_nazwa, 0),
         "uwagi": uwagi,
+        "klient_id": klient["id"],
+        "wywiad_wizyty": wywiad_odpowiedzi,
         "utworzono": datetime.now().isoformat(timespec="minutes"),
     }
+    klient["ostatnia_wizyta"] = f"{data_iso} {godzina}"
     salon.setdefault("rezerwacje", []).append(rezerwacja)
 
     terminy = salon.setdefault("wolne_terminy", {}).setdefault(data_iso, [])
@@ -2058,6 +2282,123 @@ def panel_opinie(salon_slug: str):
         opinie=opinie,
         srednia_ocena=srednia_ocen(widoczne),
         liczba_widocznych=len(widoczne),
+    )
+
+
+@app.route("/panel/<salon_slug>/klienci")
+def panel_klienci(salon_slug: str):
+    dane = wczytaj_dane()
+    salon = pobierz_salon(dane, salon_slug)
+    if not salon:
+        flash("Nie znaleziono takiego salonu.", "error")
+        return redirect(url_for("panel_lista"))
+
+    fraza = request.args.get("q", "").strip()
+    klienci = wyszukaj_klientow(salon, fraza)
+    if fraza and not klienci:
+        synchronizuj_kartoteke_salonu(salon)
+        zapisz_dane(dane)
+        klienci = wyszukaj_klientow(salon, fraza)
+
+    return render_template(
+        "klienci.html",
+        dane=salon,
+        salon_slug=salon_slug,
+        klienci=klienci,
+        fraza=fraza,
+        liczba_klientow=len(salon.get("klienci", [])),
+    )
+
+
+@app.route("/panel/<salon_slug>/klienci/<klient_id>", methods=["GET", "POST"])
+def panel_klient_szczegoly(salon_slug: str, klient_id: str):
+    dane = wczytaj_dane()
+    salon = pobierz_salon(dane, salon_slug)
+    if not salon:
+        flash("Nie znaleziono takiego salonu.", "error")
+        return redirect(url_for("panel_lista"))
+
+    synchronizuj_kartoteke_salonu(salon)
+    klient = znajdz_klienta(salon, klient_id)
+    if not klient:
+        flash("Nie znaleziono klienta w kartotece.", "error")
+        return redirect(url_for("panel_klienci", salon_slug=salon_slug))
+
+    pytania = pytania_wywiadu_salonu(salon)
+
+    if request.method == "POST":
+        akcja = request.form.get("akcja", "zapisz")
+        if akcja == "zapisz":
+            klient["notatka_wewnetrzna"] = request.form.get("notatka_wewnetrzna", "").strip()[:2000]
+            klient["email"] = request.form.get("email", "").strip()[:120]
+            ma_pola_wywiadu = any(
+                request.form.get(f"wywiad_{pytanie['id']}") for pytanie in pytania
+            )
+            if ma_pola_wywiadu:
+                wywiad: dict[str, str] = {}
+                for pytanie in pytania:
+                    pid = pytanie["id"]
+                    if pytanie["typ"] == "tak_nie":
+                        wartosc = request.form.get(f"wywiad_{pid}", "").strip().lower()
+                        if wartosc in {"tak", "nie"}:
+                            wywiad[pid] = wartosc
+                    else:
+                        wartosc = request.form.get(f"wywiad_{pid}", "").strip()
+                        if wartosc:
+                            wywiad[pid] = wartosc[:500]
+                klient["wywiad_zdrowotny"] = wywiad
+                klient["wywiad_aktualizacja"] = datetime.now().isoformat(timespec="minutes")
+            zapisz_dane(dane)
+            flash("Zapisano kartotekę klienta.", "success")
+        return redirect(url_for("panel_klient_szczegoly", salon_slug=salon_slug, klient_id=klient_id))
+
+    wizyty = historia_wizyt_klienta(salon, klient_id)
+    wywiad_etykiety = etykieta_odpowiedzi_wywiadu(pytania, klient.get("wywiad_zdrowotny") or {})
+    pytania_map = {p["id"]: p["tresc"] for p in pytania}
+
+    return render_template(
+        "klient.html",
+        dane=salon,
+        salon_slug=salon_slug,
+        klient=klient,
+        wizyty=wizyty,
+        pytania=pytania,
+        pytania_map=pytania_map,
+        wywiad_etykiety=wywiad_etykiety,
+        dni_tygodnia=dict(DNI_TYGODNIA),
+    )
+
+
+@app.route("/panel/<salon_slug>/wywiad", methods=["GET", "POST"])
+def panel_wywiad(salon_slug: str):
+    dane = wczytaj_dane()
+    salon = pobierz_salon(dane, salon_slug)
+    if not salon:
+        flash("Nie znaleziono takiego salonu.", "error")
+        return redirect(url_for("panel_lista"))
+
+    if request.method == "POST":
+        salon["wywiad_wlaczony"] = request.form.get("wywiad_wlaczony") == "on"
+        salon["wywiad_przy_rezerwacji"] = request.form.get("wywiad_przy_rezerwacji") == "on"
+        salon["pytania_wywiadu"] = parsuj_pytania_wywiadu(request.form.get("pytania_wywiadu", ""))
+        zapisz_dane(dane)
+        if salon["wywiad_przy_rezerwacji"] and not salon["pytania_wywiadu"]:
+            flash("Zapisano. Dodaj pytania, aby wywiad pojawił się przy rezerwacji.", "error")
+        else:
+            flash("Ustawienia wywiadu zdrowotnego zapisane.", "success")
+        return redirect(url_for("panel_wywiad", salon_slug=salon_slug))
+
+    pytania = pytania_wywiadu_salonu(salon)
+    tekst_pytan = "\n".join(
+        (f"? {p['tresc']}" if p["typ"] == "tak_nie" else p["tresc"]) for p in pytania
+    )
+
+    return render_template(
+        "wywiad.html",
+        dane=salon,
+        salon_slug=salon_slug,
+        pytania=pytania,
+        tekst_pytan=tekst_pytan,
     )
 
 
