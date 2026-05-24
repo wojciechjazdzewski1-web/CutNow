@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Terminarz — Glovaro{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('panel', salon_slug=salon_slug) }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6 transition-colors">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+  Wróć do panelu
+</a>
+
+<div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Terminarz</h1>
+    <p class="text-slate-600 mt-1">{{ dane.nazwa_salonu }} — podgląd wizyt i ręczne wpisy</p>
+    {% if automatyczne_terminy %}
+      <p class="text-xs text-emerald-700 mt-2 rounded-lg bg-emerald-50 px-3 py-1.5 inline-block">Terminy dla klientów generują się z godzin pracy (co {{ interwal }} min)</p>
+    {% endif %}
+  </div>
+  <div class="flex flex-wrap gap-2">
+    {% if poprzedni_tydzien %}
+      <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug, data=poprzedni_tydzien) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">← Poprzedni tydzień</a>
+    {% endif %}
+    <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug, data=tydzien_start) }}" class="rounded-xl border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-800">Ten tydzień</a>
+    <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug, data=nastepny_tydzien) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Następny tydzień →</a>
+  </div>
+</div>
+
+<div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-8">
+  {% for d in dni_kalendarza %}
+    <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug, data=d.data) }}"
+      class="rounded-2xl border p-3 text-left transition-all {% if d.aktywny %}border-brand-400 bg-brand-50 ring-2 ring-brand-200{% else %}border-slate-200 bg-white hover:border-brand-200{% endif %}">
+      <p class="text-xs font-medium text-slate-500">{{ d.dzien[:3] }}</p>
+      <p class="text-lg font-bold text-slate-900">{{ d.data[8:10] }}.{{ d.data[5:7] }}</p>
+      <p class="text-xs mt-1 {% if d.zamkniety %}text-red-600{% elif d.rezerwacje %}text-brand-700 font-semibold{% else %}text-slate-500{% endif %}">
+        {% if d.zamkniety %}Zamknięte{% elif d.rezerwacje %}{{ d.rezerwacje|length }} wizyt{% else %}—{% endif %}
+      </p>
+      {% if not d.zamkniety and d.wolne %}
+        <p class="text-[10px] text-emerald-600 mt-0.5">{{ d.wolne|length }} wolnych</p>
+      {% endif %}
+    </a>
+  {% endfor %}
+</div>
+
+<div class="grid lg:grid-cols-3 gap-6">
+  <div class="lg:col-span-2 space-y-4">
+    <div class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 class="font-semibold text-lg text-slate-900">{{ dzien_szczegoly.dzien }}, {{ dzien_szczegoly.data }}</h2>
+          {% if dzien_szczegoly.zamkniety %}
+            <p class="text-sm text-red-600 font-medium">Salon zamknięty</p>
+          {% else %}
+            <p class="text-sm text-slate-600">Godziny: {{ dzien_szczegoly.otwarcie }} — {{ dzien_szczegoly.zamkniecie }}</p>
+          {% endif %}
+        </div>
+        <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=wybrana_data) }}" class="text-sm text-brand-600 hover:underline">Wolne terminy / blokady</a>
+      </div>
+
+      {% if dzien_szczegoly.rezerwacje %}
+        <ul class="space-y-3">
+          {% for r in dzien_szczegoly.rezerwacje %}
+            <li class="flex flex-wrap items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+              <span class="text-xl font-bold text-brand-700 tabular-nums">{{ r.godzina }}</span>
+              <div class="flex-1 min-w-[140px]">
+                <p class="font-semibold text-slate-900">{{ r.imie }}</p>
+                <a href="tel:{{ r.telefon }}" class="text-sm text-brand-600">{{ r.telefon }}</a>
+                {% if r.usluga_nazwa %}<p class="text-sm text-slate-600 mt-0.5">{{ r.usluga_nazwa }}</p>{% endif %}
+                {% if r.pracownik %}<p class="text-xs text-slate-500">Pracownik: {{ r.pracownik }}</p>{% endif %}
+                {% if r.uwagi %}<p class="text-xs text-slate-500 mt-1">{{ r.uwagi }}</p>{% endif %}
+              </div>
+              <div class="text-right">
+                <span class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium
+                  {% if r.status == 'oczekuje' %}bg-amber-100 text-amber-800
+                  {% elif r.status == 'potwierdzona' %}bg-emerald-100 text-emerald-800
+                  {% else %}bg-slate-100 text-slate-700{% endif %}">
+                  {{ r.status }}
+                </span>
+                {% if r.zrodlo == 'salon' %}
+                  <p class="text-[10px] text-slate-400 mt-1">wpis salonu</p>
+                {% endif %}
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-slate-500 text-sm py-6 text-center">Brak wizyt w tym dniu.</p>
+      {% endif %}
+    </div>
+
+    {% if not dzien_szczegoly.zamkniety and dzien_szczegoly.wolne %}
+      <div class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+        <h3 class="font-semibold text-slate-900 mb-3">Wolne godziny ({{ dzien_szczegoly.wolne|length }})</h3>
+        <div class="flex flex-wrap gap-2">
+          {% for g in dzien_szczegoly.wolne %}
+            <span class="rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-100 px-3 py-1 text-sm font-medium">{{ g }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="rounded-2xl bg-gradient-to-br from-brand-700 to-brand-900 text-white p-5 shadow-lg h-fit">
+    <h2 class="font-semibold text-lg mb-1">Dodaj wizytę ręcznie</h2>
+    <p class="text-sm text-brand-100 mb-4">Telefon, wizyta w salonie lub wpis z kalendarza — bez rezerwacji online.</p>
+    <form method="post" class="space-y-3">
+      <input type="hidden" name="akcja" value="dodaj_wizyte">
+      <div>
+        <label class="block text-xs font-medium text-brand-100 mb-1">Data</label>
+        <input type="date" name="wizyta_data" value="{{ wybrana_data }}" required
+          class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-white [color-scheme:dark]">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-brand-100 mb-1">Godzina</label>
+        <input type="time" name="wizyta_godzina" required
+          class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-white [color-scheme:dark]">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-brand-100 mb-1">Imię i nazwisko</label>
+        <input type="text" name="wizyta_imie" required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-white placeholder:text-white/50" placeholder="Klient">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-brand-100 mb-1">Telefon</label>
+        <input type="tel" name="wizyta_telefon" required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-white">
+      </div>
+      {% if pracownicy %}
+        <div>
+          <label class="block text-xs font-medium text-brand-100 mb-1">Pracownik</label>
+          <select name="wizyta_pracownik" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-white">
+            <option value="">— dowolny / nie podano —</option>
+            {% for p in pracownicy %}
+              <option value="{{ p }}">{{ p }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endif %}
+      {% if uslugi %}
+        <div>
+          <label class="block text-xs font-medium text-brand-100 mb-1">Usługa</label>
+          <select name="wizyta_usluga" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-white">
+            <option value="">— opcjonalnie —</option>
+            {% for u in uslugi %}
+              <option value="{{ u.nazwa }}">{{ u.nazwa }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endif %}
+      <div>
+        <label class="block text-xs font-medium text-brand-100 mb-1">Status</label>
+        <select name="wizyta_status" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-white">
+          <option value="potwierdzona">Potwierdzona</option>
+          <option value="oczekuje">Oczekuje</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-brand-100 mb-1">Uwagi</label>
+        <textarea name="wizyta_uwagi" rows="2" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-white resize-none"></textarea>
+      </div>
+      <button type="submit" class="w-full rounded-xl bg-white text-brand-900 font-semibold py-3 hover:bg-brand-50">
+        Zapisz wizytę
+      </button>
+    </form>
+    <p class="text-xs text-brand-200 mt-3">Klient nie dostanie e-maila — to wpis wewnętrzny (chyba że włączysz powiadomienia przy rezerwacji online).</p>
+  </div>
+</div>
+{% endblock %}

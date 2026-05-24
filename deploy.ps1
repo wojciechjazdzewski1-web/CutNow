@@ -2,11 +2,11 @@
 Set-Location $PSScriptRoot
 $ErrorActionPreference = "Stop"
 
-git add app.py templates/rezerwacja_form.html templates/salon.html .env.example deploy.ps1
+git add app.py templates/*.html deploy.ps1
 git status
 git diff --cached --stat
 
-git commit -m "Lista uslug bez zera - oczyszczanie nazw i build id"
+git commit -m "Auto terminy z godzin pracy, najblizsze daty, terminarz salonu"
 git push origin main
 
 Write-Host ""

@@ -7,7 +7,10 @@
   Wróć do panelu
 </a>
 
-<h1 class="text-2xl font-bold text-slate-900 mb-2">Rezerwacje klientów</h1>
+<div class="flex flex-wrap items-center justify-between gap-3 mb-2">
+  <h1 class="text-2xl font-bold text-slate-900">Rezerwacje klientów</h1>
+  <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug) }}" class="rounded-xl bg-brand-600 text-white text-sm font-semibold px-4 py-2 hover:bg-brand-700">Terminarz</a>
+</div>
 <p class="text-slate-600 mb-6 leading-relaxed">
   Potwierdzaj, odrzucaj lub anuluj wizyty. Po terminie wpis trafia do <strong>archiwum</strong> (ok. godzinę po wizycie).
   W archiwum zostaje <strong>{{ dni_archiwum }} dni</strong>, potem jest usuwany automatycznie. Opinie klientów zostają na stronie salonu.

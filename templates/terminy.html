@@ -8,7 +8,8 @@
 </a>
 
 <h1 class="text-2xl font-bold text-slate-900 mb-2">Wolne terminy</h1>
-<p class="text-slate-600 mb-8">Dodaj godziny, w które przyjmujesz klientów na wybrany dzień.</p>
+<p class="text-slate-600 mb-4">Dodatkowe godziny i blokady. Klienci widzą też terminy automatycznie z <a href="{{ url_for('godziny_pracy', salon_slug=salon_slug) }}" class="text-brand-600 hover:underline">godzin pracy</a>.</p>
+<p class="text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3 mb-8">Nie musisz ręcznie generować każdego dnia — ustaw harmonogram w Godzinach pracy, a wolne sloty pojawią się same.</p>
 
 <div class="grid lg:grid-cols-3 gap-6">
   <div class="lg:col-span-2 space-y-6">
