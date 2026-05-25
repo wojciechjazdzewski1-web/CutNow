@@ -3,12 +3,14 @@
 
 {% block content %}
 <div class="mb-8">
-  <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Panel salonu</h1>
+  <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Panel firmy</h1>
   <p class="text-slate-600 mt-1">{{ dane.nazwa_salonu }}</p>
   <div class="mt-3 flex flex-wrap gap-2 text-sm">
     <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="text-brand-700 hover:underline">Link klienta: /rezerwacja/{{ salon_slug }}</a>
-    <span class="text-slate-300">·</span>
-    <a href="{{ url_for('panel_lista') }}" class="text-slate-500 hover:text-brand-700">Wszystkie salony</a>
+    {% if admin_zalogowany %}
+      <span class="text-slate-300">·</span>
+      <a href="{{ url_for('panel_lista') }}" class="text-slate-500 hover:text-brand-700">Wszystkie firmy</a>
+    {% endif %}
   </div>
   <div class="mt-3 flex flex-wrap gap-2 text-xs">
     <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
@@ -17,7 +19,9 @@
     {% if dane.oplacone_do %}
       <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-600">Opłacone do {{ dane.oplacone_do }}</span>
     {% endif %}
-    {% if dane.abonament_status == 'suspended' %}
+    {% if dane.abonament_status == 'pending_payment' %}
+      <span class="rounded-full bg-amber-100 px-3 py-1 font-medium text-amber-800">Oczekuje na płatność</span>
+    {% elif dane.abonament_status == 'suspended' %}
       <span class="rounded-full bg-red-100 px-3 py-1 font-medium text-red-700">Wstrzymany</span>
     {% elif dane.abonament_status == 'active' %}
       <span class="rounded-full bg-emerald-100 px-3 py-1 font-medium text-emerald-700">Aktywny</span>
@@ -25,6 +29,12 @@
       <span class="rounded-full bg-brand-100 px-3 py-1 font-medium text-brand-700">Okres testowy</span>
     {% endif %}
   </div>
+  {% if dane.abonament_status == 'pending_payment' %}
+    <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+      <p class="font-semibold">Panel rezerwacji nie jest jeszcze aktywny.</p>
+      <p class="mt-1 text-sm">Uzupełnij profil firmy, usługi, godziny i wolne terminy. Publiczna strona rezerwacji ruszy dopiero po opłaceniu abonamentu.</p>
+    </div>
+  {% endif %}
   <div class="mt-4 rounded-2xl bg-white border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
     <div>
       <p class="font-semibold text-slate-900">Abonament Glovaro</p>

@@ -24,6 +24,8 @@
                 <div class="mt-2 flex flex-wrap gap-2 text-xs">
                   {% if salon.abonament_status == 'suspended' %}
                     <span class="rounded-full bg-red-100 px-3 py-1 font-medium text-red-700">Wstrzymany</span>
+                  {% elif salon.abonament_status == 'pending_payment' %}
+                    <span class="rounded-full bg-amber-100 px-3 py-1 font-medium text-amber-800">Oczekuje na płatność</span>
                   {% elif po_terminie %}
                     <span class="rounded-full bg-amber-100 px-3 py-1 font-medium text-amber-800">Po terminie płatności</span>
                   {% elif salon.abonament_status == 'active' %}
@@ -65,6 +67,7 @@
                 <label class="block text-xs font-medium text-slate-600 mb-1">Status</label>
                 <select name="abonament_status" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                   <option value="trial" {% if salon.abonament_status == 'trial' %}selected{% endif %}>Test</option>
+                  <option value="pending_payment" {% if salon.abonament_status == 'pending_payment' %}selected{% endif %}>Oczekuje na płatność</option>
                   <option value="active" {% if salon.abonament_status == 'active' %}selected{% endif %}>Aktywny</option>
                   <option value="suspended" {% if salon.abonament_status == 'suspended' %}selected{% endif %}>Wstrzymany</option>
                 </select>

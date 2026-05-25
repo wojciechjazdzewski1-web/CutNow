@@ -129,6 +129,7 @@ DEFAULT_SALON = {
 
 PUBLIC_ENDPOINTS = {
     "strona_glowna",
+    "dolacz_firma",
     "health",
     "rezerwacja_domyslna",
     "rezerwacja_publiczna",
@@ -155,12 +156,14 @@ WIDOK_KLIENTA_ENDPOINTS = {
 
 MOTYW_ROZOWY_ENDPOINTS = WIDOK_KLIENTA_ENDPOINTS | {
     "strona_glowna",
+    "dolacz_firma",
     "regulamin",
     "polityka_prywatnosci",
     "polityka_cookies",
 }
 
 MOTYWY_STRONY = frozenset({"rozowy", "neutralny"})
+STATUSY_ABONAMENTU = frozenset({"pending_payment", "trial", "active", "suspended"})
 
 BRANZE_DZIALALNOSCI = [
     {
@@ -465,7 +468,7 @@ def pobierz_salon(dane: dict, salon_slug: str) -> dict | None:
 
 
 def salon_wstrzymany(salon: dict) -> bool:
-    return salon.get("abonament_status") == "suspended"
+    return salon.get("abonament_status") in {"pending_payment", "suspended"}
 
 
 def abonament_po_terminie(salon: dict) -> bool:
@@ -1912,6 +1915,7 @@ def inject_globals():
         "branze_map": BRANZE_MAP,
         "etykieta_branzy": etykieta_branzy,
         "panel_chroniony_haslem": bool(PANEL_PASSWORD),
+        "admin_zalogowany": bool(session.get(admin_auth_key())),
         "zalogowany_do_panelu": bool(salon_slug and zalogowany_do_salonu(salon_slug)),
         "widok_klienta": widok_klienta,
         "motyw_klienta": motyw_klienta,
@@ -2065,6 +2069,58 @@ def strona_glowna():
     )
 
 
+@app.route("/dolacz", methods=["GET", "POST"])
+def dolacz_firma():
+    if request.method == "POST":
+        dane = wczytaj_dane()
+        nazwa = request.form.get("nazwa_salonu", "").strip()
+        branza = normalizuj_branze(request.form.get("branza", "beauty"))
+        slug = slugify(request.form.get("slug", "").strip() or nazwa)
+        telefon = request.form.get("telefon_kontaktowy", "").strip()
+        email = request.form.get("email_powiadomien", "").strip().lower()
+        haslo = request.form.get("haslo_panelu", "").strip()
+        zgoda = request.form.get("zgoda_regulamin") == "on"
+
+        if not nazwa:
+            flash("Podaj nazwę firmy.", "error")
+            return redirect(url_for("dolacz_firma"))
+        if slug in dane.get("salony", {}):
+            flash("Taki link jest już zajęty. Wybierz inną nazwę w linku.", "error")
+            return redirect(url_for("dolacz_firma"))
+        if not waliduj_email(email):
+            flash("Podaj poprawny e-mail właściciela firmy.", "error")
+            return redirect(url_for("dolacz_firma"))
+        if not waliduj_telefon(telefon):
+            flash("Podaj poprawny numer telefonu.", "error")
+            return redirect(url_for("dolacz_firma"))
+        if len(haslo) < 6:
+            flash("Hasło do panelu powinno mieć co najmniej 6 znaków.", "error")
+            return redirect(url_for("dolacz_firma"))
+        if not zgoda:
+            flash("Zaakceptuj regulamin i politykę prywatności.", "error")
+            return redirect(url_for("dolacz_firma"))
+
+        salon = nowy_salon(nazwa, haslo)
+        salon.update(
+            {
+                "slug": slug,
+                "branza": branza,
+                "telefon_kontaktowy": telefon,
+                "email_powiadomien": email,
+                "abonament_status": "pending_payment",
+                "utworzono": datetime.now().isoformat(timespec="minutes"),
+                "zrodlo_rejestracji": "publiczny_formularz",
+            }
+        )
+        dane.setdefault("salony", {})[slug] = salon
+        zapisz_dane(dane)
+        session[panel_auth_key(slug)] = True
+        flash("Panel został utworzony. Uzupełnij profil, usługi i terminy, a potem opłać abonament, aby uruchomić rezerwacje.", "success")
+        return redirect(url_for("ustawienia_salonu", salon_slug=slug, start=1))
+
+    return render_template("dolacz.html")
+
+
 @app.route("/regulamin")
 def regulamin():
     return render_template("regulamin.html")
@@ -2162,7 +2218,7 @@ def panel_rozliczenia(salon_slug: str):
         return redirect(url_for("panel_lista"))
 
     status = request.form.get("abonament_status", "trial")
-    if status not in {"trial", "active", "suspended"}:
+    if status not in STATUSY_ABONAMENTU:
         status = "trial"
 
     try:

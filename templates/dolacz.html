@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Załóż panel firmy — Glovaro{% endblock %}
+
+{% block content %}
+<section class="max-w-3xl mx-auto">
+  <div class="text-center mb-8">
+    <div class="inline-flex items-center gap-2 rounded-full bg-brand-100 text-brand-800 px-4 py-1.5 text-sm font-medium mb-5 border border-brand-200">
+      Panel firmy w Glovaro
+    </div>
+    <h1 class="text-3xl sm:text-4xl font-bold client-heading">Załóż panel rezerwacji</h1>
+    <p class="client-muted mt-3 leading-relaxed">
+      Utworzysz własny panel bez widoku innych firm. Rezerwacje dla klientów aktywują się dopiero po opłaceniu abonamentu.
+    </p>
+  </div>
+
+  <form method="post" class="client-card p-6 sm:p-8 space-y-5">
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div class="sm:col-span-2">
+        <label for="nazwa_salonu" class="block text-sm font-medium client-heading mb-2">Nazwa firmy *</label>
+        <input id="nazwa_salonu" name="nazwa_salonu" required class="client-input w-full px-4 py-3" placeholder="np. Auto Detailing Pro">
+      </div>
+
+      <div>
+        <label for="branza" class="block text-sm font-medium client-heading mb-2">Branża *</label>
+        <select id="branza" name="branza" class="client-input w-full px-4 py-3">
+          {% for branza in branze_dzialalnosci %}
+            <option value="{{ branza.slug }}">{{ branza.nazwa }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label for="slug" class="block text-sm font-medium client-heading mb-2">Nazwa w linku</label>
+        <input id="slug" name="slug" class="client-input w-full px-4 py-3" placeholder="np. auto-detailing-pro">
+        <p class="client-muted text-xs mt-1">Jeśli zostawisz puste, Glovaro utworzy link z nazwy firmy.</p>
+      </div>
+
+      <div>
+        <label for="telefon_kontaktowy" class="block text-sm font-medium client-heading mb-2">Telefon kontaktowy *</label>
+        <input id="telefon_kontaktowy" name="telefon_kontaktowy" type="tel" required class="client-input w-full px-4 py-3" placeholder="np. 500 123 456">
+      </div>
+
+      <div>
+        <label for="email_powiadomien" class="block text-sm font-medium client-heading mb-2">E-mail właściciela *</label>
+        <input id="email_powiadomien" name="email_powiadomien" type="email" required class="client-input w-full px-4 py-3" placeholder="np. kontakt@firma.pl">
+      </div>
+
+      <div class="sm:col-span-2">
+        <label for="haslo_panelu" class="block text-sm font-medium client-heading mb-2">Hasło do Twojego panelu *</label>
+        <input id="haslo_panelu" name="haslo_panelu" type="password" required minlength="6" class="client-input w-full px-4 py-3" placeholder="Minimum 6 znaków">
+        <p class="client-muted text-xs mt-1">Tym hasłem zalogujesz się później tylko do panelu swojej firmy.</p>
+      </div>
+    </div>
+
+    <div class="client-soft-panel rounded-xl border p-4">
+      <label class="flex items-start gap-3 cursor-pointer">
+        <input type="checkbox" name="zgoda_regulamin" value="on" required class="mt-1 h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-500">
+        <span class="text-sm client-muted leading-relaxed">
+          Akceptuję <a href="{{ url_for('regulamin') }}" target="_blank" class="font-semibold text-brand-700 hover:underline">regulamin</a>
+          i <a href="{{ url_for('polityka_prywatnosci') }}" target="_blank" class="font-semibold text-brand-700 hover:underline">politykę prywatności</a>.
+          Rozumiem, że publiczna strona rezerwacji ruszy po aktywacji abonamentu.
+        </span>
+      </label>
+    </div>
+
+    <button type="submit" class="client-btn-primary w-full rounded-xl px-6 py-4 font-semibold">
+      Utwórz mój panel
+    </button>
+  </form>
+</section>
+{% endblock %}
