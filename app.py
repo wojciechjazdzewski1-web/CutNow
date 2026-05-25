@@ -120,6 +120,7 @@ DEFAULT_SALON = {
     "wolne_terminy": {},
     "blokady": [],
     "rezerwacje": [],
+    "lista_rezerwowa": [],
     "opinie": [],
     "klienci": [],
     "pytania_wywiadu": [],
@@ -136,6 +137,7 @@ PUBLIC_ENDPOINTS = {
     "rezerwacja_publiczna",
     "rezerwacja_formularz",
     "rezerwacja_potwierdzenie",
+    "lista_rezerwowa_formularz",
     "anuluj_rezerwacje_klienta",
     "opinia_klienta",
     "stripe_webhook",
@@ -151,6 +153,7 @@ WIDOK_KLIENTA_ENDPOINTS = {
     "rezerwacja_publiczna",
     "rezerwacja_formularz",
     "rezerwacja_potwierdzenie",
+    "lista_rezerwowa_formularz",
     "anuluj_rezerwacje_klienta",
     "opinia_klienta",
 }
@@ -298,6 +301,7 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("wolne_terminy", {})
             salon.setdefault("blokady", [])
             salon.setdefault("rezerwacje", [])
+            salon.setdefault("lista_rezerwowa", [])
             salon.setdefault("opinie", [])
             salon.setdefault("klienci", [])
             salon.setdefault("pytania_wywiadu", [])
@@ -1388,6 +1392,18 @@ def email_klienta_rezerwacji(salon: dict, rezerwacja: dict) -> str:
     return (klient.get("email") or "").strip().lower() if klient else ""
 
 
+def aktywne_zgloszenia_listy_rezerwowej(salon: dict) -> list[dict]:
+    return sorted(
+        [
+            zgloszenie
+            for zgloszenie in salon.get("lista_rezerwowa", [])
+            if zgloszenie.get("status", "nowe") != "usuniete"
+        ],
+        key=lambda z: z.get("utworzono", ""),
+        reverse=True,
+    )
+
+
 def parsuj_odpowiedzi_wywiadu_z_formularza(salon: dict) -> tuple[dict, list[str]]:
     pytania = pytania_wywiadu_salonu(salon)
     odpowiedzi: dict[str, str] = {}
@@ -1699,6 +1715,47 @@ Panel rezerwacji:
             app.logger.warning(
                 "Na Renderze SMTP (port 587) często jest zablokowane — użyj Resend z zweryfikowaną domeną zamiast SMTP."
             )
+        return False
+
+
+def wyslij_email_lista_rezerwowa(salon: dict, zgloszenie: dict, salon_slug: str) -> bool:
+    odbiorca = salon.get("email_powiadomien", "").strip()
+    if not odbiorca or not email_skonfigurowany():
+        return False
+
+    link_panelu = url_for("panel_lista_rezerwowa", salon_slug=salon_slug, _external=True)
+    temat = f"Lista rezerwowa: {zgloszenie['imie']}"
+    tresc = f"""Nowe zgłoszenie na listę rezerwową
+
+Firma: {salon['nazwa_salonu']}
+Preferowany dzień: {zgloszenie.get('data_preferowana') or '-'}
+Klient: {zgloszenie['imie']}
+Telefon: {zgloszenie['telefon']}
+E-mail: {zgloszenie.get('email') or '-'}
+Usługa: {zgloszenie.get('usluga_nazwa') or '-'}
+Uwagi: {zgloszenie.get('uwagi') or '-'}
+
+Lista rezerwowa w panelu:
+{link_panelu}
+"""
+
+    if wyslij_email_przez_resend(odbiorca, temat, tresc):
+        return True
+
+    msg = EmailMessage()
+    msg["Subject"] = temat
+    msg["From"] = SMTP_FROM
+    msg["To"] = odbiorca
+    msg.set_content(tresc)
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as smtp:
+            smtp.starttls()
+            smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
+            smtp.send_message(msg)
+        return True
+    except Exception as exc:
+        app.logger.warning("Nie udało się wysłać e-maila z listy rezerwowej: %s", exc)
         return False
 
 
@@ -2390,6 +2447,7 @@ def panel(salon_slug: str):
     najpopularniejszy_dzien = max(dni_count.items(), key=lambda item: item[1])[0] if dni_count else "-"
     za_7_dni = (date.today() + timedelta(days=7)).isoformat()
     rezerwacje_7_dni = [r for r in nadchodzace if r.get("data", "") <= za_7_dni]
+    lista_rezerwowa = aktywne_zgloszenia_listy_rezerwowej(salon)
     return render_template(
         "panel.html",
         dane=salon,
@@ -2400,6 +2458,8 @@ def panel(salon_slug: str):
         najblizsze_daty=najblizsze_daty_z_terminami(salon, limit=5),
         liczba_rezerwacji=len(nadchodzace),
         ostatnie_rezerwacje=nadchodzace[:5],
+        lista_rezerwowa=lista_rezerwowa[:5],
+        liczba_listy_rezerwowej=len(lista_rezerwowa),
         statystyki={
             "wszystkie_rezerwacje": len(aktywne),
             "unikalni_klienci": len([k for k in klienci if k]),
@@ -2853,6 +2913,61 @@ def rezerwacja_formularz(salon_slug: str):
     return redirect(url_for("rezerwacja_potwierdzenie", salon_slug=salon_slug, id=rezerwacja["id"]))
 
 
+@app.route("/rezerwacja/<salon_slug>/lista-rezerwowa", methods=["POST"])
+def lista_rezerwowa_formularz(salon_slug: str):
+    dane = wczytaj_dane()
+    salon = pobierz_salon(dane, salon_slug)
+    if not salon:
+        return render_template("404.html", sciezka=request.path, domyslny_slug=domyslny_slug(dane)), 404
+    if salon_wstrzymany(salon):
+        return render_template("abonament_wstrzymany.html", dane=salon), 403
+
+    data_preferowana = request.form.get("data_preferowana", date.today().isoformat()).strip()
+    if not waliduj_date_iso(data_preferowana) or data_preferowana < date.today().isoformat():
+        data_preferowana = date.today().isoformat()
+    imie = request.form.get("lista_imie", "").strip()
+    telefon = request.form.get("lista_telefon", "").strip()
+    email = request.form.get("lista_email", "").strip().lower()
+    usluga_nazwa = request.form.get("lista_usluga", "").strip()
+    uwagi = request.form.get("lista_uwagi", "").strip()[:600]
+
+    if not imie:
+        flash("Podaj imię i nazwisko do listy rezerwowej.", "error")
+        return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug, data=data_preferowana))
+    if not waliduj_telefon(telefon):
+        flash("Podaj poprawny numer telefonu do listy rezerwowej.", "error")
+        return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug, data=data_preferowana))
+    if email and not waliduj_email(email):
+        flash("Podaj poprawny adres e-mail albo zostaw pole puste.", "error")
+        return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug, data=data_preferowana))
+    if request.form.get("zgoda_lista_rezerwowa") != "on":
+        flash("Zaakceptuj zgodę na kontakt w sprawie listy rezerwowej.", "error")
+        return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug, data=data_preferowana))
+
+    uslugi = uslugi_salonu(salon)
+    nazwy_uslug = {u["nazwa"] for u in uslugi}
+    if uslugi and usluga_nazwa and usluga_nazwa not in nazwy_uslug:
+        flash("Wybierz usługę z listy albo zostaw pole puste.", "error")
+        return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug, data=data_preferowana))
+
+    zgloszenie = {
+        "id": uuid.uuid4().hex[:12],
+        "status": "nowe",
+        "data_preferowana": data_preferowana,
+        "imie": imie,
+        "telefon": telefon,
+        "email": email,
+        "usluga_nazwa": usluga_nazwa,
+        "uwagi": uwagi,
+        "utworzono": datetime.now().isoformat(timespec="minutes"),
+    }
+    salon.setdefault("lista_rezerwowa", []).append(zgloszenie)
+    zapisz_dane(dane)
+    wyslij_email_lista_rezerwowa(salon, zgloszenie, salon_slug)
+    flash("Dopisano Cię do listy rezerwowej. Firma skontaktuje się, gdy zwolni się termin.", "success")
+    return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug, data=data_preferowana))
+
+
 @app.route("/rezerwacja/<salon_slug>/potwierdzenie")
 def rezerwacja_potwierdzenie(salon_slug: str):
     dane = wczytaj_dane()
@@ -3053,6 +3168,43 @@ def panel_terminarz(salon_slug: str):
         uslugi=uslugi_salonu(salon),
         pracownicy=aktywni_pracownicy(salon),
         interwal=interwal_terminow_salonu(salon),
+    )
+
+
+@app.route("/panel/<salon_slug>/lista-rezerwowa", methods=["GET", "POST"])
+def panel_lista_rezerwowa(salon_slug: str):
+    dane = wczytaj_dane()
+    salon = pobierz_salon(dane, salon_slug)
+    if not salon:
+        flash("Nie znaleziono takiej firmy.", "error")
+        return redirect(url_for("panel_lista"))
+
+    if request.method == "POST":
+        zgloszenie_id = request.form.get("id", "")
+        akcja = request.form.get("akcja", "")
+        zgloszenie = next((z for z in salon.get("lista_rezerwowa", []) if z.get("id") == zgloszenie_id), None)
+        if zgloszenie:
+            if akcja == "kontakt":
+                zgloszenie["status"] = "kontakt"
+                zgloszenie["kontakt_at"] = datetime.now().isoformat(timespec="minutes")
+                flash(f"Oznaczono kontakt: {zgloszenie.get('imie', '')}.", "success")
+            elif akcja == "nowe":
+                zgloszenie["status"] = "nowe"
+                zgloszenie.pop("kontakt_at", None)
+                flash(f"Przywrócono jako nowe: {zgloszenie.get('imie', '')}.", "success")
+            elif akcja == "usun":
+                zgloszenie["status"] = "usuniete"
+                zgloszenie["usunieto_at"] = datetime.now().isoformat(timespec="minutes")
+                flash("Usunięto zgłoszenie z listy rezerwowej.", "success")
+            zapisz_dane(dane)
+        return redirect(url_for("panel_lista_rezerwowa", salon_slug=salon_slug))
+
+    zgloszenia = aktywne_zgloszenia_listy_rezerwowej(salon)
+    return render_template(
+        "lista_rezerwowa.html",
+        dane=salon,
+        salon_slug=salon_slug,
+        zgloszenia=zgloszenia,
     )
 
 
