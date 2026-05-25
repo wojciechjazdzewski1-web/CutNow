@@ -46,9 +46,9 @@
       </div>
       <div class="grid grid-cols-3 gap-2 sm:gap-3">
         {% for zdjecie in dane.zdjecia_prac[:6] %}
-          <button type="button" onclick="openGalleryImage({{ zdjecie|tojson }})" class="{% if loop.first %}col-span-2 row-span-2{% endif %} block overflow-hidden rounded-2xl bg-brand-50 dark:bg-brand-950/50 aspect-square focus:ring-2 focus:ring-brand-500 outline-none">
-            <img src="{{ zdjecie }}" alt="Praca salonu {{ loop.index }}" class="h-full w-full object-contain transition-transform duration-300" loading="lazy">
-          </button>
+          <a href="{{ zdjecie }}" onclick="event.preventDefault(); openGalleryImage(this.href);" class="{% if loop.first %}col-span-2 row-span-2{% endif %} group block cursor-zoom-in overflow-hidden rounded-2xl bg-brand-50 dark:bg-brand-950/50 aspect-square focus:ring-2 focus:ring-brand-500 outline-none" aria-label="Powiększ zdjęcie pracy salonu {{ loop.index }}">
+            <img src="{{ zdjecie }}" alt="Praca salonu {{ loop.index }}" class="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105" loading="lazy">
+          </a>
         {% endfor %}
       </div>
       <p class="text-xs client-muted mt-3 text-center">Kliknij zdjęcie, aby powiększyć.</p>
