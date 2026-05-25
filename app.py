@@ -2803,6 +2803,34 @@ def wolne_terminy(salon_slug: str):
         zapisz_dane(dane)
         return redirect(url_for("wolne_terminy", salon_slug=salon_slug, data=wybrana_data))
 
+    data_wybrana = datetime.strptime(wybrana_data, "%Y-%m-%d").date()
+    pierwszy_dzien_miesiaca = data_wybrana.replace(day=1)
+    liczba_dni = calendar.monthrange(data_wybrana.year, data_wybrana.month)[1]
+    dni_kalendarza = []
+    for przesuniecie in range(liczba_dni):
+        data_iso = (pierwszy_dzien_miesiaca + timedelta(days=przesuniecie)).isoformat()
+        wolne_dnia = dostepne_terminy(salon, data_iso)
+        zajete_dnia = sorted(zajete_godziny(salon, data_iso))
+        blokady = blokady_dnia(salon, data_iso)
+        dni_kalendarza.append(
+            {
+                "data": data_iso,
+                "dzien": dict(DNI_TYGODNIA)[klucz_dnia_tygodnia(data_iso)],
+                "numer": int(data_iso[8:10]),
+                "wolne": wolne_dnia,
+                "zajete": zajete_dnia,
+                "blokady": blokady,
+                "zamkniety": harmonogram_dnia(salon, data_iso).get("zamkniety", False),
+                "aktywny": data_iso == wybrana_data,
+            }
+        )
+
+    poprzedni_miesiac_data = (pierwszy_dzien_miesiaca - timedelta(days=1)).replace(day=1)
+    if data_wybrana.month == 12:
+        nastepny_miesiac_data = data_wybrana.replace(year=data_wybrana.year + 1, month=1, day=1)
+    else:
+        nastepny_miesiac_data = data_wybrana.replace(month=data_wybrana.month + 1, day=1)
+
     return render_template(
         "terminy.html",
         dane=salon,
@@ -2812,6 +2840,11 @@ def wolne_terminy(salon_slug: str):
         zajete=sorted(zajete_godziny(salon, wybrana_data)),
         blokady=blokady_dnia(salon, wybrana_data),
         wszystkie_terminy=salon.get("wolne_terminy", {}),
+        dni_kalendarza=dni_kalendarza,
+        puste_przed=pierwszy_dzien_miesiaca.weekday(),
+        miesiac_label=f"{MIESIACE[data_wybrana.month]} {data_wybrana.year}",
+        poprzedni_miesiac=poprzedni_miesiac_data.isoformat(),
+        nastepny_miesiac=nastepny_miesiac_data.isoformat(),
     )
 
 

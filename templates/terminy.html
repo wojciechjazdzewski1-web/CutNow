@@ -11,70 +11,101 @@
 <p class="text-slate-600 mb-4">Tu ustawiasz godziny widoczne dla klientów. Tylko wpisane tutaj terminy pojawią się na stronie rezerwacji (najbliższe dni na górze).</p>
 <p class="text-sm text-brand-800 bg-brand-50 border border-brand-100 rounded-xl px-4 py-3 mb-8">Użyj <strong>Wygeneruj terminy</strong> na kilka tygodni do przodu — klient zobaczy wyłącznie te sloty, nie wszystkie godziny otwarcia.</p>
 
+<div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-4">
+  <div>
+    <h2 class="text-xl font-bold text-slate-900">{{ miesiac_label }}</h2>
+    <p class="text-sm text-slate-500 mt-1">Kliknij dzień, aby dodać, usunąć albo sprawdzić wolne godziny.</p>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=poprzedni_miesiac) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">← Poprzedni miesiąc</a>
+    <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug) }}" class="rounded-xl border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-800">Dzisiaj</a>
+    <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=nastepny_miesiac) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Następny miesiąc →</a>
+  </div>
+</div>
+
+<div class="rounded-2xl bg-white border border-slate-200 p-4 shadow-sm mb-6">
+  <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-slate-500 mb-2">
+    <span>Pon</span>
+    <span>Wt</span>
+    <span>Śr</span>
+    <span>Czw</span>
+    <span>Pt</span>
+    <span>Sob</span>
+    <span>Nd</span>
+  </div>
+  <div class="grid grid-cols-7 gap-1 sm:gap-2">
+    {% for _ in range(puste_przed) %}
+      <div class="min-h-20 rounded-xl bg-slate-50/60"></div>
+    {% endfor %}
+    {% for d in dni_kalendarza %}
+      <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=d.data) }}"
+        class="min-h-20 rounded-xl border p-2 text-left transition-all {% if d.aktywny %}border-brand-400 bg-brand-50 ring-2 ring-brand-200{% else %}border-slate-200 bg-white hover:border-brand-200 hover:bg-slate-50{% endif %}">
+        <p class="text-sm font-bold text-slate-900">{{ d.numer }}</p>
+        <p class="text-[11px] mt-1 {% if d.zamkniety %}text-red-600{% elif d.wolne %}text-emerald-700 font-semibold{% else %}text-slate-500{% endif %}">
+          {% if d.zamkniety %}Zamk.{% elif d.wolne %}{{ d.wolne|length }} wolnych{% else %}—{% endif %}
+        </p>
+        {% if d.zajete %}
+          <p class="text-[10px] text-brand-700 mt-0.5">{{ d.zajete|length }} zajętych</p>
+        {% endif %}
+        {% if d.blokady %}
+          <p class="text-[10px] text-amber-700 mt-0.5">{{ d.blokady|length }} blokad</p>
+        {% endif %}
+      </a>
+    {% endfor %}
+  </div>
+</div>
+
+<form method="post" class="rounded-2xl bg-gradient-to-br from-slate-900 to-brand-900 text-white p-5 shadow-lg shadow-slate-900/20 mb-6">
+  <input type="hidden" name="akcja" value="generuj">
+  <h2 class="font-semibold text-lg mb-1">Automatyczne dodawanie terminów</h2>
+  <p class="text-sm text-slate-300 mb-5">Wybierz zakres dat, godziny i interwał — Glovaro utworzy wolne sloty w kalendarzu.</p>
+
+  <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+    <div>
+      <label for="data_od" class="block text-sm font-medium text-slate-200 mb-2">Od daty</label>
+      <input type="date" id="data_od" name="data_od" value="{{ wybrana_data }}" required
+        class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
+    </div>
+    <div>
+      <label for="data_do" class="block text-sm font-medium text-slate-200 mb-2">Do daty</label>
+      <input type="date" id="data_do" name="data_do" value="{{ wybrana_data }}" required
+        class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
+    </div>
+    <div>
+      <label for="od_godziny" class="block text-sm font-medium text-slate-200 mb-2">Od godziny</label>
+      <input type="time" id="od_godziny" name="od_godziny" value="09:00" required
+        class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
+    </div>
+    <div>
+      <label for="do_godziny" class="block text-sm font-medium text-slate-200 mb-2">Do godziny</label>
+      <input type="time" id="do_godziny" name="do_godziny" value="17:00" required
+        class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
+    </div>
+  </div>
+
+  <div class="flex flex-col lg:flex-row lg:items-center gap-3">
+    <div class="w-full lg:w-56">
+      <label for="interwal" class="block text-sm font-medium text-slate-200 mb-2">Co ile minut</label>
+      <select id="interwal" name="interwal"
+        class="w-full rounded-xl border border-white/20 bg-white px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-300 outline-none">
+        <option class="text-slate-900 bg-white" value="15">15 minut</option>
+        <option class="text-slate-900 bg-white" value="30" selected>30 minut</option>
+        <option class="text-slate-900 bg-white" value="45">45 minut</option>
+        <option class="text-slate-900 bg-white" value="60">60 minut</option>
+      </select>
+    </div>
+    <label class="inline-flex items-center gap-2 text-sm text-slate-200 lg:mt-7">
+      <input type="checkbox" name="nadpisz" class="rounded border-white/30 text-brand-600">
+      Nadpisz wolne terminy w wybranych dniach
+    </label>
+    <button type="submit" class="lg:ml-auto lg:mt-7 rounded-xl bg-white text-slate-900 font-semibold px-6 py-3 hover:bg-brand-50">
+      Wygeneruj terminy
+    </button>
+  </div>
+</form>
+
 <div class="grid lg:grid-cols-3 gap-6">
   <div class="lg:col-span-2 space-y-6">
-    <form method="get" class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm flex flex-wrap items-end gap-4">
-      <div class="flex-1 min-w-[200px]">
-        <label for="data" class="block text-sm font-medium text-slate-700 mb-2">Wybierz dzień</label>
-        <input type="date" id="data" name="data" value="{{ wybrana_data }}"
-          class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none">
-      </div>
-      <button type="submit" class="rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 px-5 py-3 font-medium text-slate-700 transition-colors">
-        Pokaż dzień
-      </button>
-    </form>
-
-    <form method="post" class="rounded-2xl bg-gradient-to-br from-slate-900 to-brand-900 text-white p-5 shadow-lg shadow-slate-900/20">
-      <input type="hidden" name="akcja" value="generuj">
-      <h2 class="font-semibold text-lg mb-1">Automatyczne generowanie terminów</h2>
-      <p class="text-sm text-slate-300 mb-5">Wybierz zakres dat, godziny i interwał — Glovaro sam utworzy wolne sloty.</p>
-
-      <div class="grid sm:grid-cols-2 gap-3 mb-3">
-        <div>
-          <label for="data_od" class="block text-sm font-medium text-slate-200 mb-2">Od daty</label>
-          <input type="date" id="data_od" name="data_od" value="{{ wybrana_data }}" required
-            class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
-        </div>
-        <div>
-          <label for="data_do" class="block text-sm font-medium text-slate-200 mb-2">Do daty</label>
-          <input type="date" id="data_do" name="data_do" value="{{ wybrana_data }}" required
-            class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
-        </div>
-      </div>
-
-      <div class="grid sm:grid-cols-3 gap-3">
-        <div>
-          <label for="od_godziny" class="block text-sm font-medium text-slate-200 mb-2">Od godziny</label>
-          <input type="time" id="od_godziny" name="od_godziny" value="09:00" required
-            class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
-        </div>
-        <div>
-          <label for="do_godziny" class="block text-sm font-medium text-slate-200 mb-2">Do godziny</label>
-          <input type="time" id="do_godziny" name="do_godziny" value="17:00" required
-            class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
-        </div>
-        <div>
-          <label for="interwal" class="block text-sm font-medium text-slate-200 mb-2">Co ile minut</label>
-          <select id="interwal" name="interwal"
-            class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white focus:ring-2 focus:ring-brand-300 outline-none">
-            <option class="text-slate-900" value="15">15 minut</option>
-            <option class="text-slate-900" value="30" selected>30 minut</option>
-            <option class="text-slate-900" value="45">45 minut</option>
-            <option class="text-slate-900" value="60">60 minut</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
-        <label class="inline-flex items-center gap-2 text-sm text-slate-200">
-          <input type="checkbox" name="nadpisz" class="rounded border-white/30 text-brand-600">
-          Nadpisz wolne terminy w wybranych dniach
-        </label>
-        <button type="submit" class="sm:ml-auto rounded-xl bg-white text-slate-900 font-semibold px-6 py-3 hover:bg-brand-50">
-          Wygeneruj terminy
-        </button>
-      </div>
-    </form>
 
     <form method="post" class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
       <input type="hidden" name="akcja" value="blokuj">
