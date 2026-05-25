@@ -94,6 +94,7 @@ DEFAULT_SALON = {
     "link_google_maps": "",
     "instagram": "",
     "email_powiadomien": "",
+    "logo_url": "",
     "zdjecia_prac": [],
     "pracownicy": [],
     "uslugi": [],
@@ -274,6 +275,7 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("link_google_maps", "")
             salon.setdefault("instagram", "")
             salon.setdefault("email_powiadomien", "")
+            salon.setdefault("logo_url", "")
             salon.setdefault("zdjecia_prac", [])
             salon.setdefault("pracownicy", [])
             salon.setdefault("uslugi", [])
@@ -987,6 +989,7 @@ def katalog_firm_z_terminami(dane: dict, branza: str | None = None) -> list[dict
                 "slug": slug,
                 "nazwa": salon.get("nazwa_salonu", slug),
                 "opis": salon.get("opis", ""),
+                "logo_url": salon.get("logo_url", ""),
                 "adres": salon.get("adres_lokalizacji", ""),
                 "branza": branza_salonu,
                 "branza_nazwa": etykieta_branzy(branza_salonu),
@@ -2420,6 +2423,7 @@ def ustawienia_salonu(salon_slug: str):
         haslo = request.form.get("haslo_panelu", "").strip()
         opis = request.form.get("opis", "").strip()
         telefon = request.form.get("telefon_kontaktowy", "").strip()
+        logo_z_linku = normalizuj_url_https(request.form.get("logo_url", ""))
         adres_lokalizacji = request.form.get("adres_lokalizacji", "").strip()
         link_google_maps = normalizuj_url_https(request.form.get("link_google_maps", ""))
         instagram = request.form.get("instagram", "").strip()
@@ -2447,6 +2451,10 @@ def ustawienia_salonu(salon_slug: str):
         cena_wizyty = max(cena_wizyty, 0)
         pracownicy = parsuj_pracownikow(request.form.get("pracownicy", ""))
         uslugi = parsuj_uslugi(request.form.get("uslugi", ""))
+        logo_upload = parsuj_upload_zdjec([request.files.get("logo_upload")])
+        logo_url = logo_upload[0] if logo_upload else logo_z_linku or salon.get("logo_url", "")
+        if request.form.get("usun_logo") == "on":
+            logo_url = ""
         zdjecia_z_linkow = parsuj_linki_zdjec(request.form.get("zdjecia_prac", ""))
         nowe_zdjecia = parsuj_upload_zdjec(request.files.getlist("zdjecia_upload"))
         dotychczasowe_uploady = [
@@ -2467,6 +2475,7 @@ def ustawienia_salonu(salon_slug: str):
             salon["nazwa_salonu"] = nazwa
             salon["branza"] = branza
             salon["opis"] = opis
+            salon["logo_url"] = logo_url
             salon["telefon_kontaktowy"] = telefon
             salon["instagram"] = instagram
             salon["email_powiadomien"] = email_powiadomien
