@@ -115,24 +115,35 @@
     </section>
   {% endif %}
 
-  {% if not godziny.zamkniety %}
-    <div class="client-card p-6 mb-6">
-      <h2 class="text-sm font-medium client-muted uppercase tracking-wide mb-4">Wolne terminy</h2>
-      {% if terminy %}
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {% for t in terminy %}
-            <a href="{{ url_for('rezerwacja_formularz', salon_slug=salon_slug, data=wybrana_data, godzina=t) }}"
-              class="client-slot rounded-2xl font-bold py-5 text-center text-lg hover:-translate-y-0.5 transition-all shadow-sm">
-              {{ t }}
-            </a>
-          {% endfor %}
-        </div>
-        <p class="text-xs client-muted mt-4 text-center">Kliknij godzinę, podaj dane — gotowe.</p>
-      {% else %}
-        <p class="client-muted">Brak wolnych terminów na ten dzień. Wybierz inną datę.</p>
-      {% endif %}
-    </div>
-  {% endif %}
+  <div class="client-card p-6 mb-6">
+    <h2 class="text-sm font-medium client-muted uppercase tracking-wide mb-4">Wolne godziny w wybranym dniu</h2>
+    {% if terminy %}
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {% for t in terminy %}
+          <a href="{{ url_for('rezerwacja_formularz', salon_slug=salon_slug, data=wybrana_data, godzina=t) }}"
+            class="client-slot rounded-2xl font-bold py-5 text-center text-lg hover:-translate-y-0.5 transition-all shadow-sm">
+            {{ t }}
+          </a>
+        {% endfor %}
+      </div>
+      <p class="text-xs client-muted mt-4 text-center">Kliknij godzinę, podaj dane — gotowe.</p>
+    {% else %}
+      <div class="rounded-2xl border border-brand-100 dark:border-brand-900 bg-brand-50/70 dark:bg-brand-950/30 p-4">
+        <p class="font-semibold client-heading">Brak wolnych terminów tego dnia.</p>
+        {% if najblizszy_inny %}
+          <p class="text-sm client-muted mt-1">
+            Najbliższy dostępny dzień to {{ najblizszy_inny.dzien }}, {{ najblizszy_inny.data }} od {{ najblizszy_inny.pierwszy }}.
+          </p>
+          <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug, data=najblizszy_inny.data) }}"
+            class="inline-flex mt-3 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-400">
+            Pokaż najbliższy wolny termin
+          </a>
+        {% else %}
+          <p class="text-sm client-muted mt-1">Salon nie udostępnił jeszcze innych wolnych terminów online.</p>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
 
   <form id="date-picker-form" method="get" action="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="client-card mb-6 p-5">
     <label for="data" class="block text-sm font-medium client-heading mb-2">Inny dzień wizyty</label>
@@ -146,16 +157,7 @@
         </button>
       </noscript>
     </div>
-    {% if najblizszy_inny and not terminy %}
-      <p class="text-sm text-brand-700 dark:text-brand-400 mt-2">
-        Na ten dzień brak wolnych godzin.
-        <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug, data=najblizszy_inny.data) }}" class="font-semibold hover:underline">
-          Najbliższy: {{ najblizszy_inny.dzien }} {{ najblizszy_inny.data }} od {{ najblizszy_inny.pierwszy }}
-        </a>
-      </p>
-    {% else %}
-      <p class="text-xs client-muted mt-2">Terminy odświeżą się po zmianie daty.</p>
-    {% endif %}
+    <p class="text-xs client-muted mt-2">Terminy odświeżą się po zmianie daty.</p>
   </form>
 
   <div class="client-card p-6 mb-6">
