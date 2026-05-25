@@ -88,7 +88,7 @@
               <p class="font-semibold text-slate-900">{{ w.data }} · {{ w.godzina }}</p>
               <span class="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-slate-600 border border-slate-200">{{ w.status }}</span>
             </div>
-            {% if w.usluga_nazwa %}<p class="text-slate-600 mt-1">{{ w.usluga_nazwa }}{% if w.usluga_cena_zl %} — {{ w.usluga_cena_zl }} zł{% endif %}</p>{% endif %}
+            {% if w.usluga_nazwa %}<p class="text-slate-600 mt-1">{{ w.usluga_nazwa }}{% if w.usluga_cena_zl %} — {{ w.usluga_cena_zl }} zł{% endif %}{% if w.usluga_czas_min %} · {{ w.usluga_czas_min }} min{% endif %}</p>{% endif %}
             {% if w.pracownik %}<p class="text-slate-600">Pracownik: {{ w.pracownik }}</p>{% endif %}
             {% if w.uwagi %}<p class="text-slate-500 mt-1">{{ w.uwagi }}</p>{% endif %}
             {% if w.wywiad_wizyty %}

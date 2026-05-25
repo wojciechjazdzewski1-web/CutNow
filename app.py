@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import calendar
 import base64
 import hashlib
 import hmac
@@ -67,6 +68,22 @@ DNI_TYGODNIA = [
     ("niedziela", "Niedziela"),
 ]
 
+MIESIACE = [
+    "",
+    "Styczeń",
+    "Luty",
+    "Marzec",
+    "Kwiecień",
+    "Maj",
+    "Czerwiec",
+    "Lipiec",
+    "Sierpień",
+    "Wrzesień",
+    "Październik",
+    "Listopad",
+    "Grudzień",
+]
+
 DEFAULT_SALON = {
     "nazwa_salonu": "Mój Salon",
     "haslo_panelu": "",
@@ -92,6 +109,8 @@ DEFAULT_SALON = {
     "cena_wizyty": 0,
     "interwal_terminow": 30,
     "automatyczne_terminy": False,
+    "przypomnienia_email_wlaczone": True,
+    "przypomnienie_godzin_przed": 24,
     "godziny_pracy": {
         key: {"otwarcie": "09:00", "zamkniecie": "18:00", "zamkniety": key == "niedziela"}
         for key, _ in DNI_TYGODNIA
@@ -203,6 +222,8 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("cena_wizyty", 0)
             salon.setdefault("interwal_terminow", 30)
             salon.setdefault("automatyczne_terminy", False)
+            salon.setdefault("przypomnienia_email_wlaczone", True)
+            salon.setdefault("przypomnienie_godzin_przed", 24)
             salon.setdefault("godziny_pracy", copy.deepcopy(DEFAULT_SALON["godziny_pracy"]))
             salon.setdefault("wolne_terminy", {})
             salon.setdefault("blokady", [])
@@ -481,6 +502,19 @@ def oczysc_nazwe_uslugi(nazwa: str) -> str:
         nazwa = oczyszczona
 
 
+def parsuj_czas_uslugi_min(wartosc: str) -> int:
+    tekst = (wartosc or "").strip().lower().replace(",", ".")
+    if not tekst:
+        return 0
+    godziny = re.search(r"(\d+(?:\.\d+)?)\s*(?:h|godz)", tekst)
+    if godziny:
+        return min(max(int(float(godziny.group(1)) * 60), 0), 8 * 60)
+    minuty = re.search(r"\d+", tekst)
+    if not minuty:
+        return 0
+    return min(max(int(minuty.group(0)), 0), 8 * 60)
+
+
 def normalizuj_wpis_uslugi(wpis: dict) -> dict | None:
     if not isinstance(wpis, dict):
         return None
@@ -491,7 +525,11 @@ def normalizuj_wpis_uslugi(wpis: dict) -> dict | None:
         cena = max(int(wpis.get("cena_zl", 0) or 0), 0)
     except (TypeError, ValueError):
         cena = 0
-    return {"nazwa": nazwa, "cena_zl": cena}
+    try:
+        czas_min = max(int(wpis.get("czas_min", 0) or 0), 0)
+    except (TypeError, ValueError):
+        czas_min = 0
+    return {"nazwa": nazwa, "cena_zl": cena, "czas_min": czas_min}
 
 
 def uslugi_salonu(salon: dict) -> list[dict]:
@@ -510,9 +548,13 @@ def parsuj_uslugi(wartosc: str) -> list[dict]:
         if not linia:
             continue
         if "|" in linia:
-            nazwa, cena_txt = linia.split("|", 1)
+            czesci = linia.split("|")
+            nazwa = czesci[0]
+            cena_txt = czesci[1] if len(czesci) > 1 else "0"
+            czas_txt = czesci[2] if len(czesci) > 2 else "0"
         else:
             nazwa, cena_txt = linia, "0"
+            czas_txt = "0"
         nazwa = oczysc_nazwe_uslugi(nazwa.strip())
         if not nazwa:
             continue
@@ -520,7 +562,8 @@ def parsuj_uslugi(wartosc: str) -> list[dict]:
             cena = max(int(cena_txt.strip() or "0"), 0)
         except ValueError:
             cena = 0
-        uslugi.append({"nazwa": nazwa, "cena_zl": cena})
+        czas_min = parsuj_czas_uslugi_min(czas_txt)
+        uslugi.append({"nazwa": nazwa, "cena_zl": cena, "czas_min": czas_min})
     return uslugi[:30]
 
 
@@ -585,6 +628,17 @@ def kwota_rezerwacji_zl(salon: dict, rezerwacja: dict) -> int:
     except (TypeError, ValueError):
         cena_uslugi = 0
     return cena_uslugi or kwota_wizyty_zl(salon)
+
+
+def czas_trwania_rezerwacji_min(salon: dict, rezerwacja: dict | None = None, domyslnie: int | None = None) -> int:
+    if rezerwacja:
+        try:
+            czas = int(rezerwacja.get("usluga_czas_min", 0) or rezerwacja.get("czas_trwania_min", 0) or 0)
+        except (TypeError, ValueError):
+            czas = 0
+        if czas > 0:
+            return min(czas, 8 * 60)
+    return domyslnie or interwal_terminow_salonu(salon)
 
 
 def przedluz_abonament(salon: dict, dni: int = 31) -> str:
@@ -675,24 +729,49 @@ def aktywni_pracownicy(salon: dict) -> list[str]:
     return [p.strip() for p in salon.get("pracownicy", []) if isinstance(p, str) and p.strip()]
 
 
-def aktywne_rezerwacje_slotu(salon: dict, data_iso: str, godzina: str) -> list[dict]:
+def aktywne_rezerwacje_dnia(salon: dict, data_iso: str) -> list[dict]:
     return [
         r
         for r in salon.get("rezerwacje", [])
         if not rezerwacja_w_archiwum(r)
         and r.get("data") == data_iso
-        and r.get("godzina") == godzina
         and r.get("status", "potwierdzona") not in {"anulowana", "odrzucona"}
     ]
 
 
-def pracownik_zajety(salon: dict, data_iso: str, godzina: str, pracownik: str) -> bool:
-    return any(r.get("pracownik") == pracownik for r in aktywne_rezerwacje_slotu(salon, data_iso, godzina))
+def aktywne_rezerwacje_slotu(salon: dict, data_iso: str, godzina: str) -> list[dict]:
+    return [
+        r
+        for r in aktywne_rezerwacje_dnia(salon, data_iso)
+        if r.get("godzina") == godzina
+    ]
 
 
-def slot_w_pelni_zajety(salon: dict, data_iso: str, godzina: str) -> bool:
+def rezerwacje_nachodzace_na_slot(salon: dict, data_iso: str, godzina: str, czas_min: int | None = None) -> list[dict]:
+    start = czas_na_minuty(godzina)
+    koniec = start + czas_trwania_rezerwacji_min(salon, domyslnie=czas_min)
+    wynik = []
+    for rezerwacja in aktywne_rezerwacje_dnia(salon, data_iso):
+        godzina_rezerwacji = rezerwacja.get("godzina", "")
+        if not waliduj_godzine(godzina_rezerwacji):
+            continue
+        r_start = czas_na_minuty(godzina_rezerwacji)
+        r_koniec = r_start + czas_trwania_rezerwacji_min(salon, rezerwacja)
+        if zakresy_nachodza(start, koniec, r_start, r_koniec):
+            wynik.append(rezerwacja)
+    return wynik
+
+
+def pracownik_zajety(salon: dict, data_iso: str, godzina: str, pracownik: str, czas_min: int | None = None) -> bool:
+    return any(
+        not r.get("pracownik") or r.get("pracownik") == pracownik
+        for r in rezerwacje_nachodzace_na_slot(salon, data_iso, godzina, czas_min)
+    )
+
+
+def slot_w_pelni_zajety(salon: dict, data_iso: str, godzina: str, czas_min: int | None = None) -> bool:
     pracownicy = aktywni_pracownicy(salon)
-    aktywne = aktywne_rezerwacje_slotu(salon, data_iso, godzina)
+    aktywne = rezerwacje_nachodzace_na_slot(salon, data_iso, godzina, czas_min)
     if not pracownicy:
         return bool(aktywne)
     zajeci_pracownicy = {r.get("pracownik") for r in aktywne if r.get("pracownik")}
@@ -769,15 +848,16 @@ def blokady_dnia(salon: dict, data_iso: str) -> list[dict]:
     ]
 
 
-def godzina_zablokowana(salon: dict, data_iso: str, godzina: str) -> bool:
+def godzina_zablokowana(salon: dict, data_iso: str, godzina: str, czas_min: int | None = None) -> bool:
     minuta = czas_na_minuty(godzina)
+    koniec_slotu = minuta + czas_trwania_rezerwacji_min(salon, domyslnie=czas_min)
     for blokada in blokady_dnia(salon, data_iso):
         caly_dzien = blokada.get("caly_dzien", False)
         if caly_dzien:
             return True
         start = blokada.get("od_godziny") or "00:00"
         koniec = blokada.get("do_godziny") or "23:59"
-        if zakresy_nachodza(minuta, minuta + 1, czas_na_minuty(start), czas_na_minuty(koniec)):
+        if zakresy_nachodza(minuta, koniec_slotu, czas_na_minuty(start), czas_na_minuty(koniec)):
             return True
     return False
 
@@ -883,15 +963,28 @@ def utworz_rezerwacje(
         return None, "Nie można dodać wizyty w przeszłości."
     if not waliduj_godzine(godzina):
         return None, "Podaj godzinę w formacie HH:MM."
+    uslugi = uslugi_salonu(salon)
+    mapa_uslug = {u["nazwa"]: u for u in uslugi}
+    if uslugi and usluga_nazwa and usluga_nazwa not in mapa_uslug:
+        return None, "Wybierz usługę z listy."
+    wybrana_usluga = mapa_uslug.get(usluga_nazwa, {})
+    czas_uslugi = czas_trwania_rezerwacji_min(
+        salon,
+        {"usluga_czas_min": wybrana_usluga.get("czas_min", 0)},
+    )
     if not salon_wymusza and godzina not in dostepne_terminy(salon, data_iso):
         return None, "Ten termin nie jest dostępny."
     if salon_wymusza:
         if slot_w_przeszlosci(data_iso, godzina):
             return None, "Nie można dodać wizyty w przeszłości."
-        if godzina_zablokowana(salon, data_iso, godzina):
+        if godzina_zablokowana(salon, data_iso, godzina, czas_uslugi):
             return None, "Ten termin jest zablokowany."
-        if not pracownik and slot_w_pelni_zajety(salon, data_iso, godzina) and aktywni_pracownicy(salon):
-            return None, "Wybierz wolnego pracownika — ten slot jest już zajęty."
+        if (
+            not pracownik
+            and aktywni_pracownicy(salon)
+            and rezerwacje_nachodzace_na_slot(salon, data_iso, godzina, czas_uslugi)
+        ):
+            return None, "Wybierz wolnego pracownika — ten slot koliduje z inną wizytą."
     if not imie.strip():
         return None, "Podaj imię i nazwisko."
     if not waliduj_telefon(telefon):
@@ -900,13 +993,10 @@ def utworz_rezerwacje(
     pracownicy = aktywni_pracownicy(salon)
     if pracownicy and pracownik and pracownik not in pracownicy:
         return None, "Nieprawidłowy pracownik."
-    if pracownik and pracownik_zajety(salon, data_iso, godzina, pracownik):
+    if pracownik and pracownik_zajety(salon, data_iso, godzina, pracownik, czas_uslugi):
         return None, "Ten pracownik jest już zajęty o tej godzinie."
-
-    uslugi = uslugi_salonu(salon)
-    mapa_uslug = {u["nazwa"]: u["cena_zl"] for u in uslugi}
-    if uslugi and usluga_nazwa and usluga_nazwa not in mapa_uslug:
-        return None, "Wybierz usługę z listy."
+    if not pracownik and slot_w_pelni_zajety(salon, data_iso, godzina, czas_uslugi):
+        return None, "Ten termin koliduje z inną wizytą."
 
     klient = utworz_lub_aktualizuj_klienta(salon, imie, telefon, wywiad_odpowiedzi)
     rezerwacja_id = uuid.uuid4().hex[:12]
@@ -921,7 +1011,8 @@ def utworz_rezerwacje(
         "telefon": telefon.strip(),
         "pracownik": pracownik,
         "usluga_nazwa": usluga_nazwa,
-        "usluga_cena_zl": mapa_uslug.get(usluga_nazwa, 0),
+        "usluga_cena_zl": wybrana_usluga.get("cena_zl", 0),
+        "usluga_czas_min": wybrana_usluga.get("czas_min", 0),
         "uwagi": uwagi.strip(),
         "klient_id": klient["id"],
         "wywiad_wizyty": wywiad_odpowiedzi or {},
@@ -1447,12 +1538,15 @@ def wyslij_email_powiadomienie(salon: dict, rezerwacja: dict, salon_slug: str) -
 
     link_panelu = url_for("panel_rezerwacje", salon_slug=salon_slug, _external=True)
     temat = f"Nowa rezerwacja: {rezerwacja['data']} o {rezerwacja['godzina']}"
+    czas_trwania = f"{rezerwacja.get('usluga_czas_min')} min" if rezerwacja.get("usluga_czas_min") else "-"
     tresc = f"""Nowa rezerwacja w Glovaro
 
 Salon: {salon['nazwa_salonu']}
 Termin: {rezerwacja['data']} o {rezerwacja['godzina']}
 Klient: {rezerwacja['imie']}
 Telefon: {rezerwacja['telefon']}
+Usługa: {rezerwacja.get('usluga_nazwa') or '-'}
+Czas trwania: {czas_trwania}
 Uwagi: {rezerwacja.get('uwagi') or '-'}
 Pracownik: {rezerwacja.get('pracownik') or 'Dowolny / nie wybrano'}
 
@@ -1490,13 +1584,16 @@ def wyslij_email_przypomnienie(salon: dict, rezerwacja: dict, salon_slug: str) -
         return False
 
     link_panelu = url_for("panel_rezerwacje", salon_slug=salon_slug, _external=True)
-    temat = f"Przypomnienie: wizyta jutro o {rezerwacja['godzina']}"
+    temat = f"Przypomnienie: wizyta {rezerwacja['data']} o {rezerwacja['godzina']}"
+    czas_trwania = f"{rezerwacja.get('usluga_czas_min')} min" if rezerwacja.get("usluga_czas_min") else "-"
     tresc = f"""Przypomnienie o nadchodzącej wizycie
 
 Salon: {salon['nazwa_salonu']}
 Termin: {rezerwacja['data']} o {rezerwacja['godzina']}
 Klient: {rezerwacja['imie']}
 Telefon: {rezerwacja['telefon']}
+Usługa: {rezerwacja.get('usluga_nazwa') or '-'}
+Czas trwania: {czas_trwania}
 Uwagi: {rezerwacja.get('uwagi') or '-'}
 Pracownik: {rezerwacja.get('pracownik') or 'Dowolny / nie wybrano'}
 
@@ -1730,10 +1827,19 @@ def wyslij_przypomnienia():
 
     dane = wczytaj_dane()
     teraz = datetime.now()
-    okno_do = teraz + timedelta(hours=26)
     wyslane = 0
+    sprawdzone = 0
 
     for salon_slug, salon in dane.get("salony", {}).items():
+        if salon.get("przypomnienia_email_wlaczone", True) is False:
+            continue
+        try:
+            godzin_przed = int(salon.get("przypomnienie_godzin_przed", 24) or 24)
+        except (TypeError, ValueError):
+            godzin_przed = 24
+        godzin_przed = min(max(godzin_przed, 1), 168)
+        okno_od = timedelta(0)
+        okno_do = timedelta(hours=godzin_przed + 1)
         for rezerwacja in salon.get("rezerwacje", []):
             if rezerwacja.get("przypomnienie_wyslane"):
                 continue
@@ -1745,13 +1851,17 @@ def wyslij_przypomnienia():
                 )
             except (TypeError, ValueError):
                 continue
-            if teraz <= termin <= okno_do and wyslij_email_przypomnienie(salon, rezerwacja, salon_slug):
+            do_wizyty = termin - teraz
+            if okno_od <= do_wizyty <= okno_do:
+                sprawdzone += 1
+            if okno_od <= do_wizyty <= okno_do and wyslij_email_przypomnienie(salon, rezerwacja, salon_slug):
                 rezerwacja["przypomnienie_wyslane"] = datetime.now().isoformat(timespec="minutes")
+                rezerwacja["przypomnienie_godzin_przed"] = godzin_przed
                 wyslane += 1
 
     if wyslane:
         zapisz_dane(dane)
-    return jsonify({"sent": wyslane})
+    return jsonify({"checked": sprawdzone, "sent": wyslane})
 
 
 @app.route("/tasks/cleanup-reservations")
@@ -2080,6 +2190,12 @@ def ustawienia_salonu(salon_slug: str):
         link_google_maps = normalizuj_url_https(request.form.get("link_google_maps", ""))
         instagram = request.form.get("instagram", "").strip()
         email_powiadomien = request.form.get("email_powiadomien", "").strip()
+        przypomnienia_email_wlaczone = request.form.get("przypomnienia_email_wlaczone") == "on"
+        try:
+            przypomnienie_godzin_przed = int(request.form.get("przypomnienie_godzin_przed", "24").strip() or "24")
+        except ValueError:
+            przypomnienie_godzin_przed = 24
+        przypomnienie_godzin_przed = min(max(przypomnienie_godzin_przed, 1), 168)
         motyw_strony = request.form.get("motyw_strony", "rozowy").strip()
         if motyw_strony not in MOTYWY_STRONY:
             motyw_strony = "rozowy"
@@ -2119,6 +2235,8 @@ def ustawienia_salonu(salon_slug: str):
             salon["telefon_kontaktowy"] = telefon
             salon["instagram"] = instagram
             salon["email_powiadomien"] = email_powiadomien
+            salon["przypomnienia_email_wlaczone"] = przypomnienia_email_wlaczone
+            salon["przypomnienie_godzin_przed"] = przypomnienie_godzin_przed
             salon["motyw_strony"] = motyw_strony
             salon["platnosc_online_wlaczona"] = platnosc_online_wlaczona
             salon["cena_wizyty"] = cena_wizyty
@@ -2424,20 +2542,25 @@ def rezerwacja_formularz(salon_slug: str):
     usluga_nazwa = request.form.get("usluga", "").strip()
     pracownicy = aktywni_pracownicy(salon)
     uslugi = uslugi_salonu(salon)
-    mapa_uslug = {u["nazwa"]: u["cena_zl"] for u in uslugi}
+    mapa_uslug = {u["nazwa"]: u for u in uslugi}
+    wybrana_usluga = mapa_uslug.get(usluga_nazwa, {})
+    czas_uslugi = czas_trwania_rezerwacji_min(
+        salon,
+        {"usluga_czas_min": wybrana_usluga.get("czas_min", 0)},
+    )
 
     if przekroczono_limit_rezerwacji(salon_slug):
         flash("Zbyt wiele prób rezerwacji. Spróbuj ponownie za kilka minut.", "error")
         return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug, data=data_iso))
     if pracownicy and pracownik == "__dowolny__":
-        pracownik = next((p for p in pracownicy if not pracownik_zajety(salon, data_iso, godzina, p)), "")
+        pracownik = next((p for p in pracownicy if not pracownik_zajety(salon, data_iso, godzina, p, czas_uslugi)), "")
     if pracownicy and pracownik not in pracownicy:
         flash("Wybierz pracownika z listy.", "error")
         return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
     if uslugi and usluga_nazwa not in mapa_uslug:
         flash("Wybierz usługę z listy.", "error")
         return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
-    if pracownik and pracownik_zajety(salon, data_iso, godzina, pracownik):
+    if pracownik and pracownik_zajety(salon, data_iso, godzina, pracownik, czas_uslugi):
         flash("Ten pracownik jest już zajęty o tej godzinie. Wybierz inną osobę albo termin.", "error")
         return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
     if not imie:
@@ -2634,13 +2757,17 @@ def panel_terminarz(salon_slug: str):
             wybrana_data = rezerwacja["data"]
         return redirect(url_for("panel_terminarz", salon_slug=salon_slug, data=wybrana_data))
 
-    tydzien_start = poczatek_tygodnia_iso(wybrana_data)
+    data_wybrana = datetime.strptime(wybrana_data, "%Y-%m-%d").date()
+    pierwszy_dzien_miesiaca = data_wybrana.replace(day=1)
+    liczba_dni = calendar.monthrange(data_wybrana.year, data_wybrana.month)[1]
     dni_kalendarza = []
-    for data_iso in dni_tygodnia_od(tydzien_start, 7):
+    for przesuniecie in range(liczba_dni):
+        data_iso = (pierwszy_dzien_miesiaca + timedelta(days=przesuniecie)).isoformat()
         dni_kalendarza.append(
             {
                 "data": data_iso,
                 "dzien": dict(DNI_TYGODNIA)[klucz_dnia_tygodnia(data_iso)],
+                "numer": int(data_iso[8:10]),
                 "rezerwacje": rezerwacje_dnia(salon, data_iso),
                 "wolne": dostepne_terminy(salon, data_iso),
                 "zamkniety": harmonogram_dnia(salon, data_iso).get("zamkniety", False),
@@ -2650,14 +2777,11 @@ def panel_terminarz(salon_slug: str):
             }
         )
 
-    poprzedni_tydzien = (
-        datetime.strptime(tydzien_start, "%Y-%m-%d").date() - timedelta(days=7)
-    ).isoformat()
-    nastepny_tydzien = (
-        datetime.strptime(tydzien_start, "%Y-%m-%d").date() + timedelta(days=7)
-    ).isoformat()
-    if datetime.strptime(poprzedni_tydzien, "%Y-%m-%d").date() < date.today():
-        poprzedni_tydzien = ""
+    poprzedni_miesiac_data = (pierwszy_dzien_miesiaca - timedelta(days=1)).replace(day=1)
+    if data_wybrana.month == 12:
+        nastepny_miesiac_data = data_wybrana.replace(year=data_wybrana.year + 1, month=1, day=1)
+    else:
+        nastepny_miesiac_data = data_wybrana.replace(month=data_wybrana.month + 1, day=1)
 
     dzien = next((d for d in dni_kalendarza if d["data"] == wybrana_data), None)
     if not dzien:
@@ -2670,11 +2794,12 @@ def panel_terminarz(salon_slug: str):
         dane=salon,
         salon_slug=salon_slug,
         wybrana_data=wybrana_data,
-        tydzien_start=tydzien_start,
         dni_kalendarza=dni_kalendarza,
+        puste_przed=pierwszy_dzien_miesiaca.weekday(),
+        miesiac_label=f"{MIESIACE[data_wybrana.month]} {data_wybrana.year}",
         dzien_szczegoly=dzien,
-        poprzedni_tydzien=poprzedni_tydzien,
-        nastepny_tydzien=nastepny_tydzien,
+        poprzedni_miesiac=poprzedni_miesiac_data.isoformat(),
+        nastepny_miesiac=nastepny_miesiac_data.isoformat(),
         uslugi=uslugi_salonu(salon),
         pracownicy=aktywni_pracownicy(salon),
         interwal=interwal_terminow_salonu(salon),

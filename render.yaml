@@ -20,6 +20,8 @@ services:
         generateValue: true
       - key: PANEL_PASSWORD
         sync: false
+      - key: REMINDER_SECRET
+        sync: false
       - key: FLASK_DEBUG
         value: "false"
       - key: DATABASE_URL

@@ -11,31 +11,46 @@
   <div>
     <h1 class="text-2xl font-bold text-slate-900">Terminarz</h1>
     <p class="text-slate-600 mt-1">{{ dane.nazwa_salonu }} — podgląd wizyt i ręczne wpisy</p>
-    <p class="text-xs text-slate-500 mt-2">Klienci widzą tylko terminy z sekcji Wolne terminy.</p>
+    <p class="text-xs text-slate-500 mt-2">Prosty kalendarz miesiąca. Klienci widzą tylko terminy z sekcji Wolne terminy.</p>
   </div>
   <div class="flex flex-wrap gap-2">
-    {% if poprzedni_tydzien %}
-      <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug, data=poprzedni_tydzien) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">← Poprzedni tydzień</a>
-    {% endif %}
-    <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug, data=tydzien_start) }}" class="rounded-xl border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-800">Ten tydzień</a>
-    <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug, data=nastepny_tydzien) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Następny tydzień →</a>
+    <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug, data=poprzedni_miesiac) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">← Poprzedni miesiąc</a>
+    <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug) }}" class="rounded-xl border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-800">Dzisiaj</a>
+    <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug, data=nastepny_miesiac) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Następny miesiąc →</a>
   </div>
 </div>
 
-<div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-8">
-  {% for d in dni_kalendarza %}
+<div class="rounded-2xl bg-white border border-slate-200 p-4 shadow-sm mb-8">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="font-semibold text-lg text-slate-900">{{ miesiac_label }}</h2>
+    <p class="text-xs text-slate-500">Kliknij dzień, aby zobaczyć wizyty.</p>
+  </div>
+  <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-slate-500 mb-2">
+    <span>Pon</span>
+    <span>Wt</span>
+    <span>Śr</span>
+    <span>Czw</span>
+    <span>Pt</span>
+    <span>Sob</span>
+    <span>Nd</span>
+  </div>
+  <div class="grid grid-cols-7 gap-1 sm:gap-2">
+    {% for _ in range(puste_przed) %}
+      <div class="min-h-20 rounded-xl bg-slate-50/60"></div>
+    {% endfor %}
+    {% for d in dni_kalendarza %}
     <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug, data=d.data) }}"
-      class="rounded-2xl border p-3 text-left transition-all {% if d.aktywny %}border-brand-400 bg-brand-50 ring-2 ring-brand-200{% else %}border-slate-200 bg-white hover:border-brand-200{% endif %}">
-      <p class="text-xs font-medium text-slate-500">{{ d.dzien[:3] }}</p>
-      <p class="text-lg font-bold text-slate-900">{{ d.data[8:10] }}.{{ d.data[5:7] }}</p>
-      <p class="text-xs mt-1 {% if d.zamkniety %}text-red-600{% elif d.rezerwacje %}text-brand-700 font-semibold{% else %}text-slate-500{% endif %}">
-        {% if d.zamkniety %}Zamknięte{% elif d.rezerwacje %}{{ d.rezerwacje|length }} wizyt{% else %}—{% endif %}
+      class="min-h-20 rounded-xl border p-2 text-left transition-all {% if d.aktywny %}border-brand-400 bg-brand-50 ring-2 ring-brand-200{% else %}border-slate-200 bg-white hover:border-brand-200 hover:bg-slate-50{% endif %}">
+      <p class="text-sm font-bold text-slate-900">{{ d.numer }}</p>
+      <p class="text-[11px] mt-1 {% if d.zamkniety %}text-red-600{% elif d.rezerwacje %}text-brand-700 font-semibold{% else %}text-slate-500{% endif %}">
+        {% if d.zamkniety %}Zamk.{% elif d.rezerwacje %}{{ d.rezerwacje|length }} wizyt{% else %}—{% endif %}
       </p>
       {% if not d.zamkniety and d.wolne %}
         <p class="text-[10px] text-emerald-600 mt-0.5">{{ d.wolne|length }} wolnych</p>
       {% endif %}
     </a>
-  {% endfor %}
+    {% endfor %}
+  </div>
 </div>
 
 <div class="grid lg:grid-cols-3 gap-6">
@@ -61,7 +76,7 @@
               <div class="flex-1 min-w-[140px]">
                 <p class="font-semibold text-slate-900">{{ r.imie }}</p>
                 <a href="tel:{{ r.telefon }}" class="text-sm text-brand-600">{{ r.telefon }}</a>
-                {% if r.usluga_nazwa %}<p class="text-sm text-slate-600 mt-0.5">{{ r.usluga_nazwa }}</p>{% endif %}
+                {% if r.usluga_nazwa %}<p class="text-sm text-slate-600 mt-0.5">{{ r.usluga_nazwa }}{% if r.usluga_czas_min %} · {{ r.usluga_czas_min }} min{% endif %}</p>{% endif %}
                 {% if r.pracownik %}<p class="text-xs text-slate-500">Pracownik: {{ r.pracownik }}</p>{% endif %}
                 {% if r.uwagi %}<p class="text-xs text-slate-500 mt-1">{{ r.uwagi }}</p>{% endif %}
               </div>
@@ -136,7 +151,7 @@
           <select name="wizyta_usluga" class="w-full rounded-xl border border-white/20 bg-white px-3 py-2 text-slate-900">
             <option class="text-slate-900 bg-white" value="">— opcjonalnie —</option>
             {% for u in uslugi %}
-              <option class="text-slate-900 bg-white" value="{{ u.nazwa }}">{{ u.nazwa }}</option>
+              <option class="text-slate-900 bg-white" value="{{ u.nazwa }}">{{ u.nazwa }}{% if u.czas_min %} ({{ u.czas_min }} min){% endif %}</option>
             {% endfor %}
           </select>
         </div>

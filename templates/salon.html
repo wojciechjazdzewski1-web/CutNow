@@ -82,6 +82,21 @@
         Na ten adres trafi powiadomienie po każdej nowej rezerwacji online.
         Wymaga konfiguracji <strong>Resend</strong> na Renderze (zmienne <code>RESEND_API_KEY</code> i <code>RESEND_FROM</code> ze zweryfikowanej domeny).
       </p>
+      <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 grid sm:grid-cols-2 gap-4">
+        <label class="flex items-start gap-3 text-sm text-slate-700">
+          <input type="checkbox" name="przypomnienia_email_wlaczone" {% if dane.przypomnienia_email_wlaczone is not sameas false %}checked{% endif %}
+            class="mt-1 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+          <span>
+            <span class="block font-semibold text-slate-900">Wysyłaj przypomnienia mailowe</span>
+            <span class="block text-xs text-slate-500 mt-0.5">Automatyczne przypomnienie przed potwierdzoną wizytą.</span>
+          </span>
+        </label>
+        <div>
+          <label for="przypomnienie_godzin_przed" class="block text-xs font-medium text-slate-700 mb-1">Ile godzin przed wizytą</label>
+          <input type="number" id="przypomnienie_godzin_przed" name="przypomnienie_godzin_przed" value="{{ dane.przypomnienie_godzin_przed or 24 }}" min="1" max="168" step="1"
+            class="w-full rounded-xl border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-brand-500 outline-none">
+        </div>
+      </div>
     </div>
 
     <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
@@ -197,9 +212,9 @@
       <label for="uslugi" class="block text-sm font-medium text-slate-700 mb-2">Usługi i ceny</label>
       <textarea id="uslugi" name="uslugi" rows="5"
         class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow resize-none"
-        placeholder="Strzyżenie damskie|120&#10;Manicure hybrydowy|90&#10;Masaż relaksacyjny|150">{% for usluga in dane.uslugi or [] %}{{ usluga.nazwa }}{% if usluga.cena_zl %}|{{ usluga.cena_zl }}{% endif %}
+        placeholder="Strzyżenie damskie|120|60&#10;Manicure hybrydowy|90|75&#10;Masaż relaksacyjny|150|60">{% for usluga in dane.uslugi or [] %}{{ usluga.nazwa }}{% if usluga.cena_zl or usluga.czas_min %}|{{ usluga.cena_zl or 0 }}{% endif %}{% if usluga.czas_min %}|{{ usluga.czas_min }}{% endif %}
 {% endfor %}</textarea>
-      <p class="text-xs text-slate-500 mt-2">Każda linia: <code>Nazwa usługi|Cena</code> (np. <code>Manicure|90</code>). Cena po <code>|</code> jest opcjonalna — możesz wpisać cennik w samej nazwie (np. <code>Masaż klasyczny 100 zł 1h</code>).</p>
+      <p class="text-xs text-slate-500 mt-2">Każda linia: <code>Nazwa usługi|Cena|Czas w minutach</code> (np. <code>Manicure|90|75</code>). Cena i czas są opcjonalne, ale czas pozwala blokować dłuższe wizyty w terminarzu.</p>
     </div>
 
     <div>

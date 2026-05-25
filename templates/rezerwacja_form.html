@@ -27,7 +27,7 @@
         <select id="usluga" name="usluga" required class="client-input w-full px-4 py-4 text-lg">
           <option value="">Wybierz usługę</option>
           {% for usluga in uslugi %}
-            <option value="{{ usluga.nazwa }}">{{ usluga.nazwa }}</option>
+            <option value="{{ usluga.nazwa }}">{{ usluga.nazwa }}{% if usluga.czas_min %} ({{ usluga.czas_min }} min){% endif %}</option>
           {% endfor %}
         </select>
       </div>

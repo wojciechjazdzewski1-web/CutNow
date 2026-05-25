@@ -49,6 +49,12 @@
           <span class="font-semibold client-heading text-right">{{ kwota_rezerwacji_zl }} zł</span>
         </div>
       {% endif %}
+      {% if rezerwacja.usluga_czas_min %}
+        <div class="flex justify-between gap-4">
+          <span class="client-muted">Czas trwania</span>
+          <span class="font-semibold client-heading text-right">{{ rezerwacja.usluga_czas_min }} min</span>
+        </div>
+      {% endif %}
     {% endif %}
     <div class="flex justify-between gap-4">
       <span class="client-muted">Status</span>
