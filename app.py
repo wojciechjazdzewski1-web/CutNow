@@ -948,6 +948,7 @@ def utworz_rezerwacje(
     godzina: str,
     imie: str,
     telefon: str,
+    email: str = "",
     uwagi: str = "",
     pracownik: str = "",
     usluga_nazwa: str = "",
@@ -989,6 +990,9 @@ def utworz_rezerwacje(
         return None, "Podaj imię i nazwisko."
     if not waliduj_telefon(telefon):
         return None, "Podaj poprawny numer telefonu."
+    email = email.strip().lower()
+    if email and not waliduj_email(email):
+        return None, "Podaj poprawny adres e-mail."
 
     pracownicy = aktywni_pracownicy(salon)
     if pracownicy and pracownik and pracownik not in pracownicy:
@@ -998,7 +1002,7 @@ def utworz_rezerwacje(
     if not pracownik and slot_w_pelni_zajety(salon, data_iso, godzina, czas_uslugi):
         return None, "Ten termin koliduje z inną wizytą."
 
-    klient = utworz_lub_aktualizuj_klienta(salon, imie, telefon, wywiad_odpowiedzi)
+    klient = utworz_lub_aktualizuj_klienta(salon, imie, telefon, email, wywiad_odpowiedzi)
     rezerwacja_id = uuid.uuid4().hex[:12]
     rezerwacja = {
         "id": rezerwacja_id,
@@ -1009,6 +1013,7 @@ def utworz_rezerwacje(
         "godzina": godzina,
         "imie": imie.strip(),
         "telefon": telefon.strip(),
+        "email": email,
         "pracownik": pracownik,
         "usluga_nazwa": usluga_nazwa,
         "usluga_cena_zl": wybrana_usluga.get("cena_zl", 0),
@@ -1041,6 +1046,10 @@ def normalizuj_telefon(telefon: str) -> str:
 def waliduj_telefon(telefon: str) -> bool:
     cyfry = normalizuj_telefon(telefon)
     return 9 <= len(cyfry) <= 15
+
+
+def waliduj_email(email: str) -> bool:
+    return bool(re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", (email or "").strip()))
 
 
 def parsuj_linki_zdjec(wartosc: str) -> list[str]:
@@ -1214,6 +1223,8 @@ def synchronizuj_kartoteke_salonu(salon: dict) -> None:
             klient["imie"] = rezerwacja["imie"].strip()
         if rezerwacja.get("telefon"):
             klient["telefon_wyswietl"] = rezerwacja["telefon"].strip()
+        if rezerwacja.get("email"):
+            klient["email"] = rezerwacja["email"].strip().lower()
         if not rezerwacja.get("klient_id"):
             rezerwacja["klient_id"] = klient["id"]
         termin = f"{rezerwacja.get('data', '')} {rezerwacja.get('godzina', '')}".strip()
@@ -1228,6 +1239,7 @@ def utworz_lub_aktualizuj_klienta(
     salon: dict,
     imie: str,
     telefon: str,
+    email: str = "",
     wywiad_odpowiedzi: dict | None = None,
 ) -> dict:
     synchronizuj_kartoteke_salonu(salon)
@@ -1250,6 +1262,8 @@ def utworz_lub_aktualizuj_klienta(
         salon.setdefault("klienci", []).append(klient)
     klient["imie"] = imie.strip() or klient.get("imie", "")
     klient["telefon_wyswietl"] = telefon.strip() or klient.get("telefon_wyswietl", "")
+    if email:
+        klient["email"] = email.strip().lower()
     if wywiad_odpowiedzi:
         klient["wywiad_zdrowotny"] = wywiad_odpowiedzi
         klient["wywiad_aktualizacja"] = teraz
@@ -1263,6 +1277,19 @@ def historia_wizyt_klienta(salon: dict, klient_id: str) -> list[dict]:
         if r.get("klient_id") == klient_id
     ]
     return sorted(wizyty, key=lambda r: (r.get("data", ""), r.get("godzina", "")), reverse=True)
+
+
+def email_klienta_rezerwacji(salon: dict, rezerwacja: dict) -> str:
+    email = (rezerwacja.get("email") or "").strip().lower()
+    if email:
+        return email
+    klient_id = rezerwacja.get("klient_id")
+    if klient_id:
+        klient = next((k for k in salon.get("klienci", []) if k.get("id") == klient_id), None)
+        if klient:
+            return (klient.get("email") or "").strip().lower()
+    klient = znajdz_klienta_po_telefonie(salon, rezerwacja.get("telefon", ""))
+    return (klient.get("email") or "").strip().lower() if klient else ""
 
 
 def parsuj_odpowiedzi_wywiadu_z_formularza(salon: dict) -> tuple[dict, list[str]]:
@@ -1545,6 +1572,7 @@ Salon: {salon['nazwa_salonu']}
 Termin: {rezerwacja['data']} o {rezerwacja['godzina']}
 Klient: {rezerwacja['imie']}
 Telefon: {rezerwacja['telefon']}
+E-mail klienta: {rezerwacja.get('email') or '-'}
 Usługa: {rezerwacja.get('usluga_nazwa') or '-'}
 Czas trwania: {czas_trwania}
 Uwagi: {rezerwacja.get('uwagi') or '-'}
@@ -1592,6 +1620,7 @@ Salon: {salon['nazwa_salonu']}
 Termin: {rezerwacja['data']} o {rezerwacja['godzina']}
 Klient: {rezerwacja['imie']}
 Telefon: {rezerwacja['telefon']}
+E-mail klienta: {rezerwacja.get('email') or '-'}
 Usługa: {rezerwacja.get('usluga_nazwa') or '-'}
 Czas trwania: {czas_trwania}
 Uwagi: {rezerwacja.get('uwagi') or '-'}
@@ -1618,6 +1647,45 @@ Panel rezerwacji:
         return True
     except Exception as exc:
         app.logger.warning("Nie udało się wysłać przypomnienia e-mail: %s", exc)
+        return False
+
+
+def wyslij_email_przypomnienie_klienta(salon: dict, rezerwacja: dict) -> bool:
+    odbiorca = email_klienta_rezerwacji(salon, rezerwacja)
+    if not odbiorca or not waliduj_email(odbiorca) or not email_skonfigurowany():
+        return False
+
+    czas_trwania = f"{rezerwacja.get('usluga_czas_min')} min" if rezerwacja.get("usluga_czas_min") else "-"
+    temat = f"Przypomnienie o wizycie: {rezerwacja['data']} o {rezerwacja['godzina']}"
+    tresc = f"""Przypomnienie o nadchodzącej wizycie
+
+Salon: {salon['nazwa_salonu']}
+Termin: {rezerwacja['data']} o {rezerwacja['godzina']}
+Usługa: {rezerwacja.get('usluga_nazwa') or '-'}
+Czas trwania: {czas_trwania}
+Pracownik: {rezerwacja.get('pracownik') or 'Dowolny / nie wybrano'}
+
+Jeśli nie możesz przyjść, skontaktuj się z salonem.
+Telefon salonu: {salon.get('telefon_kontaktowy') or '-'}
+"""
+
+    if wyslij_email_przez_resend(odbiorca, temat, tresc):
+        return True
+
+    msg = EmailMessage()
+    msg["Subject"] = temat
+    msg["From"] = SMTP_FROM
+    msg["To"] = odbiorca
+    msg.set_content(tresc)
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as smtp:
+            smtp.starttls()
+            smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
+            smtp.send_message(msg)
+        return True
+    except Exception as exc:
+        app.logger.warning("Nie udało się wysłać przypomnienia do klienta: %s", exc)
         return False
 
 
@@ -1841,8 +1909,6 @@ def wyslij_przypomnienia():
         okno_od = timedelta(0)
         okno_do = timedelta(hours=godzin_przed + 1)
         for rezerwacja in salon.get("rezerwacje", []):
-            if rezerwacja.get("przypomnienie_wyslane"):
-                continue
             if rezerwacja.get("status", "potwierdzona") != "potwierdzona":
                 continue
             try:
@@ -1854,10 +1920,17 @@ def wyslij_przypomnienia():
             do_wizyty = termin - teraz
             if okno_od <= do_wizyty <= okno_do:
                 sprawdzone += 1
-            if okno_od <= do_wizyty <= okno_do and wyslij_email_przypomnienie(salon, rezerwacja, salon_slug):
-                rezerwacja["przypomnienie_wyslane"] = datetime.now().isoformat(timespec="minutes")
-                rezerwacja["przypomnienie_godzin_przed"] = godzin_przed
-                wyslane += 1
+                wyslano_teraz = datetime.now().isoformat(timespec="minutes")
+                salon_juz_wyslane = rezerwacja.get("przypomnienie_salon_wyslane") or rezerwacja.get("przypomnienie_wyslane")
+                if not salon_juz_wyslane and wyslij_email_przypomnienie(salon, rezerwacja, salon_slug):
+                    rezerwacja["przypomnienie_salon_wyslane"] = wyslano_teraz
+                    rezerwacja["przypomnienie_wyslane"] = wyslano_teraz
+                    rezerwacja["przypomnienie_godzin_przed"] = godzin_przed
+                    wyslane += 1
+                if not rezerwacja.get("przypomnienie_klient_wyslane") and wyslij_email_przypomnienie_klienta(salon, rezerwacja):
+                    rezerwacja["przypomnienie_klient_wyslane"] = wyslano_teraz
+                    rezerwacja["przypomnienie_klient_godzin_przed"] = godzin_przed
+                    wyslane += 1
 
     if wyslane:
         zapisz_dane(dane)
@@ -2536,6 +2609,7 @@ def rezerwacja_formularz(salon_slug: str):
 
     imie = request.form.get("imie", "").strip()
     telefon = request.form.get("telefon", "").strip()
+    email = request.form.get("email", "").strip().lower()
     uwagi = request.form.get("uwagi", "").strip()
     godzina = request.form.get("godzina", "").strip()
     pracownik = request.form.get("pracownik", "").strip()
@@ -2569,6 +2643,9 @@ def rezerwacja_formularz(salon_slug: str):
     if not waliduj_telefon(telefon):
         flash("Podaj poprawny numer telefonu (min. 9 cyfr).", "error")
         return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
+    if not waliduj_email(email):
+        flash("Podaj poprawny adres e-mail — wyślemy na niego przypomnienie o wizycie.", "error")
+        return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
     if request.form.get("zgoda_rodo") != "on":
         flash("Zaakceptuj informację o przetwarzaniu danych, aby złożyć rezerwację.", "error")
         return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
@@ -2588,6 +2665,7 @@ def rezerwacja_formularz(salon_slug: str):
         godzina=godzina,
         imie=imie,
         telefon=telefon,
+        email=email,
         uwagi=uwagi,
         pracownik=pracownik,
         usluga_nazwa=usluga_nazwa,
@@ -2742,6 +2820,7 @@ def panel_terminarz(salon_slug: str):
             godzina=request.form.get("wizyta_godzina", "").strip(),
             imie=request.form.get("wizyta_imie", "").strip(),
             telefon=request.form.get("wizyta_telefon", "").strip(),
+            email=request.form.get("wizyta_email", "").strip().lower(),
             uwagi=request.form.get("wizyta_uwagi", "").strip(),
             pracownik=request.form.get("wizyta_pracownik", "").strip(),
             usluga_nazwa=request.form.get("wizyta_usluga", "").strip(),

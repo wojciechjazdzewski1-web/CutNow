@@ -32,6 +32,12 @@
       <span class="client-muted">Telefon</span>
       <span class="font-semibold client-heading text-right">{{ rezerwacja.telefon }}</span>
     </div>
+    {% if rezerwacja.email %}
+      <div class="flex justify-between gap-4">
+        <span class="client-muted">E-mail</span>
+        <span class="font-semibold client-heading text-right">{{ rezerwacja.email }}</span>
+      </div>
+    {% endif %}
     {% if rezerwacja.pracownik %}
       <div class="flex justify-between gap-4">
         <span class="client-muted">Pracownik</span>

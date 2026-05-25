@@ -76,6 +76,7 @@
               <div class="flex-1 min-w-[140px]">
                 <p class="font-semibold text-slate-900">{{ r.imie }}</p>
                 <a href="tel:{{ r.telefon }}" class="text-sm text-brand-600">{{ r.telefon }}</a>
+                {% if r.email %}<a href="mailto:{{ r.email }}" class="block text-xs text-slate-500 hover:underline">{{ r.email }}</a>{% endif %}
                 {% if r.usluga_nazwa %}<p class="text-sm text-slate-600 mt-0.5">{{ r.usluga_nazwa }}{% if r.usluga_czas_min %} · {{ r.usluga_czas_min }} min{% endif %}</p>{% endif %}
                 {% if r.pracownik %}<p class="text-xs text-slate-500">Pracownik: {{ r.pracownik }}</p>{% endif %}
                 {% if r.uwagi %}<p class="text-xs text-slate-500 mt-1">{{ r.uwagi }}</p>{% endif %}
@@ -134,6 +135,10 @@
         <label class="block text-xs font-medium text-brand-100 mb-1">Telefon</label>
         <input type="tel" name="wizyta_telefon" required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-white">
       </div>
+      <div>
+        <label class="block text-xs font-medium text-brand-100 mb-1">E-mail klienta (opcjonalnie)</label>
+        <input type="email" name="wizyta_email" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-white placeholder:text-white/50" placeholder="do przypomnienia">
+      </div>
       {% if pracownicy %}
         <div>
           <label class="block text-xs font-medium text-brand-100 mb-1">Pracownik</label>
@@ -171,7 +176,7 @@
         Zapisz wizytę
       </button>
     </form>
-    <p class="text-xs text-brand-200 mt-3">Klient nie dostanie e-maila — to wpis wewnętrzny (chyba że włączysz powiadomienia przy rezerwacji online).</p>
+    <p class="text-xs text-brand-200 mt-3">Jeśli wpiszesz e-mail klienta i status „Potwierdzona”, cron wyśle mu przypomnienie przed wizytą.</p>
   </div>
 </div>
 {% endblock %}

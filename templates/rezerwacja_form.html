@@ -47,6 +47,14 @@
         placeholder="np. 500 123 456">
     </div>
 
+    <div>
+      <label for="email" class="block text-sm font-medium client-heading mb-2">E-mail do przypomnienia *</label>
+      <input type="email" id="email" name="email" required
+        class="client-input w-full px-4 py-4 text-lg"
+        placeholder="np. anna@example.com">
+      <p class="client-muted text-xs mt-2">Na ten adres wyślemy automatyczne przypomnienie przed wizytą.</p>
+    </div>
+
     {% if pracownicy %}
       <div>
         <label for="pracownik" class="block text-sm font-medium client-heading mb-2">Wybierz pracownika *</label>
@@ -75,7 +83,7 @@
         <input type="checkbox" name="zgoda_rodo" value="on" required
           class="mt-1 h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-500">
         <span class="text-sm client-muted leading-relaxed">
-          Wyrażam zgodę na przetwarzanie moich danych (imię, telefon, termin wizyty i uwagi) w celu obsługi rezerwacji.
+          Wyrażam zgodę na przetwarzanie moich danych (imię, telefon, e-mail, termin wizyty i uwagi) w celu obsługi rezerwacji oraz przypomnienia o wizycie.
           Administratorem danych jest <strong class="client-heading">{{ dane.nazwa_salonu }}</strong>;
           Glovaro przetwarza dane jako podmiot techniczny.
           Zapoznałem/am się z

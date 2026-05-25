@@ -65,6 +65,9 @@
             </p>
             <p class="text-slate-600 text-sm mt-1">
               <a href="tel:{{ r.telefon }}" class="hover:underline">{{ r.telefon }}</a>
+              {% if r.email %}
+                · <a href="mailto:{{ r.email }}" class="hover:underline">{{ r.email }}</a>
+              {% endif %}
               {% if r.klient_id %}
                 · <a href="{{ url_for('panel_klient_szczegoly', salon_slug=salon_slug, klient_id=r.klient_id) }}" class="text-brand-600 hover:underline">Kartoteka</a>
               {% endif %}
@@ -131,7 +134,12 @@
               {% if r.usluga_nazwa %}
                 <p class="text-slate-600 mt-1">Usługa: {{ r.usluga_nazwa }}{% if r.usluga_cena_zl %} ({{ r.usluga_cena_zl }} zł){% endif %}{% if r.usluga_czas_min %} · {{ r.usluga_czas_min }} min{% endif %}</p>
               {% endif %}
-              <p class="text-slate-600 mt-1"><a href="tel:{{ r.telefon }}" class="hover:underline">{{ r.telefon }}</a></p>
+              <p class="text-slate-600 mt-1">
+                <a href="tel:{{ r.telefon }}" class="hover:underline">{{ r.telefon }}</a>
+                {% if r.email %}
+                  · <a href="mailto:{{ r.email }}" class="hover:underline">{{ r.email }}</a>
+                {% endif %}
+              </p>
               {% if r.uwagi %}
                 <p class="text-slate-500 mt-2">{{ r.uwagi }}</p>
               {% endif %}

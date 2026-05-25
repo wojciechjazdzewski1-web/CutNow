@@ -16,6 +16,11 @@
           {{ klient.telefon_wyswietl or klient.telefon }}
         </a>
       </p>
+      {% if klient.email %}
+        <p class="mt-1">
+          <a href="mailto:{{ klient.email }}" class="text-sm text-slate-600 hover:underline">{{ klient.email }}</a>
+        </p>
+      {% endif %}
       {% if klient.ostatnia_wizyta %}
         <p class="text-sm text-slate-500 mt-3">Ostatnia wizyta: {{ klient.ostatnia_wizyta }}</p>
       {% endif %}
