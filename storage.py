@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import shutil
+import threading
 from datetime import datetime
 from pathlib import Path
 
@@ -16,6 +17,7 @@ BACKUP_DIR = DATA_DIR / "backups"
 DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 
 _POSTGRES_READY = False
+_FILE_LOCK = threading.RLock()
 
 
 def uzywaj_postgres() -> bool:
@@ -52,6 +54,25 @@ def zapisz_raw(dane: dict) -> None:
         return
     _wykonaj_backup_pliku_przed_zapisem()
     _zapisz_plik(dane)
+
+
+def aktualizuj_raw(mutator):
+    """Atomowo wczytaj, zmień i zapisz stan.
+
+    mutator(dane) musi zwrócić tuple: (wynik, dane_do_zapisu). W PostgreSQL
+    zapis odbywa się pod blokadą SELECT ... FOR UPDATE, co chroni przed
+    równoczesnym nadpisaniem tego samego terminu.
+    """
+    if uzywaj_postgres():
+        return _aktualizuj_postgres(mutator)
+
+    with _FILE_LOCK:
+        dane = _wczytaj_plik()
+        wynik, dane_do_zapisu = mutator(dane)
+        if dane_do_zapisu is not None:
+            _wykonaj_backup_pliku_przed_zapisem()
+            _zapisz_plik(dane_do_zapisu)
+        return wynik
 
 
 def _wczytaj_plik() -> dict | None:
@@ -141,6 +162,33 @@ def _zapisz_postgres(dane: dict) -> None:
             (Jsonb(dane),),
         )
         conn.commit()
+
+
+def _aktualizuj_postgres(mutator):
+    import psycopg
+    from psycopg.types.json import Jsonb
+
+    with psycopg.connect(DATABASE_URL) as conn:
+        row = conn.execute("SELECT payload FROM glovaro_state WHERE id = 1 FOR UPDATE").fetchone()
+        dane = None
+        if row:
+            payload = row[0]
+            dane = payload if isinstance(payload, dict) else json.loads(payload)
+
+        wynik, dane_do_zapisu = mutator(dane)
+        if dane_do_zapisu is not None:
+            conn.execute(
+                """
+                INSERT INTO glovaro_state (id, payload, updated_at)
+                VALUES (1, %s, NOW())
+                ON CONFLICT (id) DO UPDATE
+                SET payload = EXCLUDED.payload, updated_at = NOW()
+                """,
+                (Jsonb(dane_do_zapisu),),
+            )
+            conn.commit()
+            _wykonaj_backup_pliku(dane_do_zapisu)
+        return wynik
 
 
 def _migruj_plik_do_postgres_jesli_trzeba() -> None:

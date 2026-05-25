@@ -46,40 +46,48 @@
   <section class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
     <div class="flex items-center justify-between mb-4">
       <h2 class="font-semibold text-slate-900">Wywiad zdrowotny</h2>
-      <a href="{{ url_for('panel_wywiad', salon_slug=salon_slug) }}" class="text-sm text-brand-600 hover:underline">Edytuj treść</a>
+      {% if not admin_rodo_ograniczony %}
+        <a href="{{ url_for('panel_wywiad', salon_slug=salon_slug) }}" class="text-sm text-brand-600 hover:underline">Edytuj treść</a>
+      {% endif %}
     </div>
-    {% if wywiad_oswiadczenie %}
-      <p class="text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3 mb-4">
-        Klient zaakceptował oświadczenie{% if klient.wywiad_aktualizacja %} ({{ klient.wywiad_aktualizacja }}){% endif %}.
+    {% if admin_rodo_ograniczony %}
+      <p class="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+        Dostęp do oświadczeń zdrowotnych jest ukryty dla głównego administratora. Te dane widzi tylko zalogowana firma w swoim panelu.
       </p>
     {% else %}
-      <p class="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-4">
-        Brak zapisanej akceptacji oświadczenia dla tego klienta.
-      </p>
-    {% endif %}
-    {% if tresc_wywiadu %}
-      <div class="rounded-xl bg-slate-50 border border-slate-200 p-4 mb-4 max-h-48 overflow-y-auto">
-        <p class="text-xs font-medium text-slate-500 mb-2">Treść oświadczenia</p>
-        <div class="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{{ tresc_wywiadu }}</div>
-      </div>
-    {% endif %}
-    <form method="post" class="space-y-3">
-      <input type="hidden" name="akcja" value="zapisz">
-      <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
-        <input type="checkbox" name="wywiad_zaakceptowany_salon" value="on" class="rounded text-brand-600">
-        Oznacz: klient zaakceptował oświadczenie (np. ustnie w salonie)
-      </label>
-      <button type="submit" class="rounded-xl border border-brand-300 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-800 hover:bg-brand-100">Zapisz</button>
-    </form>
-    {% if wywiad_etykiety and not wywiad_oswiadczenie %}
-      <details class="mt-4 text-sm">
-        <summary class="cursor-pointer text-slate-600 font-medium">Starszy format (odpowiedzi na pytania)</summary>
-        <ul class="mt-2 space-y-1 text-slate-600">
-          {% for w in wywiad_etykiety %}
-            <li><span class="font-medium">{{ w.pytanie }}:</span> {{ w.odpowiedz }}</li>
-          {% endfor %}
-        </ul>
-      </details>
+      {% if wywiad_oswiadczenie %}
+        <p class="text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3 mb-4">
+          Klient zaakceptował oświadczenie{% if klient.wywiad_aktualizacja %} ({{ klient.wywiad_aktualizacja }}){% endif %}.
+        </p>
+      {% else %}
+        <p class="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-4">
+          Brak zapisanej akceptacji oświadczenia dla tego klienta.
+        </p>
+      {% endif %}
+      {% if tresc_wywiadu %}
+        <div class="rounded-xl bg-slate-50 border border-slate-200 p-4 mb-4 max-h-48 overflow-y-auto">
+          <p class="text-xs font-medium text-slate-500 mb-2">Treść oświadczenia</p>
+          <div class="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{{ tresc_wywiadu }}</div>
+        </div>
+      {% endif %}
+      <form method="post" class="space-y-3">
+        <input type="hidden" name="akcja" value="zapisz">
+        <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" name="wywiad_zaakceptowany_salon" value="on" class="rounded text-brand-600">
+          Oznacz: klient zaakceptował oświadczenie (np. ustnie w salonie)
+        </label>
+        <button type="submit" class="rounded-xl border border-brand-300 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-800 hover:bg-brand-100">Zapisz</button>
+      </form>
+      {% if wywiad_etykiety and not wywiad_oswiadczenie %}
+        <details class="mt-4 text-sm">
+          <summary class="cursor-pointer text-slate-600 font-medium">Starszy format (odpowiedzi na pytania)</summary>
+          <ul class="mt-2 space-y-1 text-slate-600">
+            {% for w in wywiad_etykiety %}
+              <li><span class="font-medium">{{ w.pytanie }}:</span> {{ w.odpowiedz }}</li>
+            {% endfor %}
+          </ul>
+        </details>
+      {% endif %}
     {% endif %}
   </section>
 

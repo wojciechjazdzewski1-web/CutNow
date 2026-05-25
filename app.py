@@ -32,7 +32,7 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = bool(os.environ.get("RENDER"))
 
-from storage import init_storage, tryb_magazynu, wczytaj_raw, zapisz_raw
+from storage import aktualizuj_raw, init_storage, tryb_magazynu, wczytaj_raw, zapisz_raw
 
 PANEL_PASSWORD = os.environ.get("PANEL_PASSWORD", "").strip()
 SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()
@@ -55,6 +55,7 @@ LEGAL_PLACEHOLDERS = frozenset(
 REZERWACJA_RATE_LIMIT: dict[str, list[float]] = {}
 GODZIN_PO_WIZYCIE_DO_ARCHIWUM = 1
 DNI_W_ARCHIWUM_PRZED_USUNIECIEM = 90
+MINUTY_NA_OPLACENIE_REZERWACJI = 15
 CZYSZCZENIE_REZERWACJI_CO_SEK = 600
 _ostatnie_czyszczenie_rezerwacji = 0.0
 
@@ -407,20 +408,47 @@ def rezerwacja_do_usuniecia(rezerwacja: dict, teraz: datetime | None = None) -> 
     return termin < granica
 
 
-def utrzymuj_rezerwacje(dane: dict) -> tuple[int, int]:
+def rezerwacja_nieoplacona_do_zwolnienia(salon: dict, rezerwacja: dict, teraz: datetime | None = None) -> bool:
+    if rezerwacja.get("status") != "oczekuje" or rezerwacja_oplacona(rezerwacja):
+        return False
+    wymaga_online = bool(
+        rezerwacja.get("wymaga_platnosci_online")
+        or (
+            rezerwacja.get("zrodlo") == "online"
+            and salon.get("platnosc_online_wlaczona")
+            and kwota_rezerwacji_zl(salon, rezerwacja) > 0
+        )
+    )
+    if not wymaga_online:
+        return False
+    try:
+        utworzono = datetime.fromisoformat(str(rezerwacja.get("utworzono", "")))
+    except ValueError:
+        return False
+    teraz = teraz or datetime.now()
+    return teraz >= utworzono + timedelta(minutes=MINUTY_NA_OPLACENIE_REZERWACJI)
+
+
+def utrzymuj_rezerwacje(dane: dict) -> tuple[int, int, int]:
     teraz = datetime.now()
     zarchiwizowane = 0
     usuniete = 0
+    zwolnione_nieoplacone = 0
     for salon in dane.get("salony", {}).values():
-        rezerwacje = salon.get("rezerwacje", [])
-        for rezerwacja in rezerwacje:
+        rezerwacje = []
+        for rezerwacja in salon.get("rezerwacje", []):
+            if rezerwacja_nieoplacona_do_zwolnienia(salon, rezerwacja, teraz):
+                przywroc_wolny_termin(salon, rezerwacja)
+                zwolnione_nieoplacone += 1
+                continue
             if rezerwacja_gotowa_do_archiwizacji(rezerwacja, teraz):
                 archiwizuj_rezerwacje(rezerwacja, teraz)
                 zarchiwizowane += 1
+            rezerwacje.append(rezerwacja)
         pozostale = [r for r in rezerwacje if not rezerwacja_do_usuniecia(r, teraz)]
         usuniete += len(rezerwacje) - len(pozostale)
         salon["rezerwacje"] = pozostale
-    return zarchiwizowane, usuniete
+    return zarchiwizowane, usuniete, zwolnione_nieoplacone
 
 
 def moze_wykonac_czyszczenie_rezerwacji() -> bool:
@@ -453,17 +481,35 @@ def wczytaj_dane() -> dict:
     dane = zmigrowane
 
     if moze_wykonac_czyszczenie_rezerwacji():
-        zarchiwizowane, usuniete = utrzymuj_rezerwacje(dane)
-        if zarchiwizowane or usuniete:
-            zapisz_dane(dane)
+        def czyszczenie_atomowe(dane_atomowe: dict):
+            wyniki = utrzymuj_rezerwacje(dane_atomowe)
+            return wyniki, copy.deepcopy(dane_atomowe)
+
+        (zarchiwizowane, usuniete, zwolnione_nieoplacone), dane = aktualizuj_dane_atomowo(czyszczenie_atomowe)
+        if zarchiwizowane or usuniete or zwolnione_nieoplacone:
             app.logger.info(
-                "Rezerwacje: zarchiwizowano %s, usunięto %s", zarchiwizowane, usuniete
+                "Rezerwacje: zarchiwizowano %s, usunięto %s, zwolniono nieopłacone %s",
+                zarchiwizowane,
+                usuniete,
+                zwolnione_nieoplacone,
             )
     return dane
 
 
 def zapisz_dane(dane: dict) -> None:
     zapisz_raw(dane)
+
+
+def aktualizuj_dane_atomowo(mutator):
+    def wrapper(raw: dict | None):
+        dane = raw
+        if dane is None:
+            dane = {"salony": {"demo": {**nowy_salon("Mój Salon", PANEL_PASSWORD), "slug": "demo"}}}
+        dane = migracja_danych(dane)
+        wynik = mutator(dane)
+        return wynik, dane
+
+    return aktualizuj_raw(wrapper)
 
 
 def pobierz_salon(dane: dict, salon_slug: str) -> dict | None:
@@ -1126,6 +1172,11 @@ def utworz_rezerwacje(
     }
     if status == "potwierdzona":
         rezerwacja["potwierdzono"] = rezerwacja["utworzono"]
+    if zrodlo == "online" and salon.get("platnosc_online_wlaczona") and kwota_rezerwacji_zl(salon, rezerwacja) > 0:
+        rezerwacja["wymaga_platnosci_online"] = True
+        rezerwacja["platnosc_wygasa_at"] = (
+            datetime.now() + timedelta(minutes=MINUTY_NA_OPLACENIE_REZERWACJI)
+        ).isoformat(timespec="minutes")
 
     klient["ostatnia_wizyta"] = f"{data_iso} {godzina}"
     salon.setdefault("rezerwacje", []).append(rezerwacja)
@@ -2103,15 +2154,17 @@ def wyczysc_rezerwacje_task():
     global _ostatnie_czyszczenie_rezerwacji
     _ostatnie_czyszczenie_rezerwacji = 0.0
 
-    dane = wczytaj_raw()
-    if dane is None:
-        return jsonify({"archived": 0, "deleted": 0})
+    def czyszczenie_atomowe(dane_atomowe: dict):
+        return utrzymuj_rezerwacje(dane_atomowe)
 
-    zmigrowane = migracja_danych(dane)
-    zarchiwizowane, usuniete = utrzymuj_rezerwacje(zmigrowane)
-    if zarchiwizowane or usuniete or zmigrowane != dane:
-        zapisz_dane(zmigrowane)
-    return jsonify({"archived": zarchiwizowane, "deleted": usuniete})
+    zarchiwizowane, usuniete, zwolnione_nieoplacone = aktualizuj_dane_atomowo(czyszczenie_atomowe)
+    return jsonify(
+        {
+            "archived": zarchiwizowane,
+            "deleted": usuniete,
+            "released_unpaid": zwolnione_nieoplacone,
+        }
+    )
 
 
 @app.route("/")
@@ -2843,7 +2896,8 @@ def rezerwacja_formularz(salon_slug: str):
     email = request.form.get("email", "").strip().lower()
     uwagi = request.form.get("uwagi", "").strip()
     godzina = request.form.get("godzina", "").strip()
-    pracownik = request.form.get("pracownik", "").strip()
+    pracownik_formularz = request.form.get("pracownik", "").strip()
+    pracownik = pracownik_formularz
     usluga_nazwa = request.form.get("usluga", "").strip()
     pracownicy = aktywni_pracownicy(salon)
     uslugi = uslugi_salonu(salon)
@@ -2886,30 +2940,56 @@ def rezerwacja_formularz(salon_slug: str):
         if bledy_wywiad:
             flash(bledy_wywiad[0], "error")
             return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
-    if godzina not in dostepne_terminy(salon, data_iso):
-        flash("Ten termin został właśnie zajęty. Wybierz inną godzinę.", "error")
-        return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug, data=data_iso))
+    def utworz_atomowo(dane_atomowe: dict):
+        salon_atomowy = pobierz_salon(dane_atomowe, salon_slug)
+        if not salon_atomowy:
+            return None, "Nie znaleziono takiej firmy.", None
+        if salon_wstrzymany(salon_atomowy):
+            return None, "Rezerwacje dla tej firmy są chwilowo niedostępne.", None
 
-    rezerwacja, blad = utworz_rezerwacje(
-        salon,
-        data_iso=data_iso,
-        godzina=godzina,
-        imie=imie,
-        telefon=telefon,
-        email=email,
-        uwagi=uwagi,
-        pracownik=pracownik,
-        usluga_nazwa=usluga_nazwa,
-        status="oczekuje",
-        zrodlo="online",
-        wywiad_odpowiedzi=wywiad_odpowiedzi or None,
-    )
+        final_pracownik = pracownik_formularz
+        final_pracownicy = aktywni_pracownicy(salon_atomowy)
+        final_uslugi = uslugi_salonu(salon_atomowy)
+        final_mapa_uslug = {u["nazwa"]: u for u in final_uslugi}
+        if final_uslugi and usluga_nazwa not in final_mapa_uslug:
+            return None, "Wybierz usługę z listy.", None
+        final_usluga = final_mapa_uslug.get(usluga_nazwa, {})
+        final_czas = czas_trwania_rezerwacji_min(
+            salon_atomowy,
+            {"usluga_czas_min": final_usluga.get("czas_min", 0)},
+        )
+        if final_pracownicy and final_pracownik == "__dowolny__":
+            final_pracownik = next(
+                (
+                    p
+                    for p in final_pracownicy
+                    if not pracownik_zajety(salon_atomowy, data_iso, godzina, p, final_czas)
+                ),
+                "",
+            )
+
+        rezerwacja_atomowa, blad_atomowy = utworz_rezerwacje(
+            salon_atomowy,
+            data_iso=data_iso,
+            godzina=godzina,
+            imie=imie,
+            telefon=telefon,
+            email=email,
+            uwagi=uwagi,
+            pracownik=final_pracownik,
+            usluga_nazwa=usluga_nazwa,
+            status="oczekuje",
+            zrodlo="online",
+            wywiad_odpowiedzi=wywiad_odpowiedzi or None,
+        )
+        return rezerwacja_atomowa, blad_atomowy, copy.deepcopy(salon_atomowy)
+
+    rezerwacja, blad, salon_po_zapisie = aktualizuj_dane_atomowo(utworz_atomowo)
     if blad:
         flash(blad, "error")
         return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
 
-    zapisz_dane(dane)
-    wyslij_email_powiadomienie(salon, rezerwacja, salon_slug)
+    wyslij_email_powiadomienie(salon_po_zapisie or salon, rezerwacja, salon_slug)
     return redirect(url_for("rezerwacja_potwierdzenie", salon_slug=salon_slug, id=rezerwacja["id"]))
 
 
@@ -3357,6 +3437,7 @@ def panel_klient_szczegoly(salon_slug: str, klient_id: str):
         flash("Nie znaleziono klienta w kartotece.", "error")
         return redirect(url_for("panel_klienci", salon_slug=salon_slug))
 
+    admin_rodo_ograniczony = bool(session.get(admin_auth_key()) and not session.get(panel_auth_key(salon_slug)))
     pytania = pytania_wywiadu_salonu(salon)
 
     if request.method == "POST":
@@ -3364,7 +3445,7 @@ def panel_klient_szczegoly(salon_slug: str, klient_id: str):
         if akcja == "zapisz":
             klient["notatka_wewnetrzna"] = request.form.get("notatka_wewnetrzna", "").strip()[:2000]
             klient["email"] = request.form.get("email", "").strip()[:120]
-            if request.form.get("wywiad_zaakceptowany_salon") == "on":
+            if not admin_rodo_ograniczony and request.form.get("wywiad_zaakceptowany_salon") == "on":
                 klient["wywiad_zdrowotny"] = {
                     "_typ": "oswiadczenie",
                     "zaakceptowano": datetime.now().isoformat(timespec="minutes"),
@@ -3377,7 +3458,7 @@ def panel_klient_szczegoly(salon_slug: str, klient_id: str):
         return redirect(url_for("panel_klient_szczegoly", salon_slug=salon_slug, klient_id=klient_id))
 
     wizyty = historia_wizyt_klienta(salon, klient_id)
-    wywiad_etykiety = etykieta_odpowiedzi_wywiadu(pytania, klient.get("wywiad_zdrowotny") or {})
+    wywiad_etykiety = [] if admin_rodo_ograniczony else etykieta_odpowiedzi_wywiadu(pytania, klient.get("wywiad_zdrowotny") or {})
     pytania_map = {p["id"]: p["tresc"] for p in pytania}
 
     return render_template(
@@ -3389,8 +3470,9 @@ def panel_klient_szczegoly(salon_slug: str, klient_id: str):
         pytania=pytania,
         pytania_map=pytania_map,
         wywiad_etykiety=wywiad_etykiety,
-        tresc_wywiadu=tresc_wywiadu_salonu(salon),
-        wywiad_oswiadczenie=wywiad_to_oswiadczenie(klient.get("wywiad_zdrowotny")),
+        tresc_wywiadu="" if admin_rodo_ograniczony else tresc_wywiadu_salonu(salon),
+        wywiad_oswiadczenie=False if admin_rodo_ograniczony else wywiad_to_oswiadczenie(klient.get("wywiad_zdrowotny")),
+        admin_rodo_ograniczony=admin_rodo_ograniczony,
         dni_tygodnia=dict(DNI_TYGODNIA),
     )
 
