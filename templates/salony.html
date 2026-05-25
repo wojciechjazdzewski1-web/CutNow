@@ -39,6 +39,11 @@
               <div class="flex flex-wrap gap-2">
                 <a href="{{ url_for('panel', salon_slug=slug) }}" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-semibold hover:bg-brand-700">Panel</a>
                 <a href="{{ url_for('rezerwacja_publiczna', salon_slug=slug) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-white">Rezerwacja</a>
+                <form method="post" action="{{ url_for('panel_usun_salon', salon_slug=slug) }}" onsubmit="return confirm({{ ('Na pewno usunąć salon ' ~ salon.nazwa_salonu ~ '? Ta operacja usuwa panel, terminy, rezerwacje i kartotekę tego salonu.')|tojson }});">
+                  <button type="submit" class="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">
+                    Usuń
+                  </button>
+                </form>
               </div>
             </div>
             <form method="post" action="{{ url_for('panel_rozliczenia', salon_slug=slug) }}" class="mt-4 grid sm:grid-cols-5 gap-3 rounded-xl bg-white/70 p-3 border border-white">

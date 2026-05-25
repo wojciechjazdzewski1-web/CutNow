@@ -46,9 +46,34 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  {% if motyw_rozowy %}
+  {% if motyw_klienta %}
   <style>
     :root {
+      {% if motyw_neutralny %}
+      --glo-page: #f8fafc;
+      --glo-page-accent: #e2e8f0;
+      --glo-surface: #ffffff;
+      --glo-surface-muted: #f8fafc;
+      --glo-border: #94a3b8;
+      --glo-border-soft: #cbd5e1;
+      --glo-text: #0f172a;
+      --glo-text-muted: #475569;
+      --glo-heading: #020617;
+      --glo-hero-from: #ffffff;
+      --glo-hero-via: #f8fafc;
+      --glo-hero-to: #e2e8f0;
+      --glo-hero-text: #020617;
+      --glo-hero-sub: #475569;
+      --glo-slot-bg: #ffffff;
+      --glo-slot-border: #94a3b8;
+      --glo-slot-text: #0f172a;
+      --glo-primary-bg: #0f172a;
+      --glo-primary-hover: #334155;
+      --glo-primary-text: #ffffff;
+      --glo-soft-panel-bg: #f8fafc;
+      --glo-soft-panel-text: #0f172a;
+      --glo-soft-panel-muted: #334155;
+      {% else %}
       --glo-page: #ffe8f2;
       --glo-page-accent: #ffd1e3;
       --glo-surface: #ffffff;
@@ -66,8 +91,40 @@
       --glo-slot-bg: #fff0f7;
       --glo-slot-border: #f472b6;
       --glo-slot-text: #be185d;
+      --glo-primary-bg: #db2777;
+      --glo-primary-hover: #ec4899;
+      --glo-primary-text: #ffffff;
+      --glo-soft-panel-bg: #fff0f7;
+      --glo-soft-panel-text: #500724;
+      --glo-soft-panel-muted: #831843;
+      {% endif %}
     }
     html.dark {
+      {% if motyw_neutralny %}
+      --glo-page: #020617;
+      --glo-page-accent: #0f172a;
+      --glo-surface: #0b1120;
+      --glo-surface-muted: #111827;
+      --glo-border: #64748b;
+      --glo-border-soft: #334155;
+      --glo-text: #e5e7eb;
+      --glo-text-muted: #cbd5e1;
+      --glo-heading: #ffffff;
+      --glo-hero-from: #020617;
+      --glo-hero-via: #0f172a;
+      --glo-hero-to: #111827;
+      --glo-hero-text: #ffffff;
+      --glo-hero-sub: #cbd5e1;
+      --glo-slot-bg: #111827;
+      --glo-slot-border: #64748b;
+      --glo-slot-text: #f8fafc;
+      --glo-primary-bg: #f8fafc;
+      --glo-primary-hover: #e2e8f0;
+      --glo-primary-text: #020617;
+      --glo-soft-panel-bg: #111827;
+      --glo-soft-panel-text: #ffffff;
+      --glo-soft-panel-muted: #d1d5db;
+      {% else %}
       --glo-page: #12060d;
       --glo-page-accent: #1f0a14;
       --glo-surface: #1e0b15;
@@ -85,6 +142,13 @@
       --glo-slot-bg: #2a101c;
       --glo-slot-border: #ec4899;
       --glo-slot-text: #fbcfe8;
+      --glo-primary-bg: #db2777;
+      --glo-primary-hover: #ec4899;
+      --glo-primary-text: #ffffff;
+      --glo-soft-panel-bg: #4a1230;
+      --glo-soft-panel-text: #ffffff;
+      --glo-soft-panel-muted: #fce7f3;
+      {% endif %}
     }
     body.client-theme {
       min-height: 100vh;
@@ -137,19 +201,19 @@
       color: var(--glo-slot-text) !important;
     }
     .client-slot:hover {
-      background: #fce7f3 !important;
-      border-color: #ec4899 !important;
+      background: var(--glo-surface-muted) !important;
+      border-color: var(--glo-border) !important;
     }
     html.dark .client-slot:hover {
-      background: #3d1829 !important;
-      border-color: #f472b6 !important;
+      background: var(--glo-surface-muted) !important;
+      border-color: var(--glo-border) !important;
     }
     .client-btn-primary {
-      background: linear-gradient(135deg, #ec4899, #db2777) !important;
-      color: #fff !important;
+      background: var(--glo-primary-bg) !important;
+      color: var(--glo-primary-text) !important;
     }
     .client-btn-primary:hover {
-      background: linear-gradient(135deg, #f472b6, #ec4899) !important;
+      background: var(--glo-primary-hover) !important;
     }
     .client-sticky-bar {
       background: rgba(255, 255, 255, 0.97) !important;
@@ -168,18 +232,18 @@
       border: 1px solid var(--glo-border-soft) !important;
     }
     .client-soft-panel {
-      background: #fff0f7 !important;
+      background: var(--glo-soft-panel-bg) !important;
       border-color: var(--glo-border-soft) !important;
-      color: var(--glo-text) !important;
+      color: var(--glo-soft-panel-text) !important;
     }
     .client-soft-panel .client-muted {
-      color: #831843 !important;
+      color: var(--glo-soft-panel-muted) !important;
     }
     html.dark .client-soft-panel {
-      background: #4a1230 !important;
-      border-color: #f9a8d4 !important;
-      color: #ffffff !important;
-      box-shadow: 0 0 0 1px rgba(249, 168, 212, 0.25);
+      background: var(--glo-soft-panel-bg) !important;
+      border-color: var(--glo-border) !important;
+      color: var(--glo-soft-panel-text) !important;
+      box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.25);
     }
     html.dark .client-soft-panel .client-heading,
     html.dark .client-soft-panel strong {
@@ -190,8 +254,8 @@
       color: #fce7f3 !important;
     }
     html.dark #cookie-banner {
-      background: rgba(74, 18, 48, 0.98) !important;
-      border-color: #f9a8d4 !important;
+      background: var(--glo-surface) !important;
+      border-color: var(--glo-border) !important;
     }
     html.dark #cookie-banner .client-heading {
       color: #ffffff !important;
@@ -203,17 +267,42 @@
       color: #ffffff !important;
       text-decoration-color: #f9a8d4;
     }
+    body.client-theme-neutral [class*="text-brand-"] {
+      color: var(--glo-heading) !important;
+    }
+    body.client-theme-neutral [class*="bg-brand-"] {
+      background-color: var(--glo-surface-muted) !important;
+    }
+    body.client-theme-neutral .bg-brand-600,
+    body.client-theme-neutral .dark\:bg-brand-500 {
+      background-color: var(--glo-primary-bg) !important;
+      color: var(--glo-primary-text) !important;
+    }
+    body.client-theme-neutral [class*="border-brand-"] {
+      border-color: var(--glo-border-soft) !important;
+    }
+    body.client-theme-neutral [class*="hover:bg-brand-"]:hover {
+      background-color: var(--glo-surface-muted) !important;
+    }
+    body.client-theme-neutral [class*="from-brand-"] {
+      --tw-gradient-from: #334155 var(--tw-gradient-from-position) !important;
+      --tw-gradient-to: rgb(51 65 85 / 0) var(--tw-gradient-to-position) !important;
+      --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+    }
+    body.client-theme-neutral [class*="to-brand-"] {
+      --tw-gradient-to: #020617 var(--tw-gradient-to-position) !important;
+    }
   </style>
   {% endif %}
   {% block head_extra %}{% endblock %}
 </head>
-<body class="h-full min-h-screen font-sans antialiased {% if motyw_rozowy %}client-theme{% else %}bg-slate-50 text-slate-800{% endif %}">
-  <nav class="sticky top-0 z-50 border-b backdrop-blur-md {% if motyw_rozowy %}client-nav{% else %}border-slate-200 bg-white/80{% endif %}">
+<body class="h-full min-h-screen font-sans antialiased {% if motyw_klienta %}client-theme {% if motyw_neutralny %}client-theme-neutral{% else %}client-theme-rose{% endif %}{% else %}bg-slate-50 text-slate-800{% endif %}">
+  <nav class="sticky top-0 z-50 border-b backdrop-blur-md {% if motyw_klienta %}client-nav{% else %}border-slate-200 bg-white/80{% endif %}">
     <div class="max-w-5xl mx-auto px-4 sm:px-6">
       <div class="flex items-center justify-between h-16">
         <a href="{{ url_for('rezerwacja_publiczna', salon_slug=aktywny_salon_slug) if widok_klienta and aktywny_salon_slug else url_for('strona_glowna') }}" class="flex items-center gap-2 group">
           <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 to-brand-700 text-white font-bold text-sm shadow-lg shadow-brand-500/30 group-hover:scale-105 transition-transform">G</span>
-          <span class="font-bold text-lg tracking-tight {% if motyw_rozowy %}client-heading{% else %}text-slate-900{% endif %}">Glov<span class="text-brand-600 dark:text-brand-400">aro</span></span>
+          <span class="font-bold text-lg tracking-tight {% if motyw_klienta %}client-heading{% else %}text-slate-900{% endif %}">Glov<span class="text-brand-600 dark:text-brand-400">aro</span></span>
         </a>
         <div class="flex items-center gap-1 sm:gap-2">
           {% if widok_klienta %}
@@ -222,10 +311,10 @@
             </button>
             <span class="hidden sm:inline px-3 py-2 text-sm font-medium text-brand-800 dark:text-brand-200 bg-brand-100 dark:bg-brand-950/40 rounded-lg border border-brand-200 dark:border-brand-900">Rezerwacja wizyty</span>
           {% else %}
-            <a href="{{ url_for('strona_glowna') }}" class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.endpoint == 'strona_glowna' %}text-brand-800 bg-brand-100{% elif motyw_rozowy %}text-brand-800 hover:bg-brand-100{% else %}text-slate-600 hover:bg-slate-100{% endif %}">Start</a>
-            <a href="{{ url_for('panel', salon_slug=aktywny_salon_slug) if aktywny_salon_slug else url_for('panel_lista') }}" class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.endpoint in ['panel', 'panel_lista', 'ustawienia_salonu', 'godziny_pracy', 'wolne_terminy', 'panel_rezerwacje', 'panel_klienci', 'panel_klient_szczegoly', 'panel_wywiad', 'podglad_klienta', 'panel_login'] %}text-brand-800 bg-brand-100{% elif motyw_rozowy %}text-brand-800 hover:bg-brand-100{% else %}text-slate-600 hover:bg-slate-100{% endif %}">Panel właściciela</a>
+            <a href="{{ url_for('strona_glowna') }}" class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.endpoint == 'strona_glowna' %}text-brand-800 bg-brand-100{% elif motyw_klienta %}client-heading hover:bg-white/70 dark:hover:bg-white/10{% else %}text-slate-600 hover:bg-slate-100{% endif %}">Start</a>
+            <a href="{{ url_for('panel', salon_slug=aktywny_salon_slug) if aktywny_salon_slug else url_for('panel_lista') }}" class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.endpoint in ['panel', 'panel_lista', 'ustawienia_salonu', 'godziny_pracy', 'wolne_terminy', 'panel_rezerwacje', 'panel_klienci', 'panel_klient_szczegoly', 'panel_wywiad', 'podglad_klienta', 'panel_login'] %}text-brand-800 bg-brand-100{% elif motyw_klienta %}client-heading hover:bg-white/70 dark:hover:bg-white/10{% else %}text-slate-600 hover:bg-slate-100{% endif %}">Panel właściciela</a>
             {% if panel_chroniony_haslem and zalogowany_do_panelu %}
-              <a href="{{ url_for('panel_wyloguj', salon_slug=aktywny_salon_slug) if aktywny_salon_slug else url_for('panel_wyloguj') }}" class="px-3 py-2 text-sm font-medium rounded-lg {% if motyw_rozowy %}text-brand-700 hover:bg-brand-100{% else %}text-slate-500 hover:bg-slate-100{% endif %}">Wyloguj</a>
+              <a href="{{ url_for('panel_wyloguj', salon_slug=aktywny_salon_slug) if aktywny_salon_slug else url_for('panel_wyloguj') }}" class="px-3 py-2 text-sm font-medium rounded-lg {% if motyw_klienta %}client-muted hover:bg-white/70 dark:hover:bg-white/10{% else %}text-slate-500 hover:bg-slate-100{% endif %}">Wyloguj</a>
             {% endif %}
           {% endif %}
         </div>
@@ -249,7 +338,7 @@
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="mt-auto border-t {% if motyw_rozowy %}client-footer{% else %}border-slate-200 bg-white{% endif %}">
+  <footer class="mt-auto border-t {% if motyw_klienta %}client-footer{% else %}border-slate-200 bg-white{% endif %}">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 text-center text-sm">
       <p>&copy; 2026 Glovaro — panel dla sektora beauty &amp; wellness</p>
       <div class="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2">
@@ -260,13 +349,13 @@
     </div>
   </footer>
 
-  <div id="cookie-banner" class="fixed inset-x-0 bottom-0 z-[200] hidden border-t p-4 shadow-2xl backdrop-blur {% if motyw_rozowy %}border-brand-300 dark:border-brand-900 bg-white/95 dark:bg-[#12060d]/95{% else %}border-slate-200 bg-white/95{% endif %}">
+  <div id="cookie-banner" class="fixed inset-x-0 bottom-0 z-[200] hidden border-t p-4 shadow-2xl backdrop-blur {% if motyw_klienta %}client-card{% else %}border-slate-200 bg-white/95{% endif %}">
     <div class="mx-auto flex max-w-5xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div class="text-sm {% if motyw_rozowy %}client-muted{% else %}text-slate-600{% endif %}">
-        <p class="font-semibold {% if motyw_rozowy %}client-heading{% else %}text-slate-900{% endif %}">Pliki cookies</p>
+      <div class="text-sm {% if motyw_klienta %}client-muted{% else %}text-slate-600{% endif %}">
+        <p class="font-semibold {% if motyw_klienta %}client-heading{% else %}text-slate-900{% endif %}">Pliki cookies</p>
         <p>Używamy niezbędnych cookies i localStorage do logowania, rezerwacji i ustawień wyświetlania. Szczegóły: <a href="{{ url_for('polityka_cookies') }}" class="font-semibold text-brand-600 dark:text-brand-400 hover:underline">cookies</a>, <a href="{{ url_for('polityka_prywatnosci') }}" class="font-semibold text-brand-600 dark:text-brand-400 hover:underline">prywatność</a>.</p>
       </div>
-      <button type="button" onclick="acceptCookies()" class="rounded-xl px-5 py-3 text-sm font-semibold text-white {% if motyw_rozowy %}client-btn-primary{% else %}bg-slate-900 hover:bg-slate-800{% endif %}">
+      <button type="button" onclick="acceptCookies()" class="rounded-xl px-5 py-3 text-sm font-semibold {% if motyw_klienta %}client-btn-primary{% else %}text-white bg-slate-900 hover:bg-slate-800{% endif %}">
         Rozumiem
       </button>
     </div>

@@ -79,6 +79,7 @@ DEFAULT_SALON = {
     "zdjecia_prac": [],
     "pracownicy": [],
     "uslugi": [],
+    "motyw_strony": "rozowy",
     "abonament_status": "trial",
     "oplata_miesieczna": 100,
     "oplacone_do": "",
@@ -139,6 +140,8 @@ MOTYW_ROZOWY_ENDPOINTS = WIDOK_KLIENTA_ENDPOINTS | {
     "polityka_cookies",
 }
 
+MOTYWY_STRONY = frozenset({"rozowy", "neutralny"})
+
 
 def slugify(wartosc: str) -> str:
     wartosc = wartosc.lower()
@@ -187,6 +190,7 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("zdjecia_prac", [])
             salon.setdefault("pracownicy", [])
             salon.setdefault("uslugi", [])
+            salon.setdefault("motyw_strony", "rozowy")
             salon.setdefault("abonament_status", "trial")
             salon.setdefault("oplata_miesieczna", 100)
             salon.setdefault("oplacone_do", "")
@@ -1586,6 +1590,11 @@ def haslo_panelu(salon: dict) -> str:
     return (salon.get("haslo_panelu") or PANEL_PASSWORD or "").strip()
 
 
+def motyw_strony_salonu(salon: dict | None) -> str:
+    motyw = str((salon or {}).get("motyw_strony", "rozowy")).strip()
+    return motyw if motyw in MOTYWY_STRONY else "rozowy"
+
+
 def zalogowany_do_salonu(salon_slug: str) -> bool:
     return bool(session.get(panel_auth_key(salon_slug)) or session.get(admin_auth_key()))
 
@@ -1636,12 +1645,21 @@ def dodaj_naglowki_bezpieczenstwa(response):
 @app.context_processor
 def inject_globals():
     salon_slug = request.view_args.get("salon_slug") if request.view_args else None
+    widok_klienta = request.endpoint in WIDOK_KLIENTA_ENDPOINTS
+    motyw_klienta = request.endpoint in MOTYW_ROZOWY_ENDPOINTS
+    motyw_strony = "rozowy"
+    if widok_klienta and salon_slug:
+        dane = wczytaj_dane()
+        motyw_strony = motyw_strony_salonu(pobierz_salon(dane, salon_slug))
     return {
         "dni_tygodnia": DNI_TYGODNIA,
         "panel_chroniony_haslem": bool(PANEL_PASSWORD),
         "zalogowany_do_panelu": bool(salon_slug and zalogowany_do_salonu(salon_slug)),
-        "widok_klienta": request.endpoint in WIDOK_KLIENTA_ENDPOINTS,
-        "motyw_rozowy": request.endpoint in MOTYW_ROZOWY_ENDPOINTS,
+        "widok_klienta": widok_klienta,
+        "motyw_klienta": motyw_klienta,
+        "motyw_strony": motyw_strony,
+        "motyw_rozowy": motyw_klienta and motyw_strony == "rozowy",
+        "motyw_neutralny": motyw_klienta and motyw_strony == "neutralny",
         "aktywny_salon_slug": salon_slug,
         "stripe_skonfigurowany": stripe_skonfigurowany(),
         "legal": {
@@ -1814,6 +1832,26 @@ def panel_nowy_salon():
     zapisz_dane(dane)
     flash(f"Dodano salon: {nazwa}.", "success")
     return redirect(url_for("panel", salon_slug=slug))
+
+
+@app.route("/panel/<salon_slug>/usun", methods=["POST"])
+def panel_usun_salon(salon_slug: str):
+    if not session.get(admin_auth_key()):
+        flash("Salon może usunąć tylko główny administrator Glovaro.", "error")
+        return redirect(url_for("panel", salon_slug=salon_slug))
+
+    dane = wczytaj_dane()
+    salon = pobierz_salon(dane, salon_slug)
+    if not salon:
+        flash("Nie znaleziono takiego salonu.", "error")
+        return redirect(url_for("panel_lista"))
+
+    nazwa = salon.get("nazwa_salonu", salon_slug)
+    dane.get("salony", {}).pop(salon_slug, None)
+    zapisz_dane(dane)
+    session.pop(panel_auth_key(salon_slug), None)
+    flash(f"Usunięto salon: {nazwa}.", "success")
+    return redirect(url_for("panel_lista"))
 
 
 @app.route("/panel/<salon_slug>/rozliczenia", methods=["POST"])
@@ -2034,6 +2072,9 @@ def ustawienia_salonu(salon_slug: str):
         link_google_maps = normalizuj_url_https(request.form.get("link_google_maps", ""))
         instagram = request.form.get("instagram", "").strip()
         email_powiadomien = request.form.get("email_powiadomien", "").strip()
+        motyw_strony = request.form.get("motyw_strony", "rozowy").strip()
+        if motyw_strony not in MOTYWY_STRONY:
+            motyw_strony = "rozowy"
         tryb_platnosci = request.form.get("tryb_platnosci_wizyty", "w_salonie").strip()
         if tryb_platnosci not in TRYBY_PLATNOSCI_WIZYTY:
             tryb_platnosci = "w_salonie"
@@ -2070,6 +2111,7 @@ def ustawienia_salonu(salon_slug: str):
             salon["telefon_kontaktowy"] = telefon
             salon["instagram"] = instagram
             salon["email_powiadomien"] = email_powiadomien
+            salon["motyw_strony"] = motyw_strony
             salon["platnosc_online_wlaczona"] = platnosc_online_wlaczona
             salon["cena_wizyty"] = cena_wizyty
             salon["pracownicy"] = pracownicy
