@@ -88,7 +88,7 @@
       <div class="flex flex-wrap gap-2">
         {% for d in najblizsze_daty %}
           <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug, data=d.data) }}"
-            class="rounded-2xl px-4 py-3 text-left border transition-all {% if d.data == wybrana_data %}border-brand-500 bg-brand-50 dark:bg-brand-950/50 ring-2 ring-brand-300{% else %}border-brand-100 dark:border-brand-900 hover:border-brand-300{% endif %}">
+            class="client-soft-panel rounded-2xl px-4 py-3 text-left border transition-all {% if d.data == wybrana_data %}border-brand-500 ring-2 ring-brand-300{% else %}hover:border-brand-300{% endif %}">
             <span class="block text-xs client-muted">{{ d.dzien }}</span>
             <span class="block font-bold client-heading">{{ d.data[8:10] }}.{{ d.data[5:7] }}</span>
             <span class="block text-sm text-brand-700 dark:text-brand-400 font-semibold mt-0.5">od {{ d.pierwszy }}</span>
