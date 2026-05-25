@@ -1846,6 +1846,14 @@ def panel_usun_salon(salon_slug: str):
         flash("Nie znaleziono takiego salonu.", "error")
         return redirect(url_for("panel_lista"))
 
+    potwierdzenie = request.form.get("potwierdz_usuniecie", "").strip()
+    if potwierdzenie != salon_slug:
+        flash(
+            f"Aby usunąć salon, wpisz dokładnie jego link: {salon_slug}.",
+            "error",
+        )
+        return redirect(url_for("panel_lista"))
+
     nazwa = salon.get("nazwa_salonu", salon_slug)
     dane.get("salony", {}).pop(salon_slug, None)
     zapisz_dane(dane)
