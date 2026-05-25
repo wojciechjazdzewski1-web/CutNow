@@ -122,10 +122,10 @@
       {% if pracownicy %}
         <div>
           <label class="block text-xs font-medium text-brand-100 mb-1">Pracownik</label>
-          <select name="wizyta_pracownik" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-white">
-            <option value="">— dowolny / nie podano —</option>
+          <select name="wizyta_pracownik" class="w-full rounded-xl border border-white/20 bg-white px-3 py-2 text-slate-900">
+            <option class="text-slate-900 bg-white" value="">— dowolny / nie podano —</option>
             {% for p in pracownicy %}
-              <option value="{{ p }}">{{ p }}</option>
+              <option class="text-slate-900 bg-white" value="{{ p }}">{{ p }}</option>
             {% endfor %}
           </select>
         </div>
@@ -133,19 +133,19 @@
       {% if uslugi %}
         <div>
           <label class="block text-xs font-medium text-brand-100 mb-1">Usługa</label>
-          <select name="wizyta_usluga" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-white">
-            <option value="">— opcjonalnie —</option>
+          <select name="wizyta_usluga" class="w-full rounded-xl border border-white/20 bg-white px-3 py-2 text-slate-900">
+            <option class="text-slate-900 bg-white" value="">— opcjonalnie —</option>
             {% for u in uslugi %}
-              <option value="{{ u.nazwa }}">{{ u.nazwa }}</option>
+              <option class="text-slate-900 bg-white" value="{{ u.nazwa }}">{{ u.nazwa }}</option>
             {% endfor %}
           </select>
         </div>
       {% endif %}
       <div>
         <label class="block text-xs font-medium text-brand-100 mb-1">Status</label>
-        <select name="wizyta_status" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-white">
-          <option value="potwierdzona">Potwierdzona</option>
-          <option value="oczekuje">Oczekuje</option>
+        <select name="wizyta_status" class="w-full rounded-xl border border-white/20 bg-white px-3 py-2 text-slate-900">
+          <option class="text-slate-900 bg-white" value="potwierdzona">Potwierdzona</option>
+          <option class="text-slate-900 bg-white" value="oczekuje">Oczekuje</option>
         </select>
       </div>
       <div>
