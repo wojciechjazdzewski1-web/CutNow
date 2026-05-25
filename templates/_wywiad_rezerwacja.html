@@ -1,9 +1,9 @@
 {% if wywiad_przy_rezerwacji and tresc_wywiadu %}
-  <div class="rounded-xl border border-violet-200 dark:border-violet-900 bg-violet-50/80 dark:bg-violet-950/30 p-4 space-y-4">
+  <div class="client-soft-panel rounded-xl border p-4 space-y-4">
     <h2 class="text-sm font-semibold client-heading">Oświadczenie zdrowotne</h2>
     <p class="text-xs client-muted">Przeczytaj uważnie treść przygotowaną przez {{ dane.nazwa_salonu }}. Nie musisz odpowiadać na pytania — wystarczy akceptacja.</p>
 
-    <div class="max-h-64 overflow-y-auto rounded-xl border border-violet-200/80 dark:border-violet-800 bg-white/70 dark:bg-slate-900/50 p-4 text-sm client-heading leading-relaxed whitespace-pre-wrap">{{ tresc_wywiadu }}</div>
+    <div class="max-h-64 overflow-y-auto rounded-xl border border-brand-200/80 dark:border-brand-700 bg-white/80 dark:bg-black/20 p-4 text-sm client-heading leading-relaxed whitespace-pre-wrap">{{ tresc_wywiadu }}</div>
 
     <label class="flex items-start gap-3 cursor-pointer">
       <input type="checkbox" name="przeczytalem_wywiad" value="on" required class="mt-1 h-4 w-4 rounded text-brand-600 focus:ring-brand-500">

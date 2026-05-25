@@ -166,6 +166,37 @@
       background: var(--glo-surface-muted) !important;
       border: 1px solid var(--glo-border-soft) !important;
     }
+    .client-soft-panel {
+      background: #fff0f7 !important;
+      border-color: var(--glo-border-soft) !important;
+      color: var(--glo-text) !important;
+    }
+    .client-soft-panel .client-muted {
+      color: #831843 !important;
+    }
+    html.dark .client-soft-panel {
+      background: #3a1128 !important;
+      border-color: #f472b6 !important;
+      color: #fdf2f8 !important;
+    }
+    html.dark .client-soft-panel .client-heading,
+    html.dark .client-soft-panel strong {
+      color: #ffffff !important;
+    }
+    html.dark .client-soft-panel .client-muted,
+    html.dark .client-soft-panel a {
+      color: #fce7f3 !important;
+    }
+    html.dark #cookie-banner {
+      background: rgba(42, 16, 28, 0.98) !important;
+      border-color: #f472b6 !important;
+    }
+    html.dark #cookie-banner .client-heading {
+      color: #ffffff !important;
+    }
+    html.dark #cookie-banner .client-muted {
+      color: #fce7f3 !important;
+    }
   </style>
   {% endif %}
   {% block head_extra %}{% endblock %}
