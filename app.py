@@ -86,6 +86,7 @@ MIESIACE = [
 
 DEFAULT_SALON = {
     "nazwa_salonu": "Mój Salon",
+    "branza": "beauty",
     "haslo_panelu": "",
     "opis": "",
     "telefon_kontaktowy": "",
@@ -161,6 +162,60 @@ MOTYW_ROZOWY_ENDPOINTS = WIDOK_KLIENTA_ENDPOINTS | {
 
 MOTYWY_STRONY = frozenset({"rozowy", "neutralny"})
 
+BRANZE_DZIALALNOSCI = [
+    {
+        "slug": "beauty",
+        "nazwa": "Beauty / salon urody",
+        "opis": "Paznokcie, kosmetologia, makijaż, brwi i rzęsy.",
+    },
+    {
+        "slug": "fryzjer-barber",
+        "nazwa": "Fryzjer / barber",
+        "opis": "Strzyżenie, koloryzacja, broda i pielęgnacja włosów.",
+    },
+    {
+        "slug": "detailing-samochodowy",
+        "nazwa": "Detailing samochodowy",
+        "opis": "Mycie premium, korekta lakieru, powłoki i wnętrza.",
+    },
+    {
+        "slug": "fizjoterapia-masaz",
+        "nazwa": "Fizjoterapia / masaż",
+        "opis": "Zabiegi, masaże, rehabilitacja i konsultacje.",
+    },
+    {
+        "slug": "trener-personalny",
+        "nazwa": "Trener personalny",
+        "opis": "Treningi indywidualne, konsultacje i plany.",
+    },
+    {
+        "slug": "groomer",
+        "nazwa": "Groomer / pielęgnacja zwierząt",
+        "opis": "Strzyżenie, kąpiele i pielęgnacja psów oraz kotów.",
+    },
+    {
+        "slug": "fotograf",
+        "nazwa": "Fotograf",
+        "opis": "Sesje zdjęciowe, studio, plener i konsultacje.",
+    },
+    {
+        "slug": "korepetycje",
+        "nazwa": "Korepetycje / lekcje",
+        "opis": "Nauka języków, przedmioty szkolne, instrumenty.",
+    },
+    {
+        "slug": "serwis-naprawy",
+        "nazwa": "Serwis / naprawy",
+        "opis": "Serwis rowerowy, opony, drobne naprawy i konsultacje.",
+    },
+    {
+        "slug": "inne",
+        "nazwa": "Inne",
+        "opis": "Każda firma, która umawia klientów na konkretną godzinę.",
+    },
+]
+BRANZE_MAP = {branza["slug"]: branza for branza in BRANZE_DZIALALNOSCI}
+
 
 def slugify(wartosc: str) -> str:
     wartosc = wartosc.lower()
@@ -188,6 +243,15 @@ def domyslny_slug(dane: dict) -> str:
     return next(iter(salony), "demo")
 
 
+def normalizuj_branze(wartosc: str | None) -> str:
+    slug = (wartosc or "beauty").strip()
+    return slug if slug in BRANZE_MAP else "beauty"
+
+
+def etykieta_branzy(wartosc: str | None) -> str:
+    return BRANZE_MAP[normalizuj_branze(wartosc)]["nazwa"]
+
+
 def nowy_salon(nazwa: str = "Mój Salon", haslo: str = "") -> dict:
     salon = copy.deepcopy(DEFAULT_SALON)
     salon["nazwa_salonu"] = nazwa
@@ -199,6 +263,7 @@ def migracja_danych(dane: dict) -> dict:
     if "salony" in dane:
         for slug, salon in dane["salony"].items():
             salon.setdefault("slug", slug)
+            salon.setdefault("branza", "beauty")
             salon.setdefault("haslo_panelu", "")
             salon.setdefault("opis", "")
             salon.setdefault("telefon_kontaktowy", "")
@@ -902,6 +967,31 @@ def najblizsze_daty_z_terminami(
         if len(wynik) >= limit:
             break
     return wynik
+
+
+def katalog_firm_z_terminami(dane: dict, branza: str | None = None) -> list[dict]:
+    wybrana_branza = normalizuj_branze(branza) if branza else ""
+    wynik = []
+    for slug, salon in dane.get("salony", {}).items():
+        if salon_wstrzymany(salon):
+            continue
+        branza_salonu = normalizuj_branze(salon.get("branza"))
+        if wybrana_branza and branza_salonu != wybrana_branza:
+            continue
+        najblizsze = najblizsze_daty_z_terminami(salon, limit=3)
+        wynik.append(
+            {
+                "slug": slug,
+                "nazwa": salon.get("nazwa_salonu", slug),
+                "opis": salon.get("opis", ""),
+                "adres": salon.get("adres_lokalizacji", ""),
+                "branza": branza_salonu,
+                "branza_nazwa": etykieta_branzy(branza_salonu),
+                "najblizsze": najblizsze,
+                "pierwszy_termin": najblizsze[0]["data"] if najblizsze else "9999-99-99",
+            }
+        )
+    return sorted(wynik, key=lambda f: (f["pierwszy_termin"], f["nazwa"].lower()))
 
 
 def domyslna_data_rezerwacji(salon: dict, preferowana: str | None = None) -> str:
@@ -1818,6 +1908,9 @@ def inject_globals():
         motyw_strony = motyw_strony_salonu(pobierz_salon(dane, salon_slug))
     return {
         "dni_tygodnia": DNI_TYGODNIA,
+        "branze_dzialalnosci": BRANZE_DZIALALNOSCI,
+        "branze_map": BRANZE_MAP,
+        "etykieta_branzy": etykieta_branzy,
         "panel_chroniony_haslem": bool(PANEL_PASSWORD),
         "zalogowany_do_panelu": bool(salon_slug and zalogowany_do_salonu(salon_slug)),
         "widok_klienta": widok_klienta,
@@ -1960,7 +2053,16 @@ def wyczysc_rezerwacje_task():
 @app.route("/")
 def strona_glowna():
     dane = wczytaj_dane()
-    return render_template("index.html", salony=dane.get("salony", {}))
+    wybrana_branza = request.args.get("branza", "").strip()
+    if wybrana_branza and wybrana_branza not in BRANZE_MAP:
+        wybrana_branza = ""
+    return render_template(
+        "index.html",
+        salony=dane.get("salony", {}),
+        wybrana_branza=wybrana_branza,
+        wybrana_branza_nazwa=etykieta_branzy(wybrana_branza) if wybrana_branza else "",
+        firmy_branzy=katalog_firm_z_terminami(dane, wybrana_branza),
+    )
 
 
 @app.route("/regulamin")
@@ -2000,6 +2102,7 @@ def panel_nowy_salon():
     dane = wczytaj_dane()
     nazwa = request.form.get("nazwa_salonu", "").strip()
     haslo = request.form.get("haslo_panelu", "").strip()
+    branza = normalizuj_branze(request.form.get("branza", "beauty"))
     slug = slugify(request.form.get("slug", "").strip() or nazwa)
 
     if not nazwa:
@@ -2011,6 +2114,7 @@ def panel_nowy_salon():
 
     salon = nowy_salon(nazwa, haslo)
     salon["slug"] = slug
+    salon["branza"] = branza
     dane.setdefault("salony", {})[slug] = salon
     zapisz_dane(dane)
     flash(f"Dodano salon: {nazwa}.", "success")
@@ -2256,6 +2360,7 @@ def ustawienia_salonu(salon_slug: str):
 
     if request.method == "POST":
         nazwa = request.form.get("nazwa_salonu", "").strip()
+        branza = normalizuj_branze(request.form.get("branza", "beauty"))
         haslo = request.form.get("haslo_panelu", "").strip()
         opis = request.form.get("opis", "").strip()
         telefon = request.form.get("telefon_kontaktowy", "").strip()
@@ -2304,6 +2409,7 @@ def ustawienia_salonu(salon_slug: str):
         salon["link_szybkiej_platnosci"] = link_szybkiej_platnosci
         if nazwa:
             salon["nazwa_salonu"] = nazwa
+            salon["branza"] = branza
             salon["opis"] = opis
             salon["telefon_kontaktowy"] = telefon
             salon["instagram"] = instagram

@@ -1,16 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Salony — Glovaro{% endblock %}
+{% block title %}Firmy — Glovaro{% endblock %}
 
 {% block content %}
 <div class="mb-8">
-  <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Salony w Glovaro</h1>
-  <p class="text-slate-600 mt-1">Dodaj salon beauty &amp; wellness i wyślij mu osobny link do rezerwacji.</p>
+  <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Firmy w Glovaro</h1>
+  <p class="text-slate-600 mt-1">Dodaj firmę usługową i wyślij jej osobny link do rezerwacji.</p>
   <p class="text-xs text-slate-500 mt-2">Korzystając z panelu, akceptujesz <a href="{{ url_for('regulamin') }}" class="text-brand-700 hover:underline">regulamin</a> i <a href="{{ url_for('polityka_prywatnosci') }}" class="text-brand-700 hover:underline">politykę prywatności</a> Glovaro.</p>
 </div>
 
 <div class="grid lg:grid-cols-3 gap-6">
   <section class="lg:col-span-2 rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
-    <h2 class="font-semibold text-slate-900 mb-4">Aktywne salony</h2>
+    <h2 class="font-semibold text-slate-900 mb-4">Aktywne firmy</h2>
     {% if salony %}
       <div class="space-y-3">
         {% for slug, salon in salony.items()|sort %}
@@ -20,6 +20,7 @@
               <div>
                 <h3 class="font-semibold text-slate-900">{{ salon.nazwa_salonu }}</h3>
                 <p class="text-sm text-slate-500">Link: <code>/rezerwacja/{{ slug }}</code></p>
+                <p class="text-xs text-slate-500 mt-1">Branża: {{ etykieta_branzy(salon.branza) }}</p>
                 <div class="mt-2 flex flex-wrap gap-2 text-xs">
                   {% if salon.abonament_status == 'suspended' %}
                     <span class="rounded-full bg-red-100 px-3 py-1 font-medium text-red-700">Wstrzymany</span>
@@ -93,16 +94,24 @@
   </section>
 
   <aside class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm h-fit">
-    <h2 class="font-semibold text-slate-900 mb-4">Dodaj nowy salon</h2>
+    <h2 class="font-semibold text-slate-900 mb-4">Dodaj nową firmę</h2>
     <form method="post" action="{{ url_for('panel_nowy_salon') }}" class="space-y-4">
       <div>
-        <label for="nazwa_salonu" class="block text-sm font-medium text-slate-700 mb-2">Nazwa salonu</label>
+        <label for="nazwa_salonu" class="block text-sm font-medium text-slate-700 mb-2">Nazwa firmy</label>
         <input id="nazwa_salonu" name="nazwa_salonu" required class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none" placeholder="np. Barber Jan">
       </div>
       <div>
         <label for="slug" class="block text-sm font-medium text-slate-700 mb-2">Nazwa w linku</label>
         <input id="slug" name="slug" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none" placeholder="np. barber-jan">
         <p class="text-xs text-slate-500 mt-1">Jeśli zostawisz puste, Glovaro utworzy link z nazwy.</p>
+      </div>
+      <div>
+        <label for="branza" class="block text-sm font-medium text-slate-700 mb-2">Typ działalności</label>
+        <select id="branza" name="branza" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none">
+          {% for branza in branze_dzialalnosci %}
+            <option value="{{ branza.slug }}">{{ branza.nazwa }}</option>
+          {% endfor %}
+        </select>
       </div>
       <div>
         <label for="haslo_panelu" class="block text-sm font-medium text-slate-700 mb-2">Hasło do panelu tego salonu</label>

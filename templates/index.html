@@ -1,25 +1,25 @@
 {% extends "base.html" %}
-{% block title %}Glovaro — Panel beauty &amp; wellness{% endblock %}
+{% block title %}Glovaro — rezerwacje dla usług lokalnych{% endblock %}
 
 {% block content %}
 <section class="text-center max-w-2xl mx-auto">
   <div class="inline-flex items-center gap-2 rounded-full bg-brand-100 text-brand-800 px-4 py-1.5 text-sm font-medium mb-6 border border-brand-200">
     <span class="h-2 w-2 rounded-full bg-brand-500 animate-pulse"></span>
-    Proste narzędzie dla beauty &amp; wellness
+    Proste rezerwacje dla usług lokalnych
   </div>
 
   <h1 class="text-4xl sm:text-5xl font-bold tracking-tight client-heading mb-4">
-    Twój salon.<br>
-    <span class="bg-gradient-to-r from-brand-600 to-brand-500 bg-clip-text text-transparent">Twoje terminy.</span>
+    Znajdź usługę.<br>
+    <span class="bg-gradient-to-r from-brand-600 to-brand-500 bg-clip-text text-transparent">Wybierz wolny termin.</span>
   </h1>
 
   <p class="text-lg client-muted mb-10 leading-relaxed">
-    Glovaro pomaga obsługiwać wiele salonów naraz: każdy punkt beauty &amp; wellness dostaje osobny link, własny panel i własne rezerwacje online.
+    Glovaro łączy klientów z firmami, które umawiają wizyty na konkretną godzinę: od beauty, przez detailing samochodowy, po trenerów i serwisy.
   </p>
 
   <div class="flex flex-col sm:flex-row gap-3 justify-center">
     <a href="{{ url_for('panel_lista') }}" class="client-btn-primary inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 font-semibold shadow-lg shadow-brand-500/30 transition-all hover:-translate-y-0.5">
-      Otwórz panel salonów
+      Otwórz panel firm
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
     </a>
     {% if salony %}
@@ -31,13 +31,90 @@
   </div>
 </section>
 
+<section class="mt-16">
+  <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+    <div>
+      <h2 class="text-2xl font-bold client-heading">Jakiej usługi szukasz?</h2>
+      <p class="client-muted mt-1">Wybierz branżę i zobacz firmy z wolnymi terminami.</p>
+    </div>
+    {% if wybrana_branza %}
+      <a href="{{ url_for('strona_glowna') }}" class="text-sm font-semibold text-brand-700 hover:underline">Pokaż wszystkie branże</a>
+    {% endif %}
+  </div>
+
+  <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+    {% for branza in branze_dzialalnosci %}
+      <a href="{{ url_for('strona_glowna', branza=branza.slug) }}"
+        class="client-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg {% if wybrana_branza == branza.slug %}ring-2 ring-brand-400{% endif %}">
+        <p class="font-semibold client-heading">{{ branza.nazwa }}</p>
+        <p class="text-xs client-muted mt-1 leading-relaxed">{{ branza.opis }}</p>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="mt-14">
+  <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+    <div>
+      <h2 class="text-2xl font-bold client-heading">
+        {% if wybrana_branza %}Firmy: {{ wybrana_branza_nazwa }}{% else %}Firmy z wolnymi terminami{% endif %}
+      </h2>
+      <p class="client-muted mt-1">Kliknij firmę, aby przejść do jej rezerwacji online.</p>
+    </div>
+  </div>
+
+  {% if firmy_branzy %}
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {% for firma in firmy_branzy %}
+        <article class="client-card p-5 flex flex-col">
+          <div class="flex-1">
+            <p class="text-xs font-semibold text-brand-700 mb-2">{{ firma.branza_nazwa }}</p>
+            <h3 class="text-lg font-bold client-heading">{{ firma.nazwa }}</h3>
+            {% if firma.opis %}
+              <p class="text-sm client-muted mt-2 line-clamp-3">{{ firma.opis }}</p>
+            {% endif %}
+            {% if firma.adres %}
+              <p class="text-xs client-muted mt-2">{{ firma.adres }}</p>
+            {% endif %}
+
+            <div class="mt-4">
+              {% if firma.najblizsze %}
+                <p class="text-xs font-semibold client-heading mb-2">Najbliższe terminy:</p>
+                <div class="flex flex-wrap gap-2">
+                  {% for termin in firma.najblizsze %}
+                    <span class="rounded-lg bg-brand-50 border border-brand-100 px-2.5 py-1 text-xs font-medium text-brand-800">
+                      {{ termin.data }} · {{ termin.pierwszy }}
+                    </span>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p class="text-sm client-muted">Brak widocznych wolnych terminów.</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <a href="{{ url_for('rezerwacja_publiczna', salon_slug=firma.slug) }}"
+            class="mt-5 client-btn-primary inline-flex justify-center rounded-xl px-4 py-3 text-sm font-semibold">
+            Rezerwuj termin
+          </a>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="client-card p-6 text-center">
+      <p class="client-heading font-semibold">Nie ma jeszcze firm w tej branży.</p>
+      <p class="client-muted text-sm mt-2">Dodaj pierwszą firmę w panelu albo wybierz inną kategorię.</p>
+    </div>
+  {% endif %}
+</section>
+
 <section class="mt-20 grid sm:grid-cols-3 gap-6">
   <article class="client-card p-6 hover:shadow-lg transition-shadow">
     <div class="h-11 w-11 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center mb-4">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
     </div>
     <h3 class="font-semibold client-heading mb-2">Godziny pracy</h3>
-    <p class="text-sm client-muted">Ustaw otwarcie i zamknięcie dla każdego dnia tygodnia. Oznacz dni wolne jednym kliknięciem.</p>
+    <p class="text-sm client-muted">Ustaw otwarcie i zamknięcie firmy dla każdego dnia tygodnia. Oznacz dni wolne jednym kliknięciem.</p>
   </article>
 
   <article class="client-card p-6 hover:shadow-lg transition-shadow">
@@ -45,7 +122,7 @@
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
     </div>
     <h3 class="font-semibold client-heading mb-2">Wolne terminy</h3>
-    <p class="text-sm client-muted">Klienci rezerwują wizytę online — imię, telefon i gotowe. Ty widzisz listę w panelu.</p>
+    <p class="text-sm client-muted">Klienci rezerwują termin online — imię, telefon, e-mail i gotowe. Ty widzisz listę w panelu.</p>
   </article>
 
   <article class="client-card p-6 hover:shadow-lg transition-shadow">
