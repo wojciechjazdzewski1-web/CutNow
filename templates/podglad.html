@@ -57,7 +57,7 @@
       <div class="grid grid-cols-3 gap-2 sm:gap-3">
         {% for zdjecie in dane.zdjecia_prac[:6] %}
           <button type="button" onclick="openGalleryImage({{ zdjecie|tojson }})" class="{% if loop.first %}col-span-2 row-span-2{% endif %} block overflow-hidden rounded-2xl bg-brand-50 dark:bg-brand-950/50 aspect-square focus:ring-2 focus:ring-brand-500 outline-none">
-            <img src="{{ zdjecie }}" alt="Praca salonu {{ loop.index }}" class="h-full w-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy">
+            <img src="{{ zdjecie }}" alt="Praca salonu {{ loop.index }}" class="h-full w-full object-contain transition-transform duration-300" loading="lazy">
           </button>
         {% endfor %}
       </div>
@@ -115,6 +115,25 @@
     </section>
   {% endif %}
 
+  {% if not godziny.zamkniety %}
+    <div class="client-card p-6 mb-6">
+      <h2 class="text-sm font-medium client-muted uppercase tracking-wide mb-4">Wolne terminy</h2>
+      {% if terminy %}
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {% for t in terminy %}
+            <a href="{{ url_for('rezerwacja_formularz', salon_slug=salon_slug, data=wybrana_data, godzina=t) }}"
+              class="client-slot rounded-2xl font-bold py-5 text-center text-lg hover:-translate-y-0.5 transition-all shadow-sm">
+              {{ t }}
+            </a>
+          {% endfor %}
+        </div>
+        <p class="text-xs client-muted mt-4 text-center">Kliknij godzinę, podaj dane — gotowe.</p>
+      {% else %}
+        <p class="client-muted">Brak wolnych terminów na ten dzień. Wybierz inną datę.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
   <form id="date-picker-form" method="get" action="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="client-card mb-6 p-5">
     <label for="data" class="block text-sm font-medium client-heading mb-2">Inny dzień wizyty</label>
     <div class="flex gap-3">
@@ -148,25 +167,6 @@
       <p class="text-sm client-muted mt-1">{{ dni_tygodnia[dzien_tygodnia] }}, {{ wybrana_data }}</p>
     {% endif %}
   </div>
-
-  {% if not godziny.zamkniety %}
-    <div class="client-card p-6">
-      <h2 class="text-sm font-medium client-muted uppercase tracking-wide mb-4">Wolne terminy</h2>
-      {% if terminy %}
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {% for t in terminy %}
-            <a href="{{ url_for('rezerwacja_formularz', salon_slug=salon_slug, data=wybrana_data, godzina=t) }}"
-              class="client-slot rounded-2xl font-bold py-5 text-center text-lg hover:-translate-y-0.5 transition-all shadow-sm">
-              {{ t }}
-            </a>
-          {% endfor %}
-        </div>
-        <p class="text-xs client-muted mt-4 text-center">Kliknij godzinę, podaj dane — gotowe.</p>
-      {% else %}
-        <p class="client-muted">Brak wolnych terminów na ten dzień. Wybierz inną datę.</p>
-      {% endif %}
-    </div>
-  {% endif %}
 </div>
 
 {% if dane.zdjecia_prac %}
