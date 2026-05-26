@@ -72,6 +72,27 @@ def wczytaj_salon_raw(
     return salon if isinstance(salon, dict) else None
 
 
+def wczytaj_salony_raw(
+    *,
+    data_od: str | None = None,
+    data_do: str | None = None,
+    include_clients: bool = True,
+    include_reservations: bool = True,
+    include_free_slots: bool = True,
+    include_waitlist: bool = True,
+) -> dict | None:
+    if uzywaj_postgres():
+        return _wczytaj_postgres(
+            data_od=data_od,
+            data_do=data_do,
+            include_clients=include_clients,
+            include_reservations=include_reservations,
+            include_free_slots=include_free_slots,
+            include_waitlist=include_waitlist,
+        )
+    return _wczytaj_plik()
+
+
 def zapisz_raw(dane: dict) -> None:
     if uzywaj_postgres():
         _zapisz_postgres(dane)
@@ -246,11 +267,27 @@ def _init_postgres() -> None:
         _uzupelnij_szczegoly_salonow_jesli_puste(conn)
 
 
-def _wczytaj_postgres() -> dict | None:
+def _wczytaj_postgres(
+    *,
+    data_od: str | None = None,
+    data_do: str | None = None,
+    include_clients: bool = True,
+    include_reservations: bool = True,
+    include_free_slots: bool = True,
+    include_waitlist: bool = True,
+) -> dict | None:
     import psycopg
 
     with psycopg.connect(DATABASE_URL) as conn:
-        dane_salonow = _wczytaj_salony_z_tabeli(conn)
+        dane_salonow = _wczytaj_salony_z_tabeli(
+            conn,
+            data_od=data_od,
+            data_do=data_do,
+            include_clients=include_clients,
+            include_reservations=include_reservations,
+            include_free_slots=include_free_slots,
+            include_waitlist=include_waitlist,
+        )
         if dane_salonow is not None:
             return dane_salonow
         row = conn.execute("SELECT payload FROM glovaro_state WHERE id = 1").fetchone()
@@ -439,7 +476,17 @@ def _aktualizuj_salon_postgres(salon_slug: str, mutator):
         return wynik
 
 
-def _wczytaj_salony_z_tabeli(conn, for_update: bool = False) -> dict | None:
+def _wczytaj_salony_z_tabeli(
+    conn,
+    for_update: bool = False,
+    *,
+    data_od: str | None = None,
+    data_do: str | None = None,
+    include_clients: bool = True,
+    include_reservations: bool = True,
+    include_free_slots: bool = True,
+    include_waitlist: bool = True,
+) -> dict | None:
     query = "SELECT slug, payload FROM glovaro_salons"
     if for_update:
         query += " FOR UPDATE"
@@ -450,7 +497,17 @@ def _wczytaj_salony_z_tabeli(conn, for_update: bool = False) -> dict | None:
     for slug, payload in rows:
         salon = payload if isinstance(payload, dict) else json.loads(payload)
         salon.setdefault("slug", slug)
-        _wczytaj_szczegoly_salonu_z_tabel(conn, slug, salon)
+        _wczytaj_szczegoly_salonu_z_tabel(
+            conn,
+            slug,
+            salon,
+            data_od=data_od,
+            data_do=data_do,
+            include_clients=include_clients,
+            include_reservations=include_reservations,
+            include_free_slots=include_free_slots,
+            include_waitlist=include_waitlist,
+        )
         salony[slug] = salon
     return {"salony": salony}
 

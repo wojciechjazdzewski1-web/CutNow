@@ -46,6 +46,7 @@ from storage import (
     tryb_magazynu,
     wczytaj_raw,
     wczytaj_salon_raw,
+    wczytaj_salony_raw,
     zapisz_raw,
 )
 
@@ -610,6 +611,26 @@ def zakres_publicznej_rezerwacji(data_iso: str | None = None) -> tuple[str, str]
             start = min(start, wybrana)
     koniec = start + timedelta(days=HORYZONT_REZERWACJI_DNI)
     return start.isoformat(), koniec.isoformat()
+
+
+def wczytaj_dane_katalogowe() -> dict:
+    data_od, data_do = zakres_publicznej_rezerwacji()
+    dane = wczytaj_salony_raw(
+        data_od=data_od,
+        data_do=data_do,
+        include_clients=False,
+        include_reservations=True,
+        include_free_slots=True,
+        include_waitlist=False,
+    )
+    if dane is None:
+        return wczytaj_dane()
+    dane = migracja_danych(dane)
+    for salon in dane.get("salony", {}).values():
+        oczysc_uslugi_w_salonie(salon)
+        oczysc_anulowane_rezerwacje_salonu(salon)
+        synchronizuj_tresc_wywiadu_z_pytan(salon)
+    return dane
 
 
 def zakres_panelu_pulpit() -> tuple[str, str]:
@@ -2377,7 +2398,7 @@ def wyczysc_rezerwacje_task():
 
 @app.route("/")
 def strona_glowna():
-    dane = wczytaj_dane()
+    dane = wczytaj_dane_katalogowe()
     wybrana_branza = request.args.get("branza", "").strip()
     if wybrana_branza and wybrana_branza not in BRANZE_MAP:
         wybrana_branza = ""
