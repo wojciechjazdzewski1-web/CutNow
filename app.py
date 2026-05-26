@@ -61,15 +61,15 @@ RESEND_FROM = os.environ.get("RESEND_FROM", SMTP_FROM).strip()
 REMINDER_SECRET = os.environ.get("REMINDER_SECRET", "").strip()
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "").strip()
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
-LEGAL_COMPANY_NAME = os.environ.get("LEGAL_COMPANY_NAME", "Glovaro").strip()
-LEGAL_COMPANY_ADDRESS = os.environ.get("LEGAL_COMPANY_ADDRESS", "Uzupełnij adres firmy").strip()
-LEGAL_COMPANY_EMAIL = os.environ.get("LEGAL_COMPANY_EMAIL", "kontakt@example.com").strip()
+LEGAL_COMPANY_NAME = os.environ.get("LEGAL_COMPANY_NAME", "Glovaro.pl").strip()
+LEGAL_COMPANY_ADDRESS = os.environ.get("LEGAL_COMPANY_ADDRESS", "Miastecka 6/2").strip()
+LEGAL_COMPANY_EMAIL = os.environ.get("LEGAL_COMPANY_EMAIL", "glovaro.pl@glovaro.pl").strip()
 LEGAL_COMPANY_NIP = os.environ.get("LEGAL_COMPANY_NIP", "").strip()
 LEGAL_PLACEHOLDERS = frozenset(
     {"", "Uzupełnij adres firmy", "Uzupełnij NIP", "kontakt@example.com", "0000000000"}
 )
 LEGAL_UNREGISTERED_ACTIVITY = (
-    os.environ.get("LEGAL_UNREGISTERED_ACTIVITY", "auto").strip().lower()
+    os.environ.get("LEGAL_UNREGISTERED_ACTIVITY", "true").strip().lower()
 )
 REZERWACJA_RATE_LIMIT: dict[str, list[float]] = {}
 GODZIN_PO_WIZYCIE_DO_ARCHIWUM = 1

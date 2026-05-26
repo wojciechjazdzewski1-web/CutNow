@@ -5,11 +5,11 @@
 <article class="mx-auto max-w-3xl rounded-3xl bg-white p-6 sm:p-8 shadow-sm border border-slate-200">
   <p class="text-sm font-semibold text-brand-700 mb-2">RODO</p>
   <h1 class="text-3xl font-bold text-slate-900 mb-2">Polityka prywatności</h1>
-  <p class="text-sm text-slate-500 mb-6">Ostatnia aktualizacja: 20 maja 2026 r.</p>
+  <p class="text-sm text-slate-500 mb-6">Ostatnia aktualizacja: 26 maja 2026 r.</p>
 
   {% if not legal_skonfigurowany %}
   <p class="mb-8 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-4">
-    Uwaga dla operatora: uzupełnij dane kontaktowe w zmiennych <code>LEGAL_*</code> (imię i nazwisko / nazwa, adres do korespondencji, e-mail) przed publicznym startem.
+    Uwaga dla operatora: uzupełnij dane kontaktowe w zmiennych <code>LEGAL_*</code> przed publicznym startem.
   </p>
   {% endif %}
 
@@ -23,8 +23,8 @@
 
   <div class="space-y-8 text-slate-700 leading-relaxed">
     <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-3">1. Kto jest administratorem danych</h2>
-      <p><strong>Operator Glovaro</strong> (administrator w zakresie kont salonów, abonamentu, bezpieczeństwa Serwisu):</p>
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">1. Administratorzy danych</h2>
+      <p><strong>Operator Glovaro</strong> jest administratorem danych w zakresie działania Serwisu, kont Firm, abonamentu, bezpieczeństwa, komunikacji technicznej i obsługi zgłoszeń.</p>
       <ul class="mt-2 space-y-1">
         {% if legal.has_name or legal.has_address %}
           <li>
@@ -41,21 +41,21 @@
         {% endif %}
       </ul>
       {% if legal.unregistered_activity %}
-        <p class="mt-3 text-sm text-slate-600">Operator prowadzi działalność nierejestrowaną, dlatego nie podaje danych rejestrowych przedsiębiorcy.</p>
+        <p class="mt-3 text-sm text-slate-600">Operator prowadzi działalność nierejestrowaną, dlatego nie podaje danych rejestrowych przedsiębiorcy, chyba że zostaną dobrowolnie uzupełnione.</p>
       {% endif %}
-      <p class="mt-4"><strong>Salon</strong> (odrębny administrator w zakresie danych swoich klientów rezerwujących wizytę — imię, telefon, e-mail, termin, usługa, uwagi, opinia). Glovaro w tym zakresie działa jako <strong>podmiot przetwarzający</strong> na podstawie korzystania Salonu z narzędzia (art. 28 RODO).</p>
-      <p class="mt-2">W sprawach wizyty najpierw skontaktuj się z Salonem (dane kontaktowe na jego stronie rezerwacji). W sprawach technicznych Serwisu — z Operatorem pod adresem powyżej.</p>
+      <p class="mt-4"><strong>Firma korzystająca z Panelu</strong> jest odrębnym administratorem danych swoich Klientów w zakresie umawiania, realizacji i rozliczania wizyt. Glovaro udostępnia Firmie narzędzie techniczne i w tym zakresie może działać jako podmiot przetwarzający dane na zlecenie Firmy.</p>
+      <p class="mt-2">W sprawach dotyczących konkretnej wizyty lub usługi należy kontaktować się najpierw z Firmą, u której dokonano rezerwacji. W sprawach działania Serwisu należy kontaktować się z Operatorem.</p>
     </section>
 
     <section>
       <h2 class="text-xl font-semibold text-slate-900 mb-3">2. Jakie dane przetwarzamy</h2>
-      <h3 class="font-medium text-slate-800 mt-3 mb-2">2.1. Dane Salonu (konta w Panelu)</h3>
-      <p>Nazwa punktu, hasło panelu, opis, telefon, adres lokalizacji, link Google Maps, e-mail powiadomień, Instagram, zdjęcia prac, lista usług i cen, pracownicy, godziny pracy, wolne terminy, blokady, status abonamentu, data opłacenia, notatki rozliczeniowe, ustawienia płatności online.</p>
-      <h3 class="font-medium text-slate-800 mt-4 mb-2">2.2. Dane Klienta rezerwującego wizytę</h3>
-      <p>Imię i nazwisko, numer telefonu, adres e-mail, data i godzina wizyty, wybrana usługa i cena, wybrany pracownik, uwagi, status rezerwacji, tokeny do anulowania i wystawienia opinii, data utworzenia, informacja o opłaceniu online (jeśli dotyczy), treść opinii.</p>
+      <h3 class="font-medium text-slate-800 mt-3 mb-2">2.1. Dane Firmy i konta w Panelu</h3>
+      <p>Nazwa Firmy, hasło panelu, opis, telefon, adres lokalizacji, link Google Maps, e-mail powiadomień, Instagram, logo, zdjęcia, lista usług, ceny, czas trwania usług, pracownicy, godziny pracy, wolne terminy, blokady, status abonamentu, daty płatności, notatki rozliczeniowe i ustawienia płatności.</p>
+      <h3 class="font-medium text-slate-800 mt-4 mb-2">2.2. Dane Klienta rezerwującego termin</h3>
+      <p>Imię i nazwisko, numer telefonu, adres e-mail, data i godzina wizyty, wybrana usługa, cena, pracownik, uwagi, status rezerwacji, token do anulowania, token do opinii, informacja o płatności, zgody i oświadczenia wymagane przy formularzu, treść opinii oraz podstawowe dane historii wizyt w kartotece Firmy.</p>
       <h3 class="font-medium text-slate-800 mt-4 mb-2">2.3. Dane techniczne</h3>
-      <p>Adres IP, nagłówki przeglądarki, identyfikator sesji (cookie), logi zdarzeń, dane niezbędne do limitów anty-spamowych przy rezerwacji.</p>
-      <p class="mt-3 text-sm text-slate-600"><strong>Nie przechowujemy</strong> pełnych numerów kart płatniczych — obsługę kart zapewnia Stripe.</p>
+      <p>Adres IP, nagłówki przeglądarki, identyfikator sesji, logi serwera, informacje o błędach, czas odpowiedzi, dane zabezpieczające formularze przed nadużyciami i spamem.</p>
+      <p class="mt-3 text-sm text-slate-600"><strong>Nie przechowujemy pełnych numerów kart płatniczych.</strong> Płatności kartą, jeśli są używane, obsługuje Stripe jako zewnętrzny operator płatności.</p>
     </section>
 
     <section>
@@ -65,75 +65,77 @@
           <thead class="bg-slate-50">
             <tr>
               <th class="text-left p-3 border-b border-slate-200">Cel</th>
-              <th class="text-left p-3 border-b border-slate-200">Podstawa (RODO)</th>
+              <th class="text-left p-3 border-b border-slate-200">Podstawa prawna</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
-            <tr><td class="p-3">Obsługa rezerwacji i Panelu</td><td class="p-3">Art. 6 ust. 1 lit. b — wykonanie umowy / działania przed zawarciem</td></tr>
-            <tr><td class="p-3">Powiadomienia e-mail (nowa rezerwacja, przypomnienie)</td><td class="p-3">Art. 6 ust. 1 lit. b lub f — umowa / uzasadniony interes</td></tr>
-            <tr><td class="p-3">Płatności Stripe (abonament, wizyta)</td><td class="p-3">Art. 6 ust. 1 lit. b — wykonanie umowy</td></tr>
-            <tr><td class="p-3">Bezpieczeństwo, kopie zapasowe, logi</td><td class="p-3">Art. 6 ust. 1 lit. f — uzasadniony interes</td></tr>
-            <tr><td class="p-3">Rozliczenia i obowiązki prawne Operatora</td><td class="p-3">Art. 6 ust. 1 lit. c — obowiązek prawny</td></tr>
-            <tr><td class="p-3">Zgoda Klienta przy rezerwacji (checkbox)</td><td class="p-3">Art. 6 ust. 1 lit. a — gdy wymagana do dodatkowego zakresu</td></tr>
+            <tr><td class="p-3">Założenie i obsługa Panelu Firmy</td><td class="p-3">Art. 6 ust. 1 lit. b RODO — umowa lub działania przed zawarciem umowy</td></tr>
+            <tr><td class="p-3">Przyjmowanie i obsługa rezerwacji</td><td class="p-3">Art. 6 ust. 1 lit. b RODO — wykonanie umowy lub działania przed zawarciem umowy między Klientem a Firmą</td></tr>
+            <tr><td class="p-3">Powiadomienia e-mail i przypomnienia</td><td class="p-3">Art. 6 ust. 1 lit. b lub f RODO — obsługa rezerwacji i uzasadniony interes</td></tr>
+            <tr><td class="p-3">Abonament Glovaro i płatności techniczne</td><td class="p-3">Art. 6 ust. 1 lit. b oraz c RODO — umowa i obowiązki rozliczeniowe</td></tr>
+            <tr><td class="p-3">Bezpieczeństwo, logi, kopie zapasowe, przeciwdziałanie nadużyciom</td><td class="p-3">Art. 6 ust. 1 lit. f RODO — uzasadniony interes</td></tr>
+            <tr><td class="p-3">Obsługa zgłoszeń, reklamacji i roszczeń</td><td class="p-3">Art. 6 ust. 1 lit. f RODO — uzasadniony interes oraz obrona roszczeń</td></tr>
+            <tr><td class="p-3">Zgody i oświadczenia w formularzu rezerwacji</td><td class="p-3">Art. 6 ust. 1 lit. a RODO, jeśli zgoda jest wymagana dla danego zakresu</td></tr>
           </tbody>
         </table>
       </div>
     </section>
 
     <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-3">4. Odbiorcy danych (podprocesorzy)</h2>
-      <p>Dane mogą być powierzane dostawcom niezbędnym do działania Serwisu:</p>
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">4. Odbiorcy danych i dostawcy techniczni</h2>
+      <p>Dane mogą być przetwarzane przez dostawców niezbędnych do działania Serwisu:</p>
       <ul class="list-disc list-inside mt-2 space-y-1">
         <li><strong>Render</strong> — hosting aplikacji i baza PostgreSQL,</li>
-        <li><strong>Stripe</strong> — płatności online,</li>
-        <li><strong>Resend</strong> lub <strong>SMTP</strong> — wysyłka e-mail,</li>
-        <li><strong>GitHub</strong> — repozytorium kodu (bez danych klientów w kodzie),</li>
-        <li>dostawcy CDN / czcionek (np. Tailwind CDN, Google Fonts) — dane techniczne przeglądarki.</li>
+        <li><strong>Stripe</strong> — płatności online, jeśli są używane,</li>
+        <li><strong>Resend</strong> lub skonfigurowany serwer SMTP — wysyłka e-mail,</li>
+        <li><strong>GitHub</strong> — repozytorium kodu aplikacji, bez danych klientów zapisanych w kodzie,</li>
+        <li>dostawcy zasobów statycznych, np. CDN lub czcionki, jeśli są ładowane przez stronę.</li>
       </ul>
-      <p class="mt-3">Lista może się zmieniać przy zmianie infrastruktury — aktualizujemy politykę w takim przypadku.</p>
+      <p class="mt-3">Dane Klientów są też widoczne dla Firmy, u której Klient dokonuje rezerwacji.</p>
     </section>
 
     <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-3">5. Przekazywanie poza EOG</h2>
-      <p>Niektórzy dostawcy (np. Stripe, Render, Resend) mogą przetwarzać dane poza Europejskim Obszarem Gospodarczym. Odbywa się to na podstawie standardowych klauzul umownych (SCC) lub innych mechanizmów przewidzianych przez tych dostawców — zgodnie z ich dokumentacją prywatności.</p>
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">5. Przekazywanie danych poza EOG</h2>
+      <p>Niektórzy dostawcy, w szczególności Stripe, Render lub dostawcy poczty, mogą przetwarzać dane poza Europejskim Obszarem Gospodarczym. Odbywa się to na podstawie mechanizmów przewidzianych w RODO, w szczególności standardowych klauzul umownych lub innych zabezpieczeń stosowanych przez tych dostawców.</p>
     </section>
 
     <section>
       <h2 class="text-xl font-semibold text-slate-900 mb-3">6. Okres przechowywania</h2>
       <ul class="list-disc list-inside space-y-2">
-        <li><strong>Rezerwacje aktywne</strong> — do zakończenia lub anulowania wizyty oraz obsługi reklamacji.</li>
-        <li><strong>Archiwum rezerwacji</strong> — ok. 1 godziny po terminie wizyty wpis trafia do archiwum; następnie jest usuwany automatycznie po <strong>{{ dni_archiwum_rezerwacji }} dniach</strong> od daty wizyty (opinie klientów mogą pozostać w profilu Salonu).</li>
-        <li><strong>Dane konta Salonu</strong> — przez czas korzystania z Serwisu i do czasu żądania usunięcia, z zastrzeżeniem przechowywania wymaganego prawem (np. księgowość).</li>
-        <li><strong>Logi techniczne</strong> — przez okres uzasadniony bezpieczeństwem, zwykle do 12 miesięcy.</li>
+        <li><strong>Dane konta Firmy</strong> — przez czas korzystania z Serwisu, a później przez okres potrzebny do rozliczeń, obsługi roszczeń lub obowiązków prawnych.</li>
+        <li><strong>Aktywne rezerwacje</strong> — do czasu obsługi wizyty, anulowania, zakończenia lub rozliczenia.</li>
+        <li><strong>Archiwum rezerwacji</strong> — wpis trafia do archiwum po terminie wizyty i jest usuwany automatycznie po około <strong>{{ dni_archiwum_rezerwacji }} dniach</strong>, z wyjątkiem danych potrzebnych do opinii, rozliczeń, reklamacji lub roszczeń.</li>
+        <li><strong>Lista rezerwowa</strong> — przez czas potrzebny do kontaktu w sprawie wolnego terminu albo do usunięcia przez Firmę.</li>
+        <li><strong>Logi techniczne</strong> — przez okres potrzebny do bezpieczeństwa i diagnostyki, zwykle do 12 miesięcy.</li>
       </ul>
     </section>
 
     <section>
       <h2 class="text-xl font-semibold text-slate-900 mb-3">7. Prawa osób, których dane dotyczą</h2>
-      <p>Przysługuje Ci prawo: dostępu, sprostowania, usunięcia, ograniczenia przetwarzania, przenoszenia danych, sprzeciwu wobec przetwarzania na podstawie art. 6 ust. 1 lit. f oraz cofnięcia zgody (bez wpływu na zgodność z prawem przetwarzania przed cofnięciem).</p>
-      <p class="mt-2">Wnioski realizujemy w terminie do <strong>30 dni</strong> na: <strong>{{ legal.company_email }}</strong>. Możesz złożyć skargę do Prezesa UODO (<a href="https://uodo.gov.pl" class="text-brand-700 hover:underline" rel="noopener noreferrer">uodo.gov.pl</a>).</p>
-      <p class="mt-2">Nie stosujemy zautomatyzowanego podejmowania decyzji wywołującego skutki prawne wobec osób fizycznych.</p>
+      <p>Masz prawo żądać dostępu do danych, sprostowania, usunięcia, ograniczenia przetwarzania, przenoszenia danych, sprzeciwu wobec przetwarzania na podstawie uzasadnionego interesu oraz cofnięcia zgody, jeśli przetwarzanie odbywa się na podstawie zgody.</p>
+      <p class="mt-2">W sprawach danych przetwarzanych przez Operatora napisz na: <strong>{{ legal.company_email }}</strong>. W sprawach konkretnej wizyty warto najpierw skontaktować się z Firmą, u której dokonano rezerwacji.</p>
+      <p class="mt-2">Masz prawo złożyć skargę do Prezesa Urzędu Ochrony Danych Osobowych: <a href="https://uodo.gov.pl" class="text-brand-700 hover:underline" rel="noopener noreferrer">uodo.gov.pl</a>.</p>
     </section>
 
     <section>
       <h2 class="text-xl font-semibold text-slate-900 mb-3">8. Bezpieczeństwo</h2>
-      <p>Stosujemy m.in.: hasła do Panelu, tokeny w linkach anulowania i opinii, limity prób rezerwacji, szyfrowanie połączenia HTTPS, przechowywanie haseł i kluczy API w zmiennych środowiskowych serwera, kopie zapasowe bazy danych u dostawcy hostingu.</p>
-      <p class="mt-2">Żaden system nie gwarantuje 100% bezpieczeństwa — w razie podejrzenia naruszenia danych skontaktuj się z Operatorem niezwłocznie.</p>
+      <p>Stosujemy m.in. hasła do Panelu, indywidualne tokeny w linkach anulowania i opinii, szyfrowanie połączenia HTTPS, zmienne środowiskowe dla kluczy API, limity antyspamowe, logowanie błędów i kopie zapasowe po stronie infrastruktury.</p>
+      <p class="mt-2">Żaden system nie gwarantuje pełnego bezpieczeństwa. W razie podejrzenia naruszenia danych skontaktuj się z Operatorem niezwłocznie.</p>
     </section>
 
     <section>
       <h2 class="text-xl font-semibold text-slate-900 mb-3">9. Cookies i localStorage</h2>
-      <p>Szczegóły w <a href="{{ url_for('polityka_cookies') }}" class="text-brand-700 hover:underline">polityce cookies</a>. Na stronach klienta zapisywany jest m.in. wybór trybu jasnego/ciemnego w localStorage.</p>
+      <p>Serwis używa wyłącznie technologii niezbędnych do działania, bezpieczeństwa, logowania do Panelu, zapamiętania komunikatu cookies i preferencji wyglądu. Szczegóły opisuje <a href="{{ url_for('polityka_cookies') }}" class="text-brand-700 hover:underline">polityka cookies</a>.</p>
     </section>
 
     <section>
-      <h2 class="text-xl font-semibold text-slate-900 mb-3">10. Dzieci</h2>
-      <p>Serwis nie jest skierowany do osób poniżej 16 roku życia. Nie zbieramy świadomie danych dzieci bez zgody opiekuna.</p>
+      <h2 class="text-xl font-semibold text-slate-900 mb-3">10. Zautomatyzowane decyzje i profilowanie</h2>
+      <p>Serwis nie podejmuje wobec osób fizycznych decyzji wywołujących skutki prawne w sposób wyłącznie zautomatyzowany. Nie używamy danych do profilowania reklamowego.</p>
     </section>
 
     <section>
       <h2 class="text-xl font-semibold text-slate-900 mb-3">11. Zmiany polityki</h2>
-      <p>Polityka może być aktualizowana. Data ostatniej zmiany widnieje u góry dokumentu. Istotne zmiany mogą być dodatkowo komunikowane w Serwisie.</p>
+      <p>Polityka może być aktualizowana, szczególnie przy zmianie funkcji Serwisu, dostawców technicznych, sposobu płatności lub przepisów prawa. Aktualna wersja jest publikowana w Serwisie.</p>
     </section>
   </div>
 </article>
