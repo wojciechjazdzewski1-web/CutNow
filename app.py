@@ -2193,6 +2193,7 @@ def dolacz_firma():
         email = request.form.get("email_powiadomien", "").strip().lower()
         haslo = request.form.get("haslo_panelu", "").strip()
         zgoda = request.form.get("zgoda_regulamin") == "on"
+        pokaz_instrukcje = request.form.get("pokaz_instrukcje") == "on"
 
         if not nazwa:
             flash("Podaj nazwę firmy.", "error")
@@ -2229,6 +2230,8 @@ def dolacz_firma():
         zapisz_dane(dane)
         session[panel_auth_key(slug)] = True
         flash("Panel został utworzony. Uzupełnij profil, usługi i terminy, a potem opłać abonament, aby uruchomić rezerwacje.", "success")
+        if pokaz_instrukcje:
+            return redirect(url_for("panel", salon_slug=slug, tour=1))
         return redirect(url_for("ustawienia_salonu", salon_slug=slug, start=1))
 
     return render_template("dolacz.html")
@@ -2520,6 +2523,16 @@ def panel(salon_slug: str):
             "rezerwacje_7_dni": len(rezerwacje_7_dni),
         },
     )
+
+
+@app.route("/panel/<salon_slug>/instrukcja")
+def panel_instrukcja(salon_slug: str):
+    dane = wczytaj_dane()
+    salon = pobierz_salon(dane, salon_slug)
+    if not salon:
+        flash("Nie znaleziono takiej firmy.", "error")
+        return redirect(url_for("panel_lista"))
+    return render_template("instrukcja_panelu.html", dane=salon, salon_slug=salon_slug)
 
 
 @app.route("/panel/<salon_slug>/salon", methods=["GET", "POST"])

@@ -6,7 +6,9 @@
   <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Panel firmy</h1>
   <p class="text-slate-600 mt-1">{{ dane.nazwa_salonu }}</p>
   <div class="mt-3 flex flex-wrap gap-2 text-sm">
-    <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="text-brand-700 hover:underline">Link klienta: /rezerwacja/{{ salon_slug }}</a>
+    <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" class="text-brand-700 hover:underline" data-tour="link-klienta">Link klienta: /rezerwacja/{{ salon_slug }}</a>
+    <span class="text-slate-300">·</span>
+    <button type="button" class="text-brand-700 hover:underline" data-start-panel-tour>Instrukcja krok po kroku</button>
     {% if admin_zalogowany %}
       <span class="text-slate-300">·</span>
       <a href="{{ url_for('panel_lista') }}" class="text-slate-500 hover:text-brand-700">Wszystkie firmy</a>
@@ -35,7 +37,7 @@
       <p class="mt-1 text-sm">Uzupełnij profil firmy, usługi, godziny i wolne terminy. Publiczna strona rezerwacji ruszy dopiero po opłaceniu abonamentu.</p>
     </div>
   {% endif %}
-  <div class="mt-4 rounded-2xl bg-white border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+  <div class="mt-4 rounded-2xl bg-white border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" data-tour="abonament">
     <div>
       <p class="font-semibold text-slate-900">Abonament Glovaro</p>
       <p class="text-sm text-slate-600">
@@ -127,7 +129,15 @@
 {% endif %}
 
 <div class="grid sm:grid-cols-2 gap-4">
-  <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug) }}" class="group rounded-2xl bg-white border-2 border-brand-200 p-6 shadow-sm hover:border-brand-400 hover:shadow-md transition-all sm:col-span-2">
+  <button type="button" data-start-panel-tour class="group rounded-2xl bg-white border border-brand-200 p-6 shadow-sm hover:border-brand-400 hover:shadow-md transition-all sm:col-span-2 text-left">
+    <div class="h-12 w-12 rounded-xl bg-brand-100 text-brand-700 flex items-center justify-center mb-4">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+    </div>
+    <h2 class="font-semibold text-lg text-slate-900">Instrukcja krok po kroku</h2>
+    <p class="text-sm text-slate-600 mt-1">Uruchom wyskakujące chmurki z podpowiedziami, gdzie kliknąć i co uzupełnić.</p>
+  </button>
+
+  <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug) }}" class="group rounded-2xl bg-white border-2 border-brand-200 p-6 shadow-sm hover:border-brand-400 hover:shadow-md transition-all sm:col-span-2" data-tour="terminarz">
     <div class="h-12 w-12 rounded-xl bg-brand-100 text-brand-700 flex items-center justify-center mb-4">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
     </div>
@@ -135,7 +145,7 @@
     <p class="text-sm text-slate-600 mt-1">Kalendarz wizyt, wolne godziny i ręczne dodawanie klientów.</p>
   </a>
 
-  <a href="{{ url_for('ustawienia_salonu', salon_slug=salon_slug) }}" class="group rounded-2xl bg-white border border-slate-200 p-6 shadow-sm hover:border-brand-300 hover:shadow-md transition-all">
+  <a href="{{ url_for('ustawienia_salonu', salon_slug=salon_slug) }}" class="group rounded-2xl bg-white border border-slate-200 p-6 shadow-sm hover:border-brand-300 hover:shadow-md transition-all" data-tour="profil">
     <div class="h-12 w-12 rounded-xl bg-slate-100 text-slate-600 group-hover:bg-brand-100 group-hover:text-brand-700 flex items-center justify-center mb-4 transition-colors">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
     </div>
@@ -143,7 +153,7 @@
     <p class="text-sm text-slate-600 mt-1">Zmień nazwę wyświetlaną w panelu i podglądzie klienta.</p>
   </a>
 
-  <a href="{{ url_for('godziny_pracy', salon_slug=salon_slug) }}" class="group rounded-2xl bg-white border border-slate-200 p-6 shadow-sm hover:border-brand-300 hover:shadow-md transition-all">
+  <a href="{{ url_for('godziny_pracy', salon_slug=salon_slug) }}" class="group rounded-2xl bg-white border border-slate-200 p-6 shadow-sm hover:border-brand-300 hover:shadow-md transition-all" data-tour="godziny">
     <div class="h-12 w-12 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center mb-4">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
     </div>
@@ -151,7 +161,7 @@
     <p class="text-sm text-slate-600 mt-1">Ustaw harmonogram na każdy dzień tygodnia.</p>
   </a>
 
-  <a href="{{ url_for('panel_rezerwacje', salon_slug=salon_slug) }}" class="group rounded-2xl bg-white border border-slate-200 p-6 shadow-sm hover:border-brand-300 hover:shadow-md transition-all">
+  <a href="{{ url_for('panel_rezerwacje', salon_slug=salon_slug) }}" class="group rounded-2xl bg-white border border-slate-200 p-6 shadow-sm hover:border-brand-300 hover:shadow-md transition-all" data-tour="rezerwacje">
     <div class="h-12 w-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
     </div>
@@ -175,7 +185,7 @@
     <p class="text-sm text-slate-600 mt-1">Historia wizyt, wywiady zdrowotne i notatki.</p>
   </a>
 
-  <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug) }}" class="group rounded-2xl bg-white border border-slate-200 p-6 shadow-sm hover:border-brand-300 hover:shadow-md transition-all">
+  <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug) }}" class="group rounded-2xl bg-white border border-slate-200 p-6 shadow-sm hover:border-brand-300 hover:shadow-md transition-all" data-tour="wolne-terminy">
     <div class="h-12 w-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
     </div>
@@ -191,7 +201,7 @@
     <p class="text-sm text-slate-600 mt-1">Zobacz oceny po wizytach i decyduj, które opinie pokazać publicznie.</p>
   </a>
 
-  <a href="{{ url_for('podglad_klienta', salon_slug=salon_slug) }}" class="group rounded-2xl bg-white border border-slate-200 p-6 shadow-sm hover:border-brand-300 hover:shadow-md transition-all">
+  <a href="{{ url_for('podglad_klienta', salon_slug=salon_slug) }}" class="group rounded-2xl bg-white border border-slate-200 p-6 shadow-sm hover:border-brand-300 hover:shadow-md transition-all" data-tour="podglad">
     <div class="h-12 w-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mb-4">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
     </div>
@@ -199,4 +209,146 @@
     <p class="text-sm text-slate-600 mt-1">Zobacz stronę tak, jak ją zobaczy klient szukający terminu.</p>
   </a>
 </div>
+
+<div id="panel-tour-overlay" class="fixed inset-0 z-[60] hidden bg-slate-950/60"></div>
+<div id="panel-tour-bubble" class="fixed z-[80] hidden w-[min(92vw,360px)] rounded-2xl border border-brand-100 bg-white p-5 shadow-2xl">
+  <p id="panel-tour-counter" class="text-xs font-bold uppercase tracking-wide text-brand-700"></p>
+  <h2 id="panel-tour-title" class="mt-1 text-lg font-bold text-slate-900"></h2>
+  <p id="panel-tour-text" class="mt-2 text-sm leading-relaxed text-slate-600"></p>
+  <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+    <button type="button" id="panel-tour-prev" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Wstecz</button>
+    <div class="ml-auto flex gap-2">
+      <button type="button" id="panel-tour-close" class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-50">Zamknij</button>
+      <button type="button" id="panel-tour-next" class="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Dalej</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (() => {
+    const steps = [
+      {
+        selector: '[data-tour="profil"]',
+        title: '1. Profil firmy',
+        text: 'Tutaj firma wpisuje nazwę, opis, logo, telefon, e-mail do powiadomień, lokalizację oraz usługi w formacie Nazwa|Cena|Czas.'
+      },
+      {
+        selector: '[data-tour="godziny"]',
+        title: '2. Godziny pracy',
+        text: 'Tutaj ustawia się dni i godziny pracy. Te dane pomagają później szybko generować wolne terminy.'
+      },
+      {
+        selector: '[data-tour="wolne-terminy"]',
+        title: '3. Wolne terminy',
+        text: 'To najważniejsze miejsce dla klientów. Kliknij dzień w kalendarzu i dodaj godziny, które mają być widoczne na stronie rezerwacji.'
+      },
+      {
+        selector: '[data-tour="podglad"]',
+        title: '4. Podgląd klienta',
+        text: 'Tutaj firma sprawdza, jak strona wygląda dla klienta: opis, logo, usługi, zdjęcia, lokalizacja i dostępne godziny.'
+      },
+      {
+        selector: '[data-tour="terminarz"]',
+        title: '5. Terminarz',
+        text: 'Tutaj firma widzi kalendarz wizyt i może ręcznie dodać klienta, który zadzwonił albo zapisał się poza stroną.'
+      },
+      {
+        selector: '[data-tour="rezerwacje"]',
+        title: '6. Rezerwacje',
+        text: 'Tutaj firma potwierdza, odrzuca i sprawdza rezerwacje online oraz historię wizyt.'
+      },
+      {
+        selector: '[data-tour="abonament"]',
+        title: '7. Aktywacja abonamentu',
+        text: 'Po uzupełnieniu panelu firma opłaca abonament. Dopiero wtedy publiczne rezerwacje mogą działać dla klientów.'
+      },
+      {
+        selector: '[data-tour="link-klienta"]',
+        title: '8. Link dla klientów',
+        text: 'Ten link można wkleić na Instagram, Facebook, Google Maps albo wysłać klientom. To publiczna strona rezerwacji firmy.'
+      }
+    ];
+
+    const overlay = document.getElementById('panel-tour-overlay');
+    const bubble = document.getElementById('panel-tour-bubble');
+    const counter = document.getElementById('panel-tour-counter');
+    const title = document.getElementById('panel-tour-title');
+    const text = document.getElementById('panel-tour-text');
+    const prev = document.getElementById('panel-tour-prev');
+    const next = document.getElementById('panel-tour-next');
+    const close = document.getElementById('panel-tour-close');
+    let index = 0;
+    let highlighted = null;
+
+    function clearHighlight() {
+      if (!highlighted) return;
+      highlighted.classList.remove('relative', 'z-[70]', 'ring-4', 'ring-brand-300', 'ring-offset-4', 'ring-offset-white');
+      highlighted = null;
+    }
+
+    function placeBubble(target) {
+      const rect = target.getBoundingClientRect();
+      const margin = 16;
+      const bubbleWidth = Math.min(window.innerWidth * 0.92, 360);
+      let left = Math.min(Math.max(rect.left, margin), window.innerWidth - bubbleWidth - margin);
+      let top = rect.bottom + margin;
+      if (top + 260 > window.innerHeight) {
+        top = Math.max(margin, rect.top - 280);
+      }
+      bubble.style.left = `${left}px`;
+      bubble.style.top = `${top}px`;
+    }
+
+    function showStep(nextIndex) {
+      const step = steps[nextIndex];
+      const target = document.querySelector(step.selector);
+      if (!target) return;
+      index = nextIndex;
+      clearHighlight();
+      highlighted = target;
+      highlighted.classList.add('relative', 'z-[70]', 'ring-4', 'ring-brand-300', 'ring-offset-4', 'ring-offset-white');
+      overlay.classList.remove('hidden');
+      bubble.classList.remove('hidden');
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      window.setTimeout(() => placeBubble(target), 250);
+      counter.textContent = `Krok ${index + 1} z ${steps.length}`;
+      title.textContent = step.title;
+      text.textContent = step.text;
+      prev.disabled = index === 0;
+      prev.classList.toggle('opacity-40', index === 0);
+      next.textContent = index === steps.length - 1 ? 'Zakończ' : 'Dalej';
+    }
+
+    function startTour() {
+      showStep(0);
+    }
+
+    function closeTour() {
+      clearHighlight();
+      overlay.classList.add('hidden');
+      bubble.classList.add('hidden');
+    }
+
+    document.querySelectorAll('[data-start-panel-tour]').forEach((button) => {
+      button.addEventListener('click', startTour);
+    });
+    close.addEventListener('click', closeTour);
+    overlay.addEventListener('click', closeTour);
+    prev.addEventListener('click', () => showStep(Math.max(index - 1, 0)));
+    next.addEventListener('click', () => {
+      if (index >= steps.length - 1) {
+        closeTour();
+      } else {
+        showStep(index + 1);
+      }
+    });
+    window.addEventListener('resize', () => {
+      if (highlighted && !bubble.classList.contains('hidden')) placeBubble(highlighted);
+    });
+
+    {% if request.args.get('tour') == '1' %}
+      window.addEventListener('load', startTour);
+    {% endif %}
+  })();
+</script>
 {% endblock %}

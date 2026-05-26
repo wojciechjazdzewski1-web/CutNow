@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Instrukcja panelu — Glovaro{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <a href="{{ url_for('panel', salon_slug=salon_slug) }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6 transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    Wróć do panelu
+  </a>
+
+  <section class="rounded-3xl bg-gradient-to-br from-brand-700 to-slate-900 p-6 sm:p-8 text-white shadow-lg mb-6">
+    <p class="text-sm font-semibold text-brand-100 mb-2">{{ dane.nazwa_salonu }}</p>
+    <h1 class="text-3xl font-bold">Instrukcja uruchomienia panelu</h1>
+    <p class="mt-3 text-brand-50 leading-relaxed">
+      Przejdź te kroki po kolei. Każdy krok mówi, gdzie kliknąć, co wpisać i po co jest dana sekcja.
+    </p>
+    <a href="{{ url_for('panel', salon_slug=salon_slug, tour=1) }}" class="mt-5 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-brand-50">
+      Uruchom wyskakujące chmurki w panelu
+    </a>
+  </section>
+
+  <div class="space-y-4">
+    <article class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+      <p class="text-xs font-bold uppercase tracking-wide text-brand-700 mb-1">Krok 1</p>
+      <h2 class="text-xl font-bold text-slate-900">Uzupełnij profil firmy</h2>
+      <p class="text-slate-600 mt-2">Wejdź w <strong>Nazwa salonu / Profil firmy</strong>. Wpisz nazwę, opis, telefon, e-mail do powiadomień, logo i lokalizację.</p>
+      <p class="text-sm text-slate-500 mt-2">Po co: klient widzi, do kogo się zapisuje, gdzie ma przyjechać i firma dostaje powiadomienia o rezerwacjach.</p>
+      <a href="{{ url_for('ustawienia_salonu', salon_slug=salon_slug) }}" class="inline-flex mt-4 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Przejdź do profilu</a>
+    </article>
+
+    <article class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+      <p class="text-xs font-bold uppercase tracking-wide text-brand-700 mb-1">Krok 2</p>
+      <h2 class="text-xl font-bold text-slate-900">Dodaj usługi, ceny i czas trwania</h2>
+      <p class="text-slate-600 mt-2">W profilu firmy w polu usług wpisuj każdą usługę w nowej linii, np. <strong>Manicure|90|75</strong>.</p>
+      <p class="text-sm text-slate-500 mt-2">Po co: cena pokazuje się klientowi, a czas trwania blokuje kalendarz tak, żeby wizyty nie nachodziły na siebie.</p>
+    </article>
+
+    <article class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+      <p class="text-xs font-bold uppercase tracking-wide text-brand-700 mb-1">Krok 3</p>
+      <h2 class="text-xl font-bold text-slate-900">Ustaw godziny pracy</h2>
+      <p class="text-slate-600 mt-2">Wejdź w <strong>Godziny pracy</strong> i ustaw, w jakie dni firma pracuje oraz w jakich godzinach.</p>
+      <p class="text-sm text-slate-500 mt-2">Po co: generator wolnych terminów wie, w jakim zakresie może tworzyć godziny.</p>
+      <a href="{{ url_for('godziny_pracy', salon_slug=salon_slug) }}" class="inline-flex mt-4 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Ustaw godziny pracy</a>
+    </article>
+
+    <article class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+      <p class="text-xs font-bold uppercase tracking-wide text-brand-700 mb-1">Krok 4</p>
+      <h2 class="text-xl font-bold text-slate-900">Dodaj wolne terminy</h2>
+      <p class="text-slate-600 mt-2">Wejdź w <strong>Wolne terminy</strong>. Kliknij dzień w kalendarzu i dodaj pojedynczą godzinę albo użyj automatycznego dodawania terminów na kilka tygodni.</p>
+      <p class="text-sm text-slate-500 mt-2">Po co: klient widzi tylko te godziny, które firma realnie udostępniła do rezerwacji.</p>
+      <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug) }}" class="inline-flex mt-4 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Dodaj wolne terminy</a>
+    </article>
+
+    <article class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+      <p class="text-xs font-bold uppercase tracking-wide text-brand-700 mb-1">Krok 5</p>
+      <h2 class="text-xl font-bold text-slate-900">Sprawdź stronę klienta</h2>
+      <p class="text-slate-600 mt-2">Kliknij <strong>Podgląd klienta</strong> i sprawdź, czy opis, logo, zdjęcia, lokalizacja, usługi i wolne godziny wyglądają dobrze.</p>
+      <p class="text-sm text-slate-500 mt-2">Po co: to jest strona, którą dostaną klienci do rezerwacji.</p>
+      <a href="{{ url_for('podglad_klienta', salon_slug=salon_slug) }}" class="inline-flex mt-4 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Zobacz stronę klienta</a>
+    </article>
+
+    <article class="rounded-2xl bg-white border border-amber-200 bg-amber-50 p-5 shadow-sm">
+      <p class="text-xs font-bold uppercase tracking-wide text-amber-700 mb-1">Krok 6</p>
+      <h2 class="text-xl font-bold text-slate-900">Aktywuj rezerwacje po opłaceniu abonamentu</h2>
+      <p class="text-slate-700 mt-2">Nowy panel może mieć status <strong>oczekuje na płatność</strong>. Wtedy firma może wszystko ustawić, ale klienci nie zapiszą się publicznie, dopóki abonament nie zostanie aktywowany.</p>
+      <p class="text-sm text-slate-600 mt-2">Po co: firma najpierw przygotowuje panel, a publiczne rezerwacje ruszają dopiero po rozliczeniu.</p>
+    </article>
+  </div>
+</div>
+{% endblock %}
