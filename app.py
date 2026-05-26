@@ -3426,9 +3426,15 @@ def rezerwacja_potwierdzenie(salon_slug: str):
 
 @app.route("/rezerwacja/<salon_slug>/opinia/<token>", methods=["GET", "POST"])
 def opinia_klienta(salon_slug: str, token: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        include_clients=False,
+        include_reservations=True,
+        include_free_slots=False,
+        include_waitlist=False,
+    )
     if not salon:
+        dane = wczytaj_dane()
         return render_template("404.html", sciezka=request.path, domyslny_slug=domyslny_slug(dane)), 404
 
     rezerwacja = znajdz_rezerwacje_po_tokenie_opinii(salon, token)
@@ -3497,9 +3503,15 @@ def opinia_klienta(salon_slug: str, token: str):
 
 @app.route("/rezerwacja/<salon_slug>/anuluj/<token>", methods=["GET", "POST"])
 def anuluj_rezerwacje_klienta(salon_slug: str, token: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        include_clients=False,
+        include_reservations=True,
+        include_free_slots=False,
+        include_waitlist=False,
+    )
     if not salon:
+        dane = wczytaj_dane()
         return render_template("404.html", sciezka=request.path, domyslny_slug=domyslny_slug(dane)), 404
 
     rezerwacja = znajdz_rezerwacje_po_tokenie(salon, token)
