@@ -2169,8 +2169,16 @@ def wymagaj_hasla_panelu():
     if not salon_slug:
         return
 
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        include_clients=False,
+        include_reservations=False,
+        include_free_slots=False,
+        include_waitlist=False,
+    )
+    if not salon:
+        dane = wczytaj_dane()
+        salon = pobierz_salon(dane, salon_slug)
     if not salon:
         return
 
@@ -2861,13 +2869,8 @@ def ustawienia_salonu(salon_slug: str):
 
 @app.route("/panel/<salon_slug>/godziny", methods=["GET", "POST"])
 def godziny_pracy(salon_slug: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
-    if not salon:
-        flash("Nie znaleziono takiego salonu.", "error")
-        return redirect(url_for("panel_lista"))
-
     if request.method == "POST":
+        nowe_godziny = {}
         for klucz, _ in DNI_TYGODNIA:
             zamkniety = request.form.get(f"zamkniety_{klucz}") == "on"
             otwarcie = request.form.get(f"otwarcie_{klucz}", "09:00")
@@ -2882,29 +2885,41 @@ def godziny_pracy(salon_slug: str):
                 flash("Godzina otwarcia musi być wcześniejsza niż zamknięcia.", "error")
                 return redirect(url_for("godziny_pracy", salon_slug=salon_slug))
 
-            salon["godziny_pracy"][klucz] = {
+            nowe_godziny[klucz] = {
                 "otwarcie": otwarcie,
                 "zamkniecie": zamkniecie,
                 "zamkniety": zamkniety,
             }
         interwal = request.form.get("interwal_terminow", "30")
-        if interwal in {"15", "30", "45", "60"}:
-            salon["interwal_terminow"] = int(interwal)
-        zapisz_dane(dane)
-        flash("Godziny pracy zostały zapisane.", "success")
+        interwal_int = int(interwal) if interwal in {"15", "30", "45", "60"} else 30
+
+        def zapisz_godziny_atomowo(salon_atomowy: dict | None):
+            if not salon_atomowy:
+                return "Nie znaleziono takiego salonu.", "error"
+            salon_atomowy["godziny_pracy"] = nowe_godziny
+            salon_atomowy["interwal_terminow"] = interwal_int
+            return "Godziny pracy zostały zapisane.", "success"
+
+        komunikat, kategoria = aktualizuj_salon_atomowo(salon_slug, zapisz_godziny_atomowo)
+        flash(komunikat, kategoria)
         return redirect(url_for("godziny_pracy", salon_slug=salon_slug))
+
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        include_clients=False,
+        include_reservations=False,
+        include_free_slots=False,
+        include_waitlist=False,
+    )
+    if not salon:
+        flash("Nie znaleziono takiego salonu.", "error")
+        return redirect(url_for("panel_lista"))
 
     return render_template("godziny.html", dane=salon, salon_slug=salon_slug)
 
 
 @app.route("/panel/<salon_slug>/terminy", methods=["GET", "POST"])
 def wolne_terminy(salon_slug: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
-    if not salon:
-        flash("Nie znaleziono takiego salonu.", "error")
-        return redirect(url_for("panel_lista"))
-
     wybrana_data = request.args.get("data") or request.form.get("data") or date.today().isoformat()
     if not waliduj_date_iso(wybrana_data):
         wybrana_data = date.today().isoformat()
@@ -2913,130 +2928,152 @@ def wolne_terminy(salon_slug: str):
     if request.method == "POST":
         akcja = request.form.get("akcja")
         godzina = request.form.get("godzina", "").strip()
-        salon.setdefault("wolne_terminy", {}).setdefault(wybrana_data, [])
-        terminy = salon["wolne_terminy"][wybrana_data]
 
-        if akcja == "generuj":
-            data_od = request.form.get("data_od", wybrana_data)
-            data_do = request.form.get("data_do", data_od)
-            od_godziny = request.form.get("od_godziny", "")
-            do_godziny = request.form.get("do_godziny", "")
-            interwal = request.form.get("interwal", "30")
-            nadpisz = request.form.get("nadpisz") == "on"
+        def zmien_wolne_terminy_atomowo(salon_atomowy: dict | None):
+            if not salon_atomowy:
+                return "Nie znaleziono takiego salonu.", "error", wybrana_data
 
-            if (
-                not waliduj_date_iso(data_od)
-                or not waliduj_date_iso(data_do)
-                or not waliduj_godzine(od_godziny)
-                or not waliduj_godzine(do_godziny)
-                or interwal not in {"15", "30", "45", "60"}
-            ):
-                flash("Uzupełnij poprawnie zakres generowania terminów.", "error")
-                return redirect(url_for("wolne_terminy", salon_slug=salon_slug, data=wybrana_data))
+            if akcja == "generuj":
+                data_od = request.form.get("data_od", wybrana_data)
+                data_do = request.form.get("data_do", data_od)
+                od_godziny = request.form.get("od_godziny", "")
+                do_godziny = request.form.get("do_godziny", "")
+                interwal = request.form.get("interwal", "30")
+                nadpisz = request.form.get("nadpisz") == "on"
 
-            start_min = czas_na_minuty(od_godziny)
-            koniec_min = czas_na_minuty(do_godziny)
-            krok = int(interwal)
-            if start_min >= koniec_min:
-                flash("Godzina startu musi być wcześniejsza niż końca.", "error")
-                return redirect(url_for("wolne_terminy", salon_slug=salon_slug, data=wybrana_data))
+                if (
+                    not waliduj_date_iso(data_od)
+                    or not waliduj_date_iso(data_do)
+                    or not waliduj_godzine(od_godziny)
+                    or not waliduj_godzine(do_godziny)
+                    or interwal not in {"15", "30", "45", "60"}
+                ):
+                    return "Uzupełnij poprawnie zakres generowania terminów.", "error", wybrana_data
 
-            dodane = 0
-            for data_key in daty_w_zakresie(data_od, data_do):
-                dzien_key = klucz_dnia_tygodnia(data_key)
-                gh = salon.get("godziny_pracy", {}).get(dzien_key, {})
-                if gh.get("zamkniety"):
-                    continue
-                dzien_otwarcie = gh.get("otwarcie") or od_godziny
-                dzien_zamkniecie = gh.get("zamkniecie") or do_godziny
-                if waliduj_godzine(dzien_otwarcie) and waliduj_godzine(dzien_zamkniecie):
-                    start_min = czas_na_minuty(dzien_otwarcie)
-                    koniec_min = czas_na_minuty(dzien_zamkniecie)
-                if start_min >= koniec_min:
-                    continue
-                if nadpisz:
-                    salon["wolne_terminy"][data_key] = []
-                salon.setdefault("wolne_terminy", {}).setdefault(data_key, [])
-                zajete = zajete_godziny(salon, data_key)
-                for minuta in range(start_min, koniec_min, krok):
-                    slot = minuty_na_czas(minuta)
-                    if (
-                        slot not in salon["wolne_terminy"][data_key]
-                        and slot not in zajete
-                        and not slot_w_pelni_zajety(salon, data_key, slot)
-                        and not godzina_zablokowana(salon, data_key, slot)
-                    ):
-                        salon["wolne_terminy"][data_key].append(slot)
-                        dodane += 1
-                salon["wolne_terminy"][data_key].sort()
-                if not salon["wolne_terminy"][data_key]:
-                    salon["wolne_terminy"].pop(data_key, None)
+                bazowy_start_min = czas_na_minuty(od_godziny)
+                bazowy_koniec_min = czas_na_minuty(do_godziny)
+                krok = int(interwal)
+                if bazowy_start_min >= bazowy_koniec_min:
+                    return "Godzina startu musi być wcześniejsza niż końca.", "error", wybrana_data
 
-            zapisz_dane(dane)
-            flash(f"Wygenerowano {dodane} nowych terminów.", "success")
-            return redirect(url_for("wolne_terminy", salon_slug=salon_slug, data=data_od))
+                dodane = 0
+                for data_key in daty_w_zakresie(data_od, data_do):
+                    dzien_key = klucz_dnia_tygodnia(data_key)
+                    gh = salon_atomowy.get("godziny_pracy", {}).get(dzien_key, {})
+                    if gh.get("zamkniety"):
+                        continue
+                    dzien_otwarcie = gh.get("otwarcie") or od_godziny
+                    dzien_zamkniecie = gh.get("zamkniecie") or do_godziny
+                    start_min = bazowy_start_min
+                    koniec_min = bazowy_koniec_min
+                    if waliduj_godzine(dzien_otwarcie) and waliduj_godzine(dzien_zamkniecie):
+                        start_min = czas_na_minuty(dzien_otwarcie)
+                        koniec_min = czas_na_minuty(dzien_zamkniecie)
+                    if start_min >= koniec_min:
+                        continue
+                    if nadpisz:
+                        salon_atomowy["wolne_terminy"][data_key] = []
+                    salon_atomowy.setdefault("wolne_terminy", {}).setdefault(data_key, [])
+                    zajete = zajete_godziny(salon_atomowy, data_key)
+                    for minuta in range(start_min, koniec_min, krok):
+                        slot = minuty_na_czas(minuta)
+                        if (
+                            slot not in salon_atomowy["wolne_terminy"][data_key]
+                            and slot not in zajete
+                            and not slot_w_pelni_zajety(salon_atomowy, data_key, slot)
+                            and not godzina_zablokowana(salon_atomowy, data_key, slot)
+                        ):
+                            salon_atomowy["wolne_terminy"][data_key].append(slot)
+                            dodane += 1
+                    salon_atomowy["wolne_terminy"][data_key].sort()
+                    if not salon_atomowy["wolne_terminy"][data_key]:
+                        salon_atomowy["wolne_terminy"].pop(data_key, None)
 
-        if akcja == "dodaj":
-            if not waliduj_godzine(godzina):
-                flash("Podaj godzinę w formacie HH:MM (np. 10:30).", "error")
-            elif (
-                godzina in terminy
-                or godzina in zajete_godziny(salon, wybrana_data)
-                or slot_w_pelni_zajety(salon, wybrana_data, godzina)
-                or godzina_zablokowana(salon, wybrana_data, godzina)
-            ):
-                flash("Ten termin już istnieje, jest zajęty albo zablokowany.", "error")
-            else:
+                return f"Wygenerowano {dodane} nowych terminów.", "success", data_od
+
+            if akcja == "dodaj":
+                salon_atomowy.setdefault("wolne_terminy", {}).setdefault(wybrana_data, [])
+                terminy = salon_atomowy["wolne_terminy"][wybrana_data]
+                if not waliduj_godzine(godzina):
+                    return "Podaj godzinę w formacie HH:MM (np. 10:30).", "error", wybrana_data
+                if (
+                    godzina in terminy
+                    or godzina in zajete_godziny(salon_atomowy, wybrana_data)
+                    or slot_w_pelni_zajety(salon_atomowy, wybrana_data, godzina)
+                    or godzina_zablokowana(salon_atomowy, wybrana_data, godzina)
+                ):
+                    return "Ten termin już istnieje, jest zajęty albo zablokowany.", "error", wybrana_data
                 terminy.append(godzina)
                 terminy.sort()
-                flash(f"Dodano wolny termin: {godzina}.", "success")
+                return f"Dodano wolny termin: {godzina}.", "success", wybrana_data
 
-        elif akcja == "usun":
-            if godzina in terminy:
-                terminy.remove(godzina)
-                flash(f"Usunięto termin: {godzina}.", "success")
-            if not terminy:
-                salon["wolne_terminy"].pop(wybrana_data, None)
+            if akcja == "usun":
+                terminy = salon_atomowy.get("wolne_terminy", {}).get(wybrana_data, [])
+                if godzina in terminy:
+                    terminy.remove(godzina)
+                    if not terminy:
+                        salon_atomowy["wolne_terminy"].pop(wybrana_data, None)
+                    return f"Usunięto termin: {godzina}.", "success", wybrana_data
+                return "Nie znaleziono takiego wolnego terminu.", "error", wybrana_data
 
-        elif akcja == "blokuj":
-            data_od = request.form.get("blokada_data_od", wybrana_data)
-            data_do = request.form.get("blokada_data_do", data_od)
-            powod = request.form.get("powod", "Przerwa").strip() or "Przerwa"
-            opis = request.form.get("opis_blokady", "").strip()
-            caly_dzien = request.form.get("caly_dzien") == "on"
-            od_godziny = request.form.get("blokada_od_godziny", "")
-            do_godziny = request.form.get("blokada_do_godziny", "")
+            if akcja == "blokuj":
+                data_od = request.form.get("blokada_data_od", wybrana_data)
+                data_do = request.form.get("blokada_data_do", data_od)
+                powod = request.form.get("powod", "Przerwa").strip() or "Przerwa"
+                opis = request.form.get("opis_blokady", "").strip()
+                caly_dzien = request.form.get("caly_dzien") == "on"
+                od_godziny = request.form.get("blokada_od_godziny", "")
+                do_godziny = request.form.get("blokada_do_godziny", "")
 
-            if not waliduj_date_iso(data_od) or not waliduj_date_iso(data_do):
-                flash("Podaj poprawny zakres dat blokady.", "error")
-                return redirect(url_for("wolne_terminy", salon_slug=salon_slug, data=wybrana_data))
-            if not caly_dzien:
-                if not waliduj_godzine(od_godziny) or not waliduj_godzine(do_godziny) or od_godziny >= do_godziny:
-                    flash("Podaj poprawny zakres godzin blokady.", "error")
-                    return redirect(url_for("wolne_terminy", salon_slug=salon_slug, data=wybrana_data))
+                if not waliduj_date_iso(data_od) or not waliduj_date_iso(data_do):
+                    return "Podaj poprawny zakres dat blokady.", "error", wybrana_data
+                if not caly_dzien and (
+                    not waliduj_godzine(od_godziny) or not waliduj_godzine(do_godziny) or od_godziny >= do_godziny
+                ):
+                    return "Podaj poprawny zakres godzin blokady.", "error", wybrana_data
 
-            salon.setdefault("blokady", []).append(
-                {
-                    "id": uuid.uuid4().hex[:12],
-                    "data_od": data_od,
-                    "data_do": data_do,
-                    "caly_dzien": caly_dzien,
-                    "od_godziny": "" if caly_dzien else od_godziny,
-                    "do_godziny": "" if caly_dzien else do_godziny,
-                    "powod": powod,
-                    "opis": opis,
-                    "utworzono": datetime.now().isoformat(timespec="minutes"),
-                }
-            )
-            flash("Dodano blokadę terminów.", "success")
+                salon_atomowy.setdefault("blokady", []).append(
+                    {
+                        "id": uuid.uuid4().hex[:12],
+                        "data_od": data_od,
+                        "data_do": data_do,
+                        "caly_dzien": caly_dzien,
+                        "od_godziny": "" if caly_dzien else od_godziny,
+                        "do_godziny": "" if caly_dzien else do_godziny,
+                        "powod": powod,
+                        "opis": opis,
+                        "utworzono": datetime.now().isoformat(timespec="minutes"),
+                    }
+                )
+                return "Dodano blokadę terminów.", "success", wybrana_data
 
-        elif akcja == "usun_blokade":
-            blokada_id = request.form.get("blokada_id", "")
-            salon["blokady"] = [b for b in salon.get("blokady", []) if b.get("id") != blokada_id]
-            flash("Usunięto blokadę.", "success")
+            if akcja == "usun_blokade":
+                blokada_id = request.form.get("blokada_id", "")
+                przed = len(salon_atomowy.get("blokady", []))
+                salon_atomowy["blokady"] = [b for b in salon_atomowy.get("blokady", []) if b.get("id") != blokada_id]
+                if len(salon_atomowy["blokady"]) < przed:
+                    return "Usunięto blokadę.", "success", wybrana_data
+                return "Nie znaleziono blokady.", "error", wybrana_data
 
-        zapisz_dane(dane)
-        return redirect(url_for("wolne_terminy", salon_slug=salon_slug, data=wybrana_data))
+            return "Nieznana akcja terminów.", "error", wybrana_data
+
+        komunikat, kategoria, data_redirect = aktualizuj_salon_atomowo(salon_slug, zmien_wolne_terminy_atomowo)
+        flash(komunikat, kategoria)
+        return redirect(url_for("wolne_terminy", salon_slug=salon_slug, data=data_redirect))
+
+    data_od, data_do = zakres_miesiaca(wybrana_data)
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        data_od=data_od,
+        data_do=data_do,
+        include_clients=False,
+        include_reservations=True,
+        include_free_slots=True,
+        include_waitlist=False,
+    )
+    if not salon:
+        flash("Nie znaleziono takiego salonu.", "error")
+        return redirect(url_for("panel_lista"))
 
     data_wybrana = datetime.strptime(wybrana_data, "%Y-%m-%d").date()
     pierwszy_dzien_miesiaca = data_wybrana.replace(day=1)
@@ -3869,22 +3906,35 @@ def panel_klient_szczegoly(salon_slug: str, klient_id: str):
 
 @app.route("/panel/<salon_slug>/wywiad", methods=["GET", "POST"])
 def panel_wywiad(salon_slug: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
+    if request.method == "POST":
+        wywiad_wlaczony = request.form.get("wywiad_wlaczony") == "on"
+        wywiad_przy_rezerwacji = request.form.get("wywiad_przy_rezerwacji") == "on"
+        tresc = request.form.get("tresc_wywiadu_zdrowotnego", "").strip()[:12000]
+
+        def zapisz_wywiad_atomowo(salon_atomowy: dict | None):
+            if not salon_atomowy:
+                return "Nie znaleziono takiego salonu.", "error"
+            salon_atomowy["wywiad_wlaczony"] = wywiad_wlaczony
+            salon_atomowy["wywiad_przy_rezerwacji"] = wywiad_przy_rezerwacji
+            salon_atomowy["tresc_wywiadu_zdrowotnego"] = tresc
+            if salon_atomowy["wywiad_przy_rezerwacji"] and not tresc_wywiadu_salonu(salon_atomowy):
+                return "Zapisano. Dodaj treść oświadczenia, aby pojawiło się przy rezerwacji.", "error"
+            return "Ustawienia wywiadu zdrowotnego zapisane.", "success"
+
+        komunikat, kategoria = aktualizuj_salon_atomowo(salon_slug, zapisz_wywiad_atomowo)
+        flash(komunikat, kategoria)
+        return redirect(url_for("panel_wywiad", salon_slug=salon_slug))
+
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        include_clients=False,
+        include_reservations=False,
+        include_free_slots=False,
+        include_waitlist=False,
+    )
     if not salon:
         flash("Nie znaleziono takiego salonu.", "error")
         return redirect(url_for("panel_lista"))
-
-    if request.method == "POST":
-        salon["wywiad_wlaczony"] = request.form.get("wywiad_wlaczony") == "on"
-        salon["wywiad_przy_rezerwacji"] = request.form.get("wywiad_przy_rezerwacji") == "on"
-        salon["tresc_wywiadu_zdrowotnego"] = request.form.get("tresc_wywiadu_zdrowotnego", "").strip()[:12000]
-        zapisz_dane(dane)
-        if salon["wywiad_przy_rezerwacji"] and not tresc_wywiadu_salonu(salon):
-            flash("Zapisano. Dodaj treść oświadczenia, aby pojawiło się przy rezerwacji.", "error")
-        else:
-            flash("Ustawienia wywiadu zdrowotnego zapisane.", "success")
-        return redirect(url_for("panel_wywiad", salon_slug=salon_slug))
 
     return render_template(
         "wywiad.html",
