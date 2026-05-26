@@ -39,7 +39,15 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = bool(os.environ.get("RENDER"))
 
-from storage import aktualizuj_raw, init_storage, tryb_magazynu, wczytaj_raw, zapisz_raw
+from storage import (
+    aktualizuj_raw,
+    aktualizuj_salon_raw,
+    init_storage,
+    tryb_magazynu,
+    wczytaj_raw,
+    wczytaj_salon_raw,
+    zapisz_raw,
+)
 
 PANEL_PASSWORD = os.environ.get("PANEL_PASSWORD", "").strip()
 SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()
@@ -528,6 +536,24 @@ def aktualizuj_dane_atomowo(mutator):
     return wynik
 
 
+def aktualizuj_salon_atomowo(salon_slug: str, mutator):
+    def wrapper(raw_salon: dict | None):
+        if raw_salon is None:
+            return mutator(None), None
+
+        dane = migracja_danych({"salony": {salon_slug: raw_salon}})
+        salon = dane["salony"][salon_slug]
+        oczysc_uslugi_w_salonie(salon)
+        oczysc_anulowane_rezerwacje_salonu(salon)
+        synchronizuj_tresc_wywiadu_z_pytan(salon)
+        wynik = mutator(salon)
+        return wynik, copy.deepcopy(salon)
+
+    wynik = aktualizuj_salon_raw(salon_slug, wrapper)
+    wyczysc_cache_katalogu()
+    return wynik
+
+
 def wyczysc_cache_katalogu() -> None:
     _katalog_cache.clear()
 
@@ -537,6 +563,23 @@ def pobierz_salon(dane: dict, salon_slug: str) -> dict | None:
     if salon:
         salon.setdefault("slug", salon_slug)
     return salon
+
+
+def przygotuj_salon_z_raw(salon_slug: str, raw_salon: dict | None) -> dict | None:
+    if raw_salon is None:
+        return None
+    dane = migracja_danych({"salony": {salon_slug: raw_salon}})
+    salon = pobierz_salon(dane, salon_slug)
+    if not salon:
+        return None
+    oczysc_uslugi_w_salonie(salon)
+    oczysc_anulowane_rezerwacje_salonu(salon)
+    synchronizuj_tresc_wywiadu_z_pytan(salon)
+    return salon
+
+
+def wczytaj_salon_bezposrednio(salon_slug: str) -> dict | None:
+    return przygotuj_salon_z_raw(salon_slug, wczytaj_salon_raw(salon_slug))
 
 
 def salon_wstrzymany(salon: dict) -> bool:
@@ -2114,8 +2157,7 @@ def inject_globals():
     motyw_klienta = request.endpoint in MOTYW_ROZOWY_ENDPOINTS
     motyw_strony = "rozowy"
     if widok_klienta and salon_slug:
-        dane = wczytaj_dane()
-        motyw_strony = motyw_strony_salonu(pobierz_salon(dane, salon_slug))
+        motyw_strony = motyw_strony_salonu(wczytaj_salon_bezposrednio(salon_slug))
     return {
         "dni_tygodnia": DNI_TYGODNIA,
         "branze_dzialalnosci": BRANZE_DZIALALNOSCI,
@@ -2994,9 +3036,9 @@ def rezerwacja_domyslna():
 
 @app.route("/rezerwacja/<salon_slug>")
 def rezerwacja_publiczna(salon_slug: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
+    salon = wczytaj_salon_bezposrednio(salon_slug)
     if not salon:
+        dane = wczytaj_dane()
         return render_template("404.html", sciezka=request.path, domyslny_slug=domyslny_slug(dane)), 404
     if salon_wstrzymany(salon):
         return render_template("abonament_wstrzymany.html", dane=salon), 403
@@ -3012,9 +3054,9 @@ def rezerwacja_publiczna(salon_slug: str):
 
 @app.route("/rezerwacja/<salon_slug>/nowa", methods=["GET", "POST"])
 def rezerwacja_formularz(salon_slug: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
+    salon = wczytaj_salon_bezposrednio(salon_slug)
     if not salon:
+        dane = wczytaj_dane()
         return render_template("404.html", sciezka=request.path, domyslny_slug=domyslny_slug(dane)), 404
     if salon_wstrzymany(salon):
         return render_template("abonament_wstrzymany.html", dane=salon), 403
@@ -3082,8 +3124,7 @@ def rezerwacja_formularz(salon_slug: str):
         if bledy_wywiad:
             flash(bledy_wywiad[0], "error")
             return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
-    def utworz_atomowo(dane_atomowe: dict):
-        salon_atomowy = pobierz_salon(dane_atomowe, salon_slug)
+    def utworz_atomowo(salon_atomowy: dict | None):
         if not salon_atomowy:
             return None, "Nie znaleziono takiej firmy.", None
         if salon_wstrzymany(salon_atomowy):
@@ -3126,7 +3167,7 @@ def rezerwacja_formularz(salon_slug: str):
         )
         return rezerwacja_atomowa, blad_atomowy, copy.deepcopy(salon_atomowy)
 
-    rezerwacja, blad, salon_po_zapisie = aktualizuj_dane_atomowo(utworz_atomowo)
+    rezerwacja, blad, salon_po_zapisie = aktualizuj_salon_atomowo(salon_slug, utworz_atomowo)
     if blad:
         flash(blad, "error")
         return redirect(url_for("rezerwacja_formularz", salon_slug=salon_slug, data=data_iso, godzina=godzina))
@@ -3137,9 +3178,9 @@ def rezerwacja_formularz(salon_slug: str):
 
 @app.route("/rezerwacja/<salon_slug>/lista-rezerwowa", methods=["POST"])
 def lista_rezerwowa_formularz(salon_slug: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
+    salon = wczytaj_salon_bezposrednio(salon_slug)
     if not salon:
+        dane = wczytaj_dane()
         return render_template("404.html", sciezka=request.path, domyslny_slug=domyslny_slug(dane)), 404
     if salon_wstrzymany(salon):
         return render_template("abonament_wstrzymany.html", dane=salon), 403
@@ -3183,18 +3224,33 @@ def lista_rezerwowa_formularz(salon_slug: str):
         "uwagi": uwagi,
         "utworzono": datetime.now().isoformat(timespec="minutes"),
     }
-    salon.setdefault("lista_rezerwowa", []).append(zgloszenie)
-    zapisz_dane(dane)
-    wyslij_email_lista_rezerwowa(salon, zgloszenie, salon_slug)
+    def dopisz_atomowo(salon_atomowy: dict | None):
+        if not salon_atomowy:
+            return None, "Nie znaleziono takiej firmy.", None
+        if salon_wstrzymany(salon_atomowy):
+            return None, "Rezerwacje dla tej firmy są chwilowo niedostępne.", None
+        final_uslugi = uslugi_salonu(salon_atomowy)
+        final_nazwy_uslug = {u["nazwa"] for u in final_uslugi}
+        if final_uslugi and usluga_nazwa and usluga_nazwa not in final_nazwy_uslug:
+            return None, "Wybierz usługę z listy albo zostaw pole puste.", None
+        salon_atomowy.setdefault("lista_rezerwowa", []).append(zgloszenie)
+        return zgloszenie, "", copy.deepcopy(salon_atomowy)
+
+    zapisane_zgloszenie, blad, salon_po_zapisie = aktualizuj_salon_atomowo(salon_slug, dopisz_atomowo)
+    if blad:
+        flash(blad, "error")
+        return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug, data=data_preferowana))
+
+    wyslij_email_lista_rezerwowa(salon_po_zapisie or salon, zapisane_zgloszenie, salon_slug)
     flash("Dopisano Cię do listy rezerwowej. Firma skontaktuje się, gdy zwolni się termin.", "success")
     return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug, data=data_preferowana))
 
 
 @app.route("/rezerwacja/<salon_slug>/potwierdzenie")
 def rezerwacja_potwierdzenie(salon_slug: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
+    salon = wczytaj_salon_bezposrednio(salon_slug)
     if not salon:
+        dane = wczytaj_dane()
         return render_template("404.html", sciezka=request.path, domyslny_slug=domyslny_slug(dane)), 404
 
     rezerwacja = znajdz_rezerwacje(salon, request.args.get("id", ""))

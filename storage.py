@@ -47,6 +47,14 @@ def wczytaj_raw() -> dict | None:
     return _wczytaj_plik()
 
 
+def wczytaj_salon_raw(salon_slug: str) -> dict | None:
+    if uzywaj_postgres():
+        return _wczytaj_salon_postgres(salon_slug)
+    dane = _wczytaj_plik() or {}
+    salon = (dane.get("salony") or {}).get(salon_slug)
+    return salon if isinstance(salon, dict) else None
+
+
 def zapisz_raw(dane: dict) -> None:
     if uzywaj_postgres():
         _zapisz_postgres(dane)
@@ -131,13 +139,33 @@ def _init_postgres() -> None:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS glovaro_salons (
+                slug TEXT PRIMARY KEY,
+                payload JSONB NOT NULL,
+                nazwa_salonu TEXT NOT NULL DEFAULT '',
+                branza TEXT NOT NULL DEFAULT '',
+                abonament_status TEXT NOT NULL DEFAULT '',
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_glovaro_salons_branza ON glovaro_salons (branza)")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_glovaro_salons_abonament ON glovaro_salons (abonament_status)"
+        )
         conn.commit()
+        _migruj_state_do_salonow(conn)
 
 
 def _wczytaj_postgres() -> dict | None:
     import psycopg
 
     with psycopg.connect(DATABASE_URL) as conn:
+        dane_salonow = _wczytaj_salony_z_tabeli(conn)
+        if dane_salonow is not None:
+            return dane_salonow
         row = conn.execute("SELECT payload FROM glovaro_state WHERE id = 1").fetchone()
     if not row:
         return None
@@ -147,11 +175,38 @@ def _wczytaj_postgres() -> dict | None:
     return json.loads(payload)
 
 
+def _wczytaj_salon_postgres(salon_slug: str) -> dict | None:
+    import psycopg
+
+    with psycopg.connect(DATABASE_URL) as conn:
+        row = conn.execute(
+            "SELECT payload FROM glovaro_salons WHERE slug = %s",
+            (salon_slug,),
+        ).fetchone()
+        if row:
+            payload = row[0]
+            salon = payload if isinstance(payload, dict) else json.loads(payload)
+            salon.setdefault("slug", salon_slug)
+            return salon
+
+        legacy = conn.execute("SELECT payload FROM glovaro_state WHERE id = 1").fetchone()
+        if not legacy:
+            return None
+        payload = legacy[0]
+        dane = payload if isinstance(payload, dict) else json.loads(payload)
+        salon = (dane.get("salony") or {}).get(salon_slug)
+        if isinstance(salon, dict):
+            salon.setdefault("slug", salon_slug)
+            return salon
+    return None
+
+
 def _zapisz_postgres(dane: dict) -> None:
     import psycopg
     from psycopg.types.json import Jsonb
 
     with psycopg.connect(DATABASE_URL) as conn:
+        _zapisz_salony_do_tabeli(conn, dane)
         conn.execute(
             """
             INSERT INTO glovaro_state (id, payload, updated_at)
@@ -169,14 +224,16 @@ def _aktualizuj_postgres(mutator):
     from psycopg.types.json import Jsonb
 
     with psycopg.connect(DATABASE_URL) as conn:
-        row = conn.execute("SELECT payload FROM glovaro_state WHERE id = 1 FOR UPDATE").fetchone()
-        dane = None
-        if row:
-            payload = row[0]
-            dane = payload if isinstance(payload, dict) else json.loads(payload)
+        dane = _wczytaj_salony_z_tabeli(conn, for_update=True)
+        if dane is None:
+            row = conn.execute("SELECT payload FROM glovaro_state WHERE id = 1 FOR UPDATE").fetchone()
+            if row:
+                payload = row[0]
+                dane = payload if isinstance(payload, dict) else json.loads(payload)
 
         wynik, dane_do_zapisu = mutator(dane)
         if dane_do_zapisu is not None:
+            _zapisz_salony_do_tabeli(conn, dane_do_zapisu)
             conn.execute(
                 """
                 INSERT INTO glovaro_state (id, payload, updated_at)
@@ -189,6 +246,142 @@ def _aktualizuj_postgres(mutator):
             conn.commit()
             _wykonaj_backup_pliku(dane_do_zapisu)
         return wynik
+
+
+def aktualizuj_salon_raw(salon_slug: str, mutator):
+    """Atomowo aktualizuje tylko jeden panel firmy, bez blokowania wszystkich salonów.
+
+    mutator(salon) zwraca tuple: (wynik, salon_do_zapisu). Dla PostgreSQL
+    blokowany jest wyłącznie rekord glovaro_salons.slug, co istotnie zmniejsza
+    konflikt przy równoczesnych rezerwacjach w różnych firmach.
+    """
+    if uzywaj_postgres():
+        return _aktualizuj_salon_postgres(salon_slug, mutator)
+
+    with _FILE_LOCK:
+        dane = _wczytaj_plik() or {"salony": {}}
+        salony = dane.setdefault("salony", {})
+        wynik, salon_do_zapisu = mutator(salony.get(salon_slug))
+        if salon_do_zapisu is not None:
+            salony[salon_slug] = salon_do_zapisu
+            _wykonaj_backup_pliku_przed_zapisem()
+            _zapisz_plik(dane)
+        return wynik
+
+
+def _aktualizuj_salon_postgres(salon_slug: str, mutator):
+    import psycopg
+    from psycopg.types.json import Jsonb
+
+    with psycopg.connect(DATABASE_URL) as conn:
+        row = conn.execute(
+            "SELECT payload FROM glovaro_salons WHERE slug = %s FOR UPDATE",
+            (salon_slug,),
+        ).fetchone()
+        if row:
+            payload = row[0]
+            salon = payload if isinstance(payload, dict) else json.loads(payload)
+        else:
+            legacy = conn.execute("SELECT payload FROM glovaro_state WHERE id = 1 FOR UPDATE").fetchone()
+            dane = None
+            if legacy:
+                payload = legacy[0]
+                dane = payload if isinstance(payload, dict) else json.loads(payload)
+                _zapisz_salony_do_tabeli(conn, dane)
+                salon = (dane.get("salony") or {}).get(salon_slug)
+            else:
+                salon = None
+
+        wynik, salon_do_zapisu = mutator(salon)
+        if salon_do_zapisu is not None:
+            conn.execute(
+                """
+                INSERT INTO glovaro_salons (
+                    slug, payload, nazwa_salonu, branza, abonament_status, updated_at
+                )
+                VALUES (%s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (slug) DO UPDATE
+                SET payload = EXCLUDED.payload,
+                    nazwa_salonu = EXCLUDED.nazwa_salonu,
+                    branza = EXCLUDED.branza,
+                    abonament_status = EXCLUDED.abonament_status,
+                    updated_at = NOW()
+                """,
+                (
+                    salon_slug,
+                    Jsonb(salon_do_zapisu),
+                    str(salon_do_zapisu.get("nazwa_salonu", "")),
+                    str(salon_do_zapisu.get("branza", "")),
+                    str(salon_do_zapisu.get("abonament_status", "")),
+                ),
+            )
+            conn.commit()
+        return wynik
+
+
+def _wczytaj_salony_z_tabeli(conn, for_update: bool = False) -> dict | None:
+    query = "SELECT slug, payload FROM glovaro_salons"
+    if for_update:
+        query += " FOR UPDATE"
+    rows = conn.execute(query).fetchall()
+    if not rows:
+        return None
+    salony = {}
+    for slug, payload in rows:
+        salon = payload if isinstance(payload, dict) else json.loads(payload)
+        salon.setdefault("slug", slug)
+        salony[slug] = salon
+    return {"salony": salony}
+
+
+def _zapisz_salony_do_tabeli(conn, dane: dict) -> None:
+    from psycopg.types.json import Jsonb
+
+    salony = dane.get("salony", {}) if isinstance(dane, dict) else {}
+    aktualne_slugi = set()
+    for slug, salon in salony.items():
+        if not isinstance(salon, dict):
+            continue
+        aktualne_slugi.add(slug)
+        salon = {**salon, "slug": salon.get("slug") or slug}
+        conn.execute(
+            """
+            INSERT INTO glovaro_salons (
+                slug, payload, nazwa_salonu, branza, abonament_status, updated_at
+            )
+            VALUES (%s, %s, %s, %s, %s, NOW())
+            ON CONFLICT (slug) DO UPDATE
+            SET payload = EXCLUDED.payload,
+                nazwa_salonu = EXCLUDED.nazwa_salonu,
+                branza = EXCLUDED.branza,
+                abonament_status = EXCLUDED.abonament_status,
+                updated_at = NOW()
+            """,
+            (
+                slug,
+                Jsonb(salon),
+                str(salon.get("nazwa_salonu", "")),
+                str(salon.get("branza", "")),
+                str(salon.get("abonament_status", "")),
+            ),
+        )
+    if aktualne_slugi:
+        conn.execute("DELETE FROM glovaro_salons WHERE NOT (slug = ANY(%s))", (list(aktualne_slugi),))
+    else:
+        conn.execute("DELETE FROM glovaro_salons")
+
+
+def _migruj_state_do_salonow(conn) -> None:
+    istnieja_salony = conn.execute("SELECT 1 FROM glovaro_salons LIMIT 1").fetchone()
+    if istnieja_salony:
+        return
+    row = conn.execute("SELECT payload FROM glovaro_state WHERE id = 1").fetchone()
+    if not row:
+        return
+    payload = row[0]
+    dane = payload if isinstance(payload, dict) else json.loads(payload)
+    _zapisz_salony_do_tabeli(conn, dane)
+    logger.info("Przeniesiono dane z glovaro_state do tabeli glovaro_salons")
 
 
 def _migruj_plik_do_postgres_jesli_trzeba() -> None:
