@@ -7,6 +7,7 @@ import calendar
 import base64
 import hashlib
 import hmac
+import io
 import json
 import os
 import re
@@ -23,6 +24,12 @@ from urllib.parse import quote, urlencode, urlparse
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
+
+try:
+    from PIL import Image, ImageOps
+except ImportError:  # Pillow jest opcjonalny lokalnie; na produkcji dodany w requirements.
+    Image = None
+    ImageOps = None
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
@@ -57,7 +64,13 @@ GODZIN_PO_WIZYCIE_DO_ARCHIWUM = 1
 DNI_W_ARCHIWUM_PRZED_USUNIECIEM = 90
 MINUTY_NA_OPLACENIE_REZERWACJI = 15
 CZYSZCZENIE_REZERWACJI_CO_SEK = 600
+KATALOG_CACHE_TTL_SEK = 60
+WOLNY_REQUEST_LOG_SEK = 0.75
+MAKS_UPLOAD_ZDJECIA_BAJTOW = 2_500_000
+MAKS_ZDJECIE_PO_KOMPRESJI_BAJTOW = 650_000
+MAKS_WYMIAR_ZDJECIA = 1600
 _ostatnie_czyszczenie_rezerwacji = 0.0
+_katalog_cache: dict[tuple[str, str], tuple[float, list[dict]]] = {}
 
 DNI_TYGODNIA = [
     ("poniedzialek", "Poniedziałek"),
@@ -498,6 +511,7 @@ def wczytaj_dane() -> dict:
 
 def zapisz_dane(dane: dict) -> None:
     zapisz_raw(dane)
+    wyczysc_cache_katalogu()
 
 
 def aktualizuj_dane_atomowo(mutator):
@@ -509,7 +523,13 @@ def aktualizuj_dane_atomowo(mutator):
         wynik = mutator(dane)
         return wynik, dane
 
-    return aktualizuj_raw(wrapper)
+    wynik = aktualizuj_raw(wrapper)
+    wyczysc_cache_katalogu()
+    return wynik
+
+
+def wyczysc_cache_katalogu() -> None:
+    _katalog_cache.clear()
 
 
 def pobierz_salon(dane: dict, salon_slug: str) -> dict | None:
@@ -1050,6 +1070,24 @@ def katalog_firm_z_terminami(dane: dict, branza: str | None = None) -> list[dict
     return sorted(wynik, key=lambda f: (f["pierwszy_termin"], f["nazwa"].lower()))
 
 
+def katalog_firm_z_cache(dane: dict, branza: str | None = None) -> list[dict]:
+    wybrana_branza = normalizuj_branze(branza) if branza else ""
+    salony = dane.get("salony", {})
+    fingerprint = "|".join(
+        f"{slug}:{salon.get('abonament_status', '')}:{salon.get('branza', '')}:{len(salon.get('wolne_terminy', {}))}:{len(salon.get('rezerwacje', []))}"
+        for slug, salon in sorted(salony.items())
+    )
+    klucz = (wybrana_branza, fingerprint)
+    teraz = time.time()
+    cached = _katalog_cache.get(klucz)
+    if cached and teraz - cached[0] < KATALOG_CACHE_TTL_SEK:
+        return copy.deepcopy(cached[1])
+
+    wynik = katalog_firm_z_terminami(dane, wybrana_branza)
+    _katalog_cache[klucz] = (teraz, copy.deepcopy(wynik))
+    return wynik
+
+
 def domyslna_data_rezerwacji(salon: dict, preferowana: str | None = None) -> str:
     dzisiaj = date.today().isoformat()
     if preferowana and waliduj_date_iso(preferowana) and preferowana >= dzisiaj:
@@ -1518,11 +1556,52 @@ def wyszukaj_klientow(salon: dict, fraza: str = "") -> list[dict]:
     return sorted(klienci, key=lambda k: k.get("ostatnia_wizyta", ""), reverse=True)
 
 
+def zoptymalizuj_upload_zdjecia(dane: bytes, mimetype: str) -> tuple[bytes, str]:
+    if Image is None or ImageOps is None:
+        return dane, mimetype
+    try:
+        with Image.open(io.BytesIO(dane)) as obraz:
+            if mimetype == "image/gif":
+                obraz.verify()
+                return dane, mimetype
+            obraz = ImageOps.exif_transpose(obraz)
+            obraz.thumbnail((MAKS_WYMIAR_ZDJECIA, MAKS_WYMIAR_ZDJECIA))
+
+            if obraz.mode in {"RGBA", "LA", "P"}:
+                tlo = Image.new("RGB", obraz.size, (255, 255, 255))
+                if obraz.mode == "P":
+                    obraz = obraz.convert("RGBA")
+                tlo.paste(obraz, mask=obraz.getchannel("A") if "A" in obraz.getbands() else None)
+                obraz = tlo
+            elif obraz.mode != "RGB":
+                obraz = obraz.convert("RGB")
+
+            bufor = io.BytesIO()
+            obraz.save(bufor, format="JPEG", quality=82, optimize=True, progressive=True)
+            zoptymalizowane = bufor.getvalue()
+            if zoptymalizowane and len(zoptymalizowane) < len(dane):
+                return zoptymalizowane, "image/jpeg"
+    except Exception as exc:
+        app.logger.warning("Nie udało się zoptymalizować zdjęcia: %s", exc)
+    return b"", mimetype
+
+
+def upload_ma_poprawna_sygnature(dane: bytes, mimetype: str) -> bool:
+    if mimetype == "image/jpeg":
+        return dane.startswith(b"\xff\xd8\xff")
+    if mimetype == "image/png":
+        return dane.startswith(b"\x89PNG\r\n\x1a\n")
+    if mimetype == "image/gif":
+        return dane.startswith((b"GIF87a", b"GIF89a"))
+    if mimetype == "image/webp":
+        return dane.startswith(b"RIFF") and dane[8:12] == b"WEBP"
+    return False
+
+
 def parsuj_upload_zdjec(pliki) -> list[str]:
     """Zapisuje małe zdjęcia jako data URL w JSON, bez osobnego hostingu plików."""
     zdjecia = []
     dozwolone_typy = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-    maks_bajtow = 1_500_000
 
     for plik in pliki:
         if not plik or not plik.filename:
@@ -1530,10 +1609,15 @@ def parsuj_upload_zdjec(pliki) -> list[str]:
         if plik.mimetype not in dozwolone_typy:
             continue
         dane = plik.read()
-        if not dane or len(dane) > maks_bajtow:
+        if not dane or len(dane) > MAKS_UPLOAD_ZDJECIA_BAJTOW:
+            continue
+        if not upload_ma_poprawna_sygnature(dane, plik.mimetype):
+            continue
+        dane, mimetype = zoptymalizuj_upload_zdjecia(dane, plik.mimetype)
+        if not dane or len(dane) > MAKS_ZDJECIE_PO_KOMPRESJI_BAJTOW:
             continue
         zakodowane = base64.b64encode(dane).decode("ascii")
-        zdjecia.append(f"data:{plik.mimetype};base64,{zakodowane}")
+        zdjecia.append(f"data:{mimetype};base64,{zakodowane}")
     return zdjecia
 
 
@@ -1970,6 +2054,7 @@ def zalogowany_do_salonu(salon_slug: str) -> bool:
 
 @app.before_request
 def wymagaj_hasla_panelu():
+    request._glovaro_start = time.perf_counter()
     if request.endpoint in PUBLIC_ENDPOINTS:
         return
     if not (request.endpoint and request.endpoint.startswith("panel")):
@@ -2008,6 +2093,17 @@ def dodaj_naglowki_bezpieczenstwa(response):
     response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    start = getattr(request, "_glovaro_start", None)
+    if start is not None:
+        elapsed = time.perf_counter() - start
+        if elapsed >= WOLNY_REQUEST_LOG_SEK:
+            app.logger.info(
+                "Wolny request: %.3fs %s %s -> %s",
+                elapsed,
+                request.method,
+                request.path,
+                response.status_code,
+            )
     return response
 
 
@@ -2178,7 +2274,7 @@ def strona_glowna():
         salony=dane.get("salony", {}),
         wybrana_branza=wybrana_branza,
         wybrana_branza_nazwa=etykieta_branzy(wybrana_branza) if wybrana_branza else "",
-        firmy_branzy=katalog_firm_z_terminami(dane, wybrana_branza),
+        firmy_branzy=katalog_firm_z_cache(dane, wybrana_branza),
     )
 
 
