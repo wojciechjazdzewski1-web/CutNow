@@ -606,6 +606,25 @@ def zakres_publicznej_rezerwacji(data_iso: str | None = None) -> tuple[str, str]
     return start.isoformat(), koniec.isoformat()
 
 
+def zakres_panelu_pulpit() -> tuple[str, str]:
+    dzisiaj = date.today()
+    return dzisiaj.isoformat(), (dzisiaj + timedelta(days=180)).isoformat()
+
+
+def zakres_miesiaca(data_iso: str) -> tuple[str, str]:
+    data_wybrana = datetime.strptime(data_iso, "%Y-%m-%d").date()
+    pierwszy = data_wybrana.replace(day=1)
+    ostatni = pierwszy.replace(day=calendar.monthrange(data_wybrana.year, data_wybrana.month)[1])
+    return pierwszy.isoformat(), ostatni.isoformat()
+
+
+def zakres_panelu_rezerwacji(widok: str) -> tuple[str, str]:
+    dzisiaj = date.today()
+    if widok == "archiwum":
+        return (dzisiaj - timedelta(days=DNI_W_ARCHIWUM_PRZED_USUNIECIEM)).isoformat(), dzisiaj.isoformat()
+    return (dzisiaj - timedelta(days=1)).isoformat(), (dzisiaj + timedelta(days=180)).isoformat()
+
+
 def salon_wstrzymany(salon: dict) -> bool:
     return salon.get("abonament_status") in {"pending_payment", "suspended"}
 
@@ -2645,8 +2664,13 @@ def stripe_webhook():
 
 @app.route("/panel/<salon_slug>")
 def panel(salon_slug: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
+    data_od, data_do = zakres_panelu_pulpit()
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        data_od=data_od,
+        data_do=data_do,
+        include_clients=False,
+    )
     if not salon:
         flash("Nie znaleziono takiego salonu.", "error")
         return redirect(url_for("panel_lista"))
@@ -3418,17 +3442,16 @@ def podglad_klienta(salon_slug: str):
 
 @app.route("/panel/<salon_slug>/terminarz", methods=["GET", "POST"])
 def panel_terminarz(salon_slug: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
-    if not salon:
-        flash("Nie znaleziono takiego salonu.", "error")
-        return redirect(url_for("panel_lista"))
-
     wybrana_data = request.values.get("data") or date.today().isoformat()
     if not waliduj_date_iso(wybrana_data):
         wybrana_data = date.today().isoformat()
 
     if request.method == "POST" and request.form.get("akcja") == "dodaj_wizyte":
+        dane = wczytaj_dane()
+        salon = pobierz_salon(dane, salon_slug)
+        if not salon:
+            flash("Nie znaleziono takiego salonu.", "error")
+            return redirect(url_for("panel_lista"))
         rezerwacja, blad = utworz_rezerwacje(
             salon,
             data_iso=request.form.get("wizyta_data", wybrana_data).strip(),
@@ -3450,6 +3473,17 @@ def panel_terminarz(salon_slug: str):
             flash(f"Dodano wizytę: {rezerwacja['imie']} — {rezerwacja['data']} o {rezerwacja['godzina']}.", "success")
             wybrana_data = rezerwacja["data"]
         return redirect(url_for("panel_terminarz", salon_slug=salon_slug, data=wybrana_data))
+
+    data_od, data_do = zakres_miesiaca(wybrana_data)
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        data_od=data_od,
+        data_do=data_do,
+        include_clients=False,
+    )
+    if not salon:
+        flash("Nie znaleziono takiego salonu.", "error")
+        return redirect(url_for("panel_lista"))
 
     data_wybrana = datetime.strptime(wybrana_data, "%Y-%m-%d").date()
     pierwszy_dzien_miesiaca = data_wybrana.replace(day=1)
@@ -3539,13 +3573,12 @@ def panel_lista_rezerwowa(salon_slug: str):
 
 @app.route("/panel/<salon_slug>/rezerwacje", methods=["GET", "POST"])
 def panel_rezerwacje(salon_slug: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
-    if not salon:
-        flash("Nie znaleziono takiego salonu.", "error")
-        return redirect(url_for("panel_lista"))
-
     if request.method == "POST":
+        dane = wczytaj_dane()
+        salon = pobierz_salon(dane, salon_slug)
+        if not salon:
+            flash("Nie znaleziono takiego salonu.", "error")
+            return redirect(url_for("panel_lista"))
         akcja = request.form.get("akcja")
         rezerwacja_id = request.form.get("id", "")
         rezerwacja = znajdz_rezerwacje(salon, rezerwacja_id)
@@ -3582,6 +3615,17 @@ def panel_rezerwacje(salon_slug: str):
     widok = request.args.get("widok", "nadchodzace")
     if widok not in {"nadchodzace", "archiwum"}:
         widok = "nadchodzace"
+
+    data_od, data_do = zakres_panelu_rezerwacji(widok)
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        data_od=data_od,
+        data_do=data_do,
+        include_clients=False,
+    )
+    if not salon:
+        flash("Nie znaleziono takiego salonu.", "error")
+        return redirect(url_for("panel_lista"))
 
     rezerwacje = sorted(
         salon.get("rezerwacje", []),
