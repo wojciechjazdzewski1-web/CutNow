@@ -2558,8 +2558,13 @@ def panel_rozliczenia(salon_slug: str):
 
 @app.route("/panel/<salon_slug>/stripe/checkout", methods=["POST"])
 def stripe_checkout(salon_slug: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        include_clients=False,
+        include_reservations=False,
+        include_free_slots=False,
+        include_waitlist=False,
+    )
     if not salon:
         flash("Nie znaleziono takiego salonu.", "error")
         return redirect(url_for("panel_lista"))
@@ -2576,9 +2581,14 @@ def stripe_checkout(salon_slug: str):
 
 @app.route("/rezerwacja/<salon_slug>/oplac", methods=["POST"])
 def oplac_rezerwacje_online(salon_slug: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        include_clients=False,
+        include_free_slots=False,
+        include_waitlist=False,
+    )
     if not salon:
+        dane = wczytaj_dane()
         return render_template("404.html", sciezka=request.path, domyslny_slug=domyslny_slug(dane)), 404
 
     rezerwacja_id = request.form.get("id", "").strip()
@@ -2645,29 +2655,36 @@ def stripe_webhook():
     if event_type == "checkout.session.completed" and metadata.get("typ_platnosci") == "wizyta":
         rezerwacja_id = metadata.get("rezerwacja_id", "")
         if salon_slug and rezerwacja_id:
-            dane = wczytaj_dane()
-            salon = pobierz_salon(dane, salon_slug)
-            rezerwacja = znajdz_rezerwacje(salon, rezerwacja_id) if salon else None
-            if rezerwacja and not rezerwacja.get("oplacona_online"):
+            def potwierdz_platnosc_wizyty(salon_atomowy: dict | None) -> bool:
+                if not salon_atomowy:
+                    return False
+                rezerwacja = znajdz_rezerwacje(salon_atomowy, rezerwacja_id)
+                if not rezerwacja or rezerwacja.get("oplacona_online"):
+                    return False
                 try:
-                    kwota_zl = int(metadata.get("kwota_zl", kwota_wizyty_zl(salon)))
+                    kwota_zl = int(metadata.get("kwota_zl", kwota_wizyty_zl(salon_atomowy)))
                 except (TypeError, ValueError):
-                    kwota_zl = kwota_wizyty_zl(salon)
+                    kwota_zl = kwota_wizyty_zl(salon_atomowy)
                 rezerwacja["oplacona_online"] = True
                 rezerwacja["oplacono_online_at"] = datetime.now().isoformat(timespec="minutes")
                 rezerwacja["oplacono_kwota_zl"] = kwota_zl
-                zapisz_dane(dane)
+                return True
+
+            zapisano = aktualizuj_salon_atomowo(salon_slug, potwierdz_platnosc_wizyty)
+            if zapisano:
                 app.logger.info(
                     "Stripe potwierdził płatność wizyty dla salonu %s, rezerwacja %s",
                     salon_slug,
                     rezerwacja_id,
                 )
     elif event_type in {"checkout.session.completed", "invoice.paid"} and salon_slug:
-        dane = wczytaj_dane()
-        salon = pobierz_salon(dane, salon_slug)
-        if salon:
-            przedluz_abonament(salon)
-            zapisz_dane(dane)
+        def potwierdz_abonament(salon_atomowy: dict | None) -> bool:
+            if not salon_atomowy:
+                return False
+            przedluz_abonament(salon_atomowy)
+            return True
+
+        if aktualizuj_salon_atomowo(salon_slug, potwierdz_abonament):
             app.logger.info("Stripe potwierdził płatność dla salonu %s", salon_slug)
 
     return jsonify({"received": True})
@@ -3385,22 +3402,35 @@ def opinia_klienta(salon_slug: str, token: str):
             flash("Komentarz może mieć maksymalnie 600 znaków.", "error")
             return redirect(url_for("opinia_klienta", salon_slug=salon_slug, token=token))
 
-        opinia_id = uuid.uuid4().hex[:12]
-        opinia = {
-            "id": opinia_id,
-            "rezerwacja_id": rezerwacja["id"],
-            "ocena": int(ocena),
-            "komentarz": komentarz,
-            "imie": rezerwacja.get("imie", ""),
-            "pracownik": rezerwacja.get("pracownik", ""),
-            "data_wizyty": rezerwacja.get("data", ""),
-            "widoczna": True,
-            "utworzono": datetime.now().isoformat(timespec="minutes"),
-        }
-        salon.setdefault("opinie", []).append(opinia)
-        rezerwacja["opinia_id"] = opinia_id
-        zapisz_dane(dane)
-        flash("Dziękujemy za opinię!", "success")
+        def dodaj_opinie_atomowo(salon_atomowy: dict | None):
+            if not salon_atomowy:
+                return "Nie znaleziono firmy.", "error"
+            rezerwacja_atomowa = znajdz_rezerwacje_po_tokenie_opinii(salon_atomowy, token)
+            if not rezerwacja_atomowa:
+                return "Nie znaleziono linku do opinii.", "error"
+            if rezerwacja_atomowa.get("status") in {"anulowana", "odrzucona"}:
+                return "Nie można wystawić opinii do anulowanej wizyty.", "error"
+            if rezerwacja_atomowa.get("opinia_id"):
+                return "Opinia dla tej wizyty została już dodana. Dziękujemy!", "success"
+
+            opinia_id = uuid.uuid4().hex[:12]
+            opinia = {
+                "id": opinia_id,
+                "rezerwacja_id": rezerwacja_atomowa["id"],
+                "ocena": int(ocena),
+                "komentarz": komentarz,
+                "imie": rezerwacja_atomowa.get("imie", ""),
+                "pracownik": rezerwacja_atomowa.get("pracownik", ""),
+                "data_wizyty": rezerwacja_atomowa.get("data", ""),
+                "widoczna": True,
+                "utworzono": datetime.now().isoformat(timespec="minutes"),
+            }
+            salon_atomowy.setdefault("opinie", []).append(opinia)
+            rezerwacja_atomowa["opinia_id"] = opinia_id
+            return "Dziękujemy za opinię!", "success"
+
+        komunikat, kategoria = aktualizuj_salon_atomowo(salon_slug, dodaj_opinie_atomowo)
+        flash(komunikat, kategoria)
         return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug))
 
     dzien = klucz_dnia_tygodnia(rezerwacja["data"])
@@ -3426,14 +3456,23 @@ def anuluj_rezerwacje_klienta(salon_slug: str, token: str):
         return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug))
 
     if request.method == "POST":
-        if rezerwacja.get("status") not in {"anulowana", "odrzucona"}:
-            rezerwacja["status"] = "anulowana"
-            rezerwacja["anulowano"] = datetime.now().isoformat(timespec="minutes")
-            rezerwacja["anulowal"] = "klient"
-            przywroc_wolny_termin(salon, rezerwacja)
-            usun_rezerwacje_z_salonu(salon, rezerwacja["id"])
-            zapisz_dane(dane)
-            flash("Rezerwacja została anulowana.", "success")
+        def anuluj_atomowo(salon_atomowy: dict | None):
+            if not salon_atomowy:
+                return "Nie znaleziono firmy.", "error"
+            rezerwacja_atomowa = znajdz_rezerwacje_po_tokenie(salon_atomowy, token)
+            if not rezerwacja_atomowa:
+                return "Nie znaleziono rezerwacji do anulowania.", "error"
+            if rezerwacja_atomowa.get("status") not in {"anulowana", "odrzucona"}:
+                rezerwacja_atomowa["status"] = "anulowana"
+                rezerwacja_atomowa["anulowano"] = datetime.now().isoformat(timespec="minutes")
+                rezerwacja_atomowa["anulowal"] = "klient"
+                przywroc_wolny_termin(salon_atomowy, rezerwacja_atomowa)
+                usun_rezerwacje_z_salonu(salon_atomowy, rezerwacja_atomowa["id"])
+                return "Rezerwacja została anulowana.", "success"
+            return "Ta rezerwacja jest już anulowana albo odrzucona.", "success"
+
+        komunikat, kategoria = aktualizuj_salon_atomowo(salon_slug, anuluj_atomowo)
+        flash(komunikat, kategoria)
         return redirect(url_for("rezerwacja_publiczna", salon_slug=salon_slug))
 
     dzien = klucz_dnia_tygodnia(rezerwacja["data"])
