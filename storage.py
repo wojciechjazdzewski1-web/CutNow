@@ -53,6 +53,9 @@ def wczytaj_salon_raw(
     data_od: str | None = None,
     data_do: str | None = None,
     include_clients: bool = True,
+    include_reservations: bool = True,
+    include_free_slots: bool = True,
+    include_waitlist: bool = True,
 ) -> dict | None:
     if uzywaj_postgres():
         return _wczytaj_salon_postgres(
@@ -60,6 +63,9 @@ def wczytaj_salon_raw(
             data_od=data_od,
             data_do=data_do,
             include_clients=include_clients,
+            include_reservations=include_reservations,
+            include_free_slots=include_free_slots,
+            include_waitlist=include_waitlist,
         )
     dane = _wczytaj_plik() or {}
     salon = (dane.get("salony") or {}).get(salon_slug)
@@ -262,6 +268,9 @@ def _wczytaj_salon_postgres(
     data_od: str | None = None,
     data_do: str | None = None,
     include_clients: bool = True,
+    include_reservations: bool = True,
+    include_free_slots: bool = True,
+    include_waitlist: bool = True,
 ) -> dict | None:
     import psycopg
 
@@ -281,6 +290,9 @@ def _wczytaj_salon_postgres(
                 data_od=data_od,
                 data_do=data_do,
                 include_clients=include_clients,
+                include_reservations=include_reservations,
+                include_free_slots=include_free_slots,
+                include_waitlist=include_waitlist,
             )
             return salon
 
@@ -299,6 +311,9 @@ def _wczytaj_salon_postgres(
                 data_od=data_od,
                 data_do=data_do,
                 include_clients=include_clients,
+                include_reservations=include_reservations,
+                include_free_slots=include_free_slots,
+                include_waitlist=include_waitlist,
             )
             return salon
     return None
@@ -670,37 +685,42 @@ def _wczytaj_szczegoly_salonu_z_tabel(
     data_od: str | None = None,
     data_do: str | None = None,
     include_clients: bool = True,
+    include_reservations: bool = True,
+    include_free_slots: bool = True,
+    include_waitlist: bool = True,
 ) -> None:
     filtr, parametry = _filtr_daty("data_iso", data_od, data_do)
-    rows = conn.execute(
-        f"""
-        SELECT payload
-        FROM glovaro_reservations
-        WHERE salon_slug = %s{filtr}
-        ORDER BY data_iso, godzina
-        """,
-        [salon_slug, *parametry],
-    ).fetchall()
-    if rows or data_od or data_do:
-        salon["rezerwacje"] = [
-            payload if isinstance(payload, dict) else json.loads(payload)
-            for (payload,) in rows
-        ]
+    if include_reservations:
+        rows = conn.execute(
+            f"""
+            SELECT payload
+            FROM glovaro_reservations
+            WHERE salon_slug = %s{filtr}
+            ORDER BY data_iso, godzina
+            """,
+            [salon_slug, *parametry],
+        ).fetchall()
+        if rows or data_od or data_do:
+            salon["rezerwacje"] = [
+                payload if isinstance(payload, dict) else json.loads(payload)
+                for (payload,) in rows
+            ]
 
-    rows = conn.execute(
-        f"""
-        SELECT data_iso, godzina
-        FROM glovaro_free_slots
-        WHERE salon_slug = %s{filtr}
-        ORDER BY data_iso, godzina
-        """,
-        [salon_slug, *parametry],
-    ).fetchall()
-    if rows or data_od or data_do:
-        wolne: dict[str, list[str]] = {}
-        for data_iso, godzina in rows:
-            wolne.setdefault(data_iso, []).append(godzina)
-        salon["wolne_terminy"] = wolne
+    if include_free_slots:
+        rows = conn.execute(
+            f"""
+            SELECT data_iso, godzina
+            FROM glovaro_free_slots
+            WHERE salon_slug = %s{filtr}
+            ORDER BY data_iso, godzina
+            """,
+            [salon_slug, *parametry],
+        ).fetchall()
+        if rows or data_od or data_do:
+            wolne: dict[str, list[str]] = {}
+            for data_iso, godzina in rows:
+                wolne.setdefault(data_iso, []).append(godzina)
+            salon["wolne_terminy"] = wolne
 
     if include_clients:
         rows = conn.execute(
@@ -718,20 +738,21 @@ def _wczytaj_szczegoly_salonu_z_tabel(
                 for (payload,) in rows
             ]
 
-    rows = conn.execute(
-        """
-        SELECT payload
-        FROM glovaro_waitlist
-        WHERE salon_slug = %s
-        ORDER BY data_preferowana DESC
-        """,
-        (salon_slug,),
-    ).fetchall()
-    if rows:
-        salon["lista_rezerwowa"] = [
-            payload if isinstance(payload, dict) else json.loads(payload)
-            for (payload,) in rows
-        ]
+    if include_waitlist:
+        rows = conn.execute(
+            """
+            SELECT payload
+            FROM glovaro_waitlist
+            WHERE salon_slug = %s
+            ORDER BY data_preferowana DESC
+            """,
+            (salon_slug,),
+        ).fetchall()
+        if rows:
+            salon["lista_rezerwowa"] = [
+                payload if isinstance(payload, dict) else json.loads(payload)
+                for (payload,) in rows
+            ]
 
 
 def _migruj_plik_do_postgres_jesli_trzeba() -> None:

@@ -584,6 +584,9 @@ def wczytaj_salon_bezposrednio(
     data_od: str | None = None,
     data_do: str | None = None,
     include_clients: bool = True,
+    include_reservations: bool = True,
+    include_free_slots: bool = True,
+    include_waitlist: bool = True,
 ) -> dict | None:
     return przygotuj_salon_z_raw(
         salon_slug,
@@ -592,6 +595,9 @@ def wczytaj_salon_bezposrednio(
             data_od=data_od,
             data_do=data_do,
             include_clients=include_clients,
+            include_reservations=include_reservations,
+            include_free_slots=include_free_slots,
+            include_waitlist=include_waitlist,
         ),
     )
 
@@ -623,6 +629,11 @@ def zakres_panelu_rezerwacji(widok: str) -> tuple[str, str]:
     if widok == "archiwum":
         return (dzisiaj - timedelta(days=DNI_W_ARCHIWUM_PRZED_USUNIECIEM)).isoformat(), dzisiaj.isoformat()
     return (dzisiaj - timedelta(days=1)).isoformat(), (dzisiaj + timedelta(days=180)).isoformat()
+
+
+def zakres_historii_klienta() -> tuple[str, str]:
+    dzisiaj = date.today()
+    return (dzisiaj - timedelta(days=365)).isoformat(), (dzisiaj + timedelta(days=180)).isoformat()
 
 
 def salon_wstrzymany(salon: dict) -> bool:
@@ -1498,7 +1509,7 @@ def synchronizuj_kartoteke_salonu(salon: dict) -> None:
             klient["imie"] = rezerwacja["imie"].strip()
         if rezerwacja.get("telefon"):
             klient["telefon_wyswietl"] = rezerwacja["telefon"].strip()
-        if rezerwacja.get("email"):
+        if rezerwacja.get("email") and not klient.get("email"):
             klient["email"] = rezerwacja["email"].strip().lower()
         if not rezerwacja.get("klient_id"):
             rezerwacja["klient_id"] = klient["id"]
@@ -3695,18 +3706,19 @@ def panel_opinie(salon_slug: str):
 
 @app.route("/panel/<salon_slug>/klienci")
 def panel_klienci(salon_slug: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        include_clients=True,
+        include_reservations=False,
+        include_free_slots=False,
+        include_waitlist=False,
+    )
     if not salon:
         flash("Nie znaleziono takiego salonu.", "error")
         return redirect(url_for("panel_lista"))
 
     fraza = request.args.get("q", "").strip()
     klienci = wyszukaj_klientow(salon, fraza)
-    if fraza and not klienci:
-        synchronizuj_kartoteke_salonu(salon)
-        zapisz_dane(dane)
-        klienci = wyszukaj_klientow(salon, fraza)
 
     return render_template(
         "klienci.html",
@@ -3720,38 +3732,54 @@ def panel_klienci(salon_slug: str):
 
 @app.route("/panel/<salon_slug>/klienci/<klient_id>", methods=["GET", "POST"])
 def panel_klient_szczegoly(salon_slug: str, klient_id: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
+    admin_rodo_ograniczony = bool(session.get(admin_auth_key()) and not session.get(panel_auth_key(salon_slug)))
+
+    if request.method == "POST":
+        akcja = request.form.get("akcja", "zapisz")
+        if akcja == "zapisz":
+            def zapisz_klienta_atomowo(salon_atomowy: dict | None):
+                if not salon_atomowy:
+                    return "Nie znaleziono takiego salonu.", "error"
+                synchronizuj_kartoteke_salonu(salon_atomowy)
+                klient_atomowy = znajdz_klienta(salon_atomowy, klient_id)
+                if not klient_atomowy:
+                    return "Nie znaleziono klienta w kartotece.", "error"
+                klient_atomowy["notatka_wewnetrzna"] = request.form.get("notatka_wewnetrzna", "").strip()[:2000]
+                klient_atomowy["email"] = request.form.get("email", "").strip()[:120]
+                if not admin_rodo_ograniczony and request.form.get("wywiad_zaakceptowany_salon") == "on":
+                    klient_atomowy["wywiad_zdrowotny"] = {
+                        "_typ": "oswiadczenie",
+                        "zaakceptowano": datetime.now().isoformat(timespec="minutes"),
+                        "zgoda_rodo": "tak",
+                        "potwierdzil": "salon",
+                    }
+                    klient_atomowy["wywiad_aktualizacja"] = klient_atomowy["wywiad_zdrowotny"]["zaakceptowano"]
+                return "Zapisano kartotekę klienta.", "success"
+
+            komunikat, kategoria = aktualizuj_salon_atomowo(salon_slug, zapisz_klienta_atomowo)
+            flash(komunikat, kategoria)
+        return redirect(url_for("panel_klient_szczegoly", salon_slug=salon_slug, klient_id=klient_id))
+
+    data_od, data_do = zakres_historii_klienta()
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        data_od=data_od,
+        data_do=data_do,
+        include_clients=True,
+        include_reservations=True,
+        include_free_slots=False,
+        include_waitlist=False,
+    )
     if not salon:
         flash("Nie znaleziono takiego salonu.", "error")
         return redirect(url_for("panel_lista"))
 
-    synchronizuj_kartoteke_salonu(salon)
     klient = znajdz_klienta(salon, klient_id)
     if not klient:
         flash("Nie znaleziono klienta w kartotece.", "error")
         return redirect(url_for("panel_klienci", salon_slug=salon_slug))
 
-    admin_rodo_ograniczony = bool(session.get(admin_auth_key()) and not session.get(panel_auth_key(salon_slug)))
     pytania = pytania_wywiadu_salonu(salon)
-
-    if request.method == "POST":
-        akcja = request.form.get("akcja", "zapisz")
-        if akcja == "zapisz":
-            klient["notatka_wewnetrzna"] = request.form.get("notatka_wewnetrzna", "").strip()[:2000]
-            klient["email"] = request.form.get("email", "").strip()[:120]
-            if not admin_rodo_ograniczony and request.form.get("wywiad_zaakceptowany_salon") == "on":
-                klient["wywiad_zdrowotny"] = {
-                    "_typ": "oswiadczenie",
-                    "zaakceptowano": datetime.now().isoformat(timespec="minutes"),
-                    "zgoda_rodo": "tak",
-                    "potwierdzil": "salon",
-                }
-                klient["wywiad_aktualizacja"] = klient["wywiad_zdrowotny"]["zaakceptowano"]
-            zapisz_dane(dane)
-            flash("Zapisano kartotekę klienta.", "success")
-        return redirect(url_for("panel_klient_szczegoly", salon_slug=salon_slug, klient_id=klient_id))
-
     wizyty = historia_wizyt_klienta(salon, klient_id)
     wywiad_etykiety = [] if admin_rodo_ograniczony else etykieta_odpowiedzi_wywiadu(pytania, klient.get("wywiad_zdrowotny") or {})
     pytania_map = {p["id"]: p["tresc"] for p in pytania}
