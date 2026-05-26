@@ -37,7 +37,7 @@
       <p class="mt-1 text-sm">Uzupełnij profil firmy, usługi, godziny i wolne terminy. Publiczna strona rezerwacji ruszy dopiero po opłaceniu abonamentu.</p>
     </div>
   {% endif %}
-  <div class="mt-4 rounded-2xl bg-white border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" data-tour="abonament">
+  <div id="abonament" class="mt-4 rounded-2xl bg-white border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" data-tour="abonament">
     <div>
       <p class="font-semibold text-slate-900">Abonament Glovaro</p>
       <p class="text-sm text-slate-600">
@@ -219,6 +219,7 @@
     <button type="button" id="panel-tour-prev" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Wstecz</button>
     <div class="ml-auto flex gap-2">
       <button type="button" id="panel-tour-close" class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-50">Zamknij</button>
+      <button type="button" id="panel-tour-fill" class="rounded-xl border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-800 hover:bg-brand-100">Wypełnij</button>
       <button type="button" id="panel-tour-next" class="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Dalej</button>
     </div>
   </div>
@@ -230,42 +231,50 @@
       {
         selector: '[data-tour="profil"]',
         title: '1. Profil firmy',
-        text: 'Tutaj firma wpisuje nazwę, opis, logo, telefon, e-mail do powiadomień, lokalizację oraz usługi w formacie Nazwa|Cena|Czas.'
+        text: 'Tutaj firma wpisuje nazwę, opis, logo, telefon, e-mail do powiadomień, lokalizację oraz usługi w formacie Nazwa|Cena|Czas.',
+        actionUrl: '{{ url_for("ustawienia_salonu", salon_slug=salon_slug) }}'
       },
       {
         selector: '[data-tour="godziny"]',
         title: '2. Godziny pracy',
-        text: 'Tutaj ustawia się dni i godziny pracy. Te dane pomagają później szybko generować wolne terminy.'
+        text: 'Tutaj ustawia się dni i godziny pracy. Te dane pomagają później szybko generować wolne terminy.',
+        actionUrl: '{{ url_for("godziny_pracy", salon_slug=salon_slug) }}'
       },
       {
         selector: '[data-tour="wolne-terminy"]',
         title: '3. Wolne terminy',
-        text: 'To najważniejsze miejsce dla klientów. Kliknij dzień w kalendarzu i dodaj godziny, które mają być widoczne na stronie rezerwacji.'
+        text: 'To najważniejsze miejsce dla klientów. Kliknij dzień w kalendarzu i dodaj godziny, które mają być widoczne na stronie rezerwacji.',
+        actionUrl: '{{ url_for("wolne_terminy", salon_slug=salon_slug) }}'
       },
       {
         selector: '[data-tour="podglad"]',
         title: '4. Podgląd klienta',
-        text: 'Tutaj firma sprawdza, jak strona wygląda dla klienta: opis, logo, usługi, zdjęcia, lokalizacja i dostępne godziny.'
+        text: 'Tutaj firma sprawdza, jak strona wygląda dla klienta: opis, logo, usługi, zdjęcia, lokalizacja i dostępne godziny.',
+        actionUrl: '{{ url_for("podglad_klienta", salon_slug=salon_slug) }}'
       },
       {
         selector: '[data-tour="terminarz"]',
         title: '5. Terminarz',
-        text: 'Tutaj firma widzi kalendarz wizyt i może ręcznie dodać klienta, który zadzwonił albo zapisał się poza stroną.'
+        text: 'Tutaj firma widzi kalendarz wizyt i może ręcznie dodać klienta, który zadzwonił albo zapisał się poza stroną.',
+        actionUrl: '{{ url_for("panel_terminarz", salon_slug=salon_slug) }}'
       },
       {
         selector: '[data-tour="rezerwacje"]',
         title: '6. Rezerwacje',
-        text: 'Tutaj firma potwierdza, odrzuca i sprawdza rezerwacje online oraz historię wizyt.'
+        text: 'Tutaj firma potwierdza, odrzuca i sprawdza rezerwacje online oraz historię wizyt.',
+        actionUrl: '{{ url_for("panel_rezerwacje", salon_slug=salon_slug) }}'
       },
       {
         selector: '[data-tour="abonament"]',
         title: '7. Aktywacja abonamentu',
-        text: 'Po uzupełnieniu panelu firma opłaca abonament. Dopiero wtedy publiczne rezerwacje mogą działać dla klientów.'
+        text: 'Po uzupełnieniu panelu firma opłaca abonament. Dopiero wtedy publiczne rezerwacje mogą działać dla klientów.',
+        actionUrl: '#abonament'
       },
       {
         selector: '[data-tour="link-klienta"]',
         title: '8. Link dla klientów',
-        text: 'Ten link można wkleić na Instagram, Facebook, Google Maps albo wysłać klientom. To publiczna strona rezerwacji firmy.'
+        text: 'Ten link można wkleić na Instagram, Facebook, Google Maps albo wysłać klientom. To publiczna strona rezerwacji firmy.',
+        actionUrl: '{{ url_for("rezerwacja_publiczna", salon_slug=salon_slug) }}'
       }
     ];
 
@@ -276,6 +285,7 @@
     const text = document.getElementById('panel-tour-text');
     const prev = document.getElementById('panel-tour-prev');
     const next = document.getElementById('panel-tour-next');
+    const fill = document.getElementById('panel-tour-fill');
     const close = document.getElementById('panel-tour-close');
     let index = 0;
     let highlighted = null;
@@ -317,6 +327,7 @@
       prev.disabled = index === 0;
       prev.classList.toggle('opacity-40', index === 0);
       next.textContent = index === steps.length - 1 ? 'Zakończ' : 'Dalej';
+      fill.classList.toggle('hidden', !step.actionUrl);
     }
 
     function startTour() {
@@ -335,6 +346,15 @@
     close.addEventListener('click', closeTour);
     overlay.addEventListener('click', closeTour);
     prev.addEventListener('click', () => showStep(Math.max(index - 1, 0)));
+    fill.addEventListener('click', () => {
+      const actionUrl = steps[index] && steps[index].actionUrl;
+      if (!actionUrl) return;
+      if (actionUrl.startsWith('#')) {
+        document.querySelector(actionUrl)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      window.location.href = actionUrl;
+    });
     next.addEventListener('click', () => {
       if (index >= steps.length - 1) {
         closeTour();
