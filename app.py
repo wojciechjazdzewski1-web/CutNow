@@ -3548,31 +3548,47 @@ def panel_terminarz(salon_slug: str):
 
 @app.route("/panel/<salon_slug>/lista-rezerwowa", methods=["GET", "POST"])
 def panel_lista_rezerwowa(salon_slug: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
-    if not salon:
-        flash("Nie znaleziono takiej firmy.", "error")
-        return redirect(url_for("panel_lista"))
-
     if request.method == "POST":
         zgloszenie_id = request.form.get("id", "")
         akcja = request.form.get("akcja", "")
-        zgloszenie = next((z for z in salon.get("lista_rezerwowa", []) if z.get("id") == zgloszenie_id), None)
-        if zgloszenie:
+
+        def zmien_liste_rezerwowa_atomowo(salon_atomowy: dict | None):
+            if not salon_atomowy:
+                return "Nie znaleziono takiej firmy.", "error"
+            zgloszenie = next(
+                (z for z in salon_atomowy.get("lista_rezerwowa", []) if z.get("id") == zgloszenie_id),
+                None,
+            )
+            if not zgloszenie:
+                return "Nie znaleziono zgłoszenia z listy rezerwowej.", "error"
             if akcja == "kontakt":
                 zgloszenie["status"] = "kontakt"
                 zgloszenie["kontakt_at"] = datetime.now().isoformat(timespec="minutes")
-                flash(f"Oznaczono kontakt: {zgloszenie.get('imie', '')}.", "success")
-            elif akcja == "nowe":
+                return f"Oznaczono kontakt: {zgloszenie.get('imie', '')}.", "success"
+            if akcja == "nowe":
                 zgloszenie["status"] = "nowe"
                 zgloszenie.pop("kontakt_at", None)
-                flash(f"Przywrócono jako nowe: {zgloszenie.get('imie', '')}.", "success")
-            elif akcja == "usun":
+                return f"Przywrócono jako nowe: {zgloszenie.get('imie', '')}.", "success"
+            if akcja == "usun":
                 zgloszenie["status"] = "usuniete"
                 zgloszenie["usunieto_at"] = datetime.now().isoformat(timespec="minutes")
-                flash("Usunięto zgłoszenie z listy rezerwowej.", "success")
-            zapisz_dane(dane)
+                return "Usunięto zgłoszenie z listy rezerwowej.", "success"
+            return "Nieznana akcja listy rezerwowej.", "error"
+
+        komunikat, kategoria = aktualizuj_salon_atomowo(salon_slug, zmien_liste_rezerwowa_atomowo)
+        flash(komunikat, kategoria)
         return redirect(url_for("panel_lista_rezerwowa", salon_slug=salon_slug))
+
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        include_clients=False,
+        include_reservations=False,
+        include_free_slots=False,
+        include_waitlist=True,
+    )
+    if not salon:
+        flash("Nie znaleziono takiej firmy.", "error")
+        return redirect(url_for("panel_lista"))
 
     zgloszenia = aktywne_zgloszenia_listy_rezerwowej(salon)
     return render_template(
@@ -3671,26 +3687,38 @@ def panel_rezerwacje(salon_slug: str):
 
 @app.route("/panel/<salon_slug>/opinie", methods=["GET", "POST"])
 def panel_opinie(salon_slug: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
-    if not salon:
-        flash("Nie znaleziono takiego salonu.", "error")
-        return redirect(url_for("panel_lista"))
-
     if request.method == "POST":
         opinia_id = request.form.get("id", "")
         akcja = request.form.get("akcja", "")
-        for opinia in salon.get("opinie", []):
-            if opinia.get("id") == opinia_id:
-                if akcja == "ukryj":
-                    opinia["widoczna"] = False
-                    flash("Opinia została ukryta na stronie klienta.", "success")
-                elif akcja == "pokaz":
-                    opinia["widoczna"] = True
-                    flash("Opinia jest znowu widoczna na stronie klienta.", "success")
-                break
-        zapisz_dane(dane)
+
+        def zmien_opinie_atomowo(salon_atomowy: dict | None):
+            if not salon_atomowy:
+                return "Nie znaleziono takiego salonu.", "error"
+            opinia = next((o for o in salon_atomowy.get("opinie", []) if o.get("id") == opinia_id), None)
+            if not opinia:
+                return "Nie znaleziono opinii.", "error"
+            if akcja == "ukryj":
+                opinia["widoczna"] = False
+                return "Opinia została ukryta na stronie klienta.", "success"
+            if akcja == "pokaz":
+                opinia["widoczna"] = True
+                return "Opinia jest znowu widoczna na stronie klienta.", "success"
+            return "Nieznana akcja opinii.", "error"
+
+        komunikat, kategoria = aktualizuj_salon_atomowo(salon_slug, zmien_opinie_atomowo)
+        flash(komunikat, kategoria)
         return redirect(url_for("panel_opinie", salon_slug=salon_slug))
+
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        include_clients=False,
+        include_reservations=False,
+        include_free_slots=False,
+        include_waitlist=False,
+    )
+    if not salon:
+        flash("Nie znaleziono takiego salonu.", "error")
+        return redirect(url_for("panel_lista"))
 
     opinie = sorted(salon.get("opinie", []), key=lambda o: o.get("utworzono", ""), reverse=True)
     widoczne = widoczne_opinie(salon)
