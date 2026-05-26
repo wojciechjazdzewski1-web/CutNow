@@ -64,9 +64,12 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
 LEGAL_COMPANY_NAME = os.environ.get("LEGAL_COMPANY_NAME", "Glovaro").strip()
 LEGAL_COMPANY_ADDRESS = os.environ.get("LEGAL_COMPANY_ADDRESS", "Uzupełnij adres firmy").strip()
 LEGAL_COMPANY_EMAIL = os.environ.get("LEGAL_COMPANY_EMAIL", "kontakt@example.com").strip()
-LEGAL_COMPANY_NIP = os.environ.get("LEGAL_COMPANY_NIP", "Uzupełnij NIP").strip()
+LEGAL_COMPANY_NIP = os.environ.get("LEGAL_COMPANY_NIP", "").strip()
 LEGAL_PLACEHOLDERS = frozenset(
     {"", "Uzupełnij adres firmy", "Uzupełnij NIP", "kontakt@example.com", "0000000000"}
+)
+LEGAL_UNREGISTERED_ACTIVITY = (
+    os.environ.get("LEGAL_UNREGISTERED_ACTIVITY", "auto").strip().lower()
 )
 REZERWACJA_RATE_LIMIT: dict[str, list[float]] = {}
 GODZIN_PO_WIZYCIE_DO_ARCHIWUM = 1
@@ -729,12 +732,23 @@ def maps_link_salonu(salon: dict) -> str:
 def legal_skonfigurowany() -> bool:
     """Czy dane operatora w ENV nie są placeholderami (do banera na stronach prawnych)."""
     return (
-        LEGAL_COMPANY_NAME not in LEGAL_PLACEHOLDERS
-        and LEGAL_COMPANY_ADDRESS not in LEGAL_PLACEHOLDERS
-        and LEGAL_COMPANY_NIP not in LEGAL_PLACEHOLDERS
-        and LEGAL_COMPANY_EMAIL not in LEGAL_PLACEHOLDERS
+        legal_wartosc_uzupelniona(LEGAL_COMPANY_NAME)
+        and legal_wartosc_uzupelniona(LEGAL_COMPANY_ADDRESS)
+        and legal_wartosc_uzupelniona(LEGAL_COMPANY_EMAIL)
         and "@" in LEGAL_COMPANY_EMAIL
     )
+
+
+def legal_wartosc_uzupelniona(wartosc: str) -> bool:
+    return wartosc not in LEGAL_PLACEHOLDERS
+
+
+def legal_dzialalnosc_nierejestrowana() -> bool:
+    if LEGAL_UNREGISTERED_ACTIVITY in {"1", "true", "tak", "yes"}:
+        return True
+    if LEGAL_UNREGISTERED_ACTIVITY in {"0", "false", "nie", "no"}:
+        return False
+    return not legal_wartosc_uzupelniona(LEGAL_COMPANY_NIP)
 
 
 def kwota_wizyty_zl(salon: dict) -> int:
@@ -2269,6 +2283,11 @@ def inject_globals():
             "company_address": LEGAL_COMPANY_ADDRESS,
             "company_email": LEGAL_COMPANY_EMAIL,
             "company_nip": LEGAL_COMPANY_NIP,
+            "has_name": legal_wartosc_uzupelniona(LEGAL_COMPANY_NAME),
+            "has_address": legal_wartosc_uzupelniona(LEGAL_COMPANY_ADDRESS),
+            "has_email": legal_wartosc_uzupelniona(LEGAL_COMPANY_EMAIL) and "@" in LEGAL_COMPANY_EMAIL,
+            "has_nip": legal_wartosc_uzupelniona(LEGAL_COMPANY_NIP),
+            "unregistered_activity": legal_dzialalnosc_nierejestrowana(),
         },
         "legal_skonfigurowany": legal_skonfigurowany(),
         "dni_archiwum_rezerwacji": DNI_W_ARCHIWUM_PRZED_USUNIECIEM,

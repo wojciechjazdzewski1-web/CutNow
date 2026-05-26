@@ -9,7 +9,7 @@
 
   {% if not legal_skonfigurowany %}
   <p class="mb-8 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-4">
-    Uwaga dla operatora: uzupełnij dane firmy w zmiennych <code>LEGAL_*</code> przed publicznym startem.
+    Uwaga dla operatora: uzupełnij dane kontaktowe w zmiennych <code>LEGAL_*</code> (imię i nazwisko / nazwa, adres do korespondencji, e-mail) przed publicznym startem.
   </p>
   {% endif %}
 
@@ -26,10 +26,23 @@
       <h2 class="text-xl font-semibold text-slate-900 mb-3">1. Kto jest administratorem danych</h2>
       <p><strong>Operator Glovaro</strong> (administrator w zakresie kont salonów, abonamentu, bezpieczeństwa Serwisu):</p>
       <ul class="mt-2 space-y-1">
-        <li>{{ legal.company_name }}, {{ legal.company_address }}</li>
-        <li>NIP: {{ legal.company_nip }}</li>
-        <li>E-mail: <a href="mailto:{{ legal.company_email }}" class="text-brand-700 hover:underline">{{ legal.company_email }}</a></li>
+        {% if legal.has_name or legal.has_address %}
+          <li>
+            {% if legal.has_name %}{{ legal.company_name }}{% endif %}
+            {% if legal.has_name and legal.has_address %}, {% endif %}
+            {% if legal.has_address %}{{ legal.company_address }}{% endif %}
+          </li>
+        {% endif %}
+        {% if legal.has_nip %}
+          <li>NIP: {{ legal.company_nip }}</li>
+        {% endif %}
+        {% if legal.has_email %}
+          <li>E-mail: <a href="mailto:{{ legal.company_email }}" class="text-brand-700 hover:underline">{{ legal.company_email }}</a></li>
+        {% endif %}
       </ul>
+      {% if legal.unregistered_activity %}
+        <p class="mt-3 text-sm text-slate-600">Operator prowadzi działalność nierejestrowaną, dlatego nie podaje danych rejestrowych przedsiębiorcy.</p>
+      {% endif %}
       <p class="mt-4"><strong>Salon</strong> (odrębny administrator w zakresie danych swoich klientów rezerwujących wizytę — imię, telefon, e-mail, termin, usługa, uwagi, opinia). Glovaro w tym zakresie działa jako <strong>podmiot przetwarzający</strong> na podstawie korzystania Salonu z narzędzia (art. 28 RODO).</p>
       <p class="mt-2">W sprawach wizyty najpierw skontaktuj się z Salonem (dane kontaktowe na jego stronie rezerwacji). W sprawach technicznych Serwisu — z Operatorem pod adresem powyżej.</p>
     </section>

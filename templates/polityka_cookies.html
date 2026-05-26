@@ -81,7 +81,16 @@
 
     <section>
       <h2 class="text-xl font-semibold text-slate-900 mb-3">6. Kontakt</h2>
-      <p>Pytania: <strong>{{ legal.company_email }}</strong> ({{ legal.company_name }}). Więcej o danych osobowych: <a href="{{ url_for('polityka_prywatnosci') }}" class="text-brand-700 hover:underline">polityka prywatności</a>.</p>
+      <p>
+        Pytania:
+        {% if legal.has_email %}
+          <strong>{{ legal.company_email }}</strong>
+        {% else %}
+          adres e-mail operatora wskazany w Serwisie
+        {% endif %}
+        {% if legal.has_name %}({{ legal.company_name }}){% endif %}.
+        Więcej o danych osobowych: <a href="{{ url_for('polityka_prywatnosci') }}" class="text-brand-700 hover:underline">polityka prywatności</a>.
+      </p>
     </section>
   </div>
 </article>

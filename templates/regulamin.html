@@ -9,7 +9,7 @@
 
   {% if not legal_skonfigurowany %}
   <p class="mb-8 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-4">
-    Uwaga dla operatora: uzupełnij dane firmy w zmiennych <code>LEGAL_*</code> (Render Environment), zanim udostępnisz serwis publicznie.
+    Uwaga dla operatora: uzupełnij dane kontaktowe w zmiennych <code>LEGAL_*</code> (imię i nazwisko / nazwa, adres do korespondencji, e-mail), zanim udostępnisz serwis publicznie.
   </p>
   {% endif %}
 
@@ -47,11 +47,22 @@
       <h2 class="text-xl font-semibold text-slate-900 mb-3">§3. Dane Usługodawcy</h2>
       <p>Usługodawcą Serwisu Glovaro jest:</p>
       <ul class="mt-3 space-y-1">
-        <li><strong>Nazwa:</strong> {{ legal.company_name }}</li>
-        <li><strong>Adres:</strong> {{ legal.company_address }}</li>
-        <li><strong>NIP:</strong> {{ legal.company_nip }}</li>
-        <li><strong>E-mail:</strong> <a href="mailto:{{ legal.company_email }}" class="text-brand-700 hover:underline">{{ legal.company_email }}</a></li>
+        {% if legal.has_name %}
+          <li><strong>Operator:</strong> {{ legal.company_name }}</li>
+        {% endif %}
+        {% if legal.has_address %}
+          <li><strong>Adres do korespondencji:</strong> {{ legal.company_address }}</li>
+        {% endif %}
+        {% if legal.has_nip %}
+          <li><strong>NIP:</strong> {{ legal.company_nip }}</li>
+        {% endif %}
+        {% if legal.has_email %}
+          <li><strong>E-mail:</strong> <a href="mailto:{{ legal.company_email }}" class="text-brand-700 hover:underline">{{ legal.company_email }}</a></li>
+        {% endif %}
       </ul>
+      {% if legal.unregistered_activity %}
+        <p class="mt-3 text-sm text-slate-600">Operator prowadzi działalność nierejestrowaną w rozumieniu art. 5 ustawy Prawo przedsiębiorców, dlatego w dokumencie nie są wskazywane dane rejestrowe przedsiębiorcy.</p>
+      {% endif %}
     </section>
 
     <section id="zakres">
