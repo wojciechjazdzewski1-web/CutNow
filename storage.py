@@ -47,9 +47,20 @@ def wczytaj_raw() -> dict | None:
     return _wczytaj_plik()
 
 
-def wczytaj_salon_raw(salon_slug: str) -> dict | None:
+def wczytaj_salon_raw(
+    salon_slug: str,
+    *,
+    data_od: str | None = None,
+    data_do: str | None = None,
+    include_clients: bool = True,
+) -> dict | None:
     if uzywaj_postgres():
-        return _wczytaj_salon_postgres(salon_slug)
+        return _wczytaj_salon_postgres(
+            salon_slug,
+            data_od=data_od,
+            data_do=data_do,
+            include_clients=include_clients,
+        )
     dane = _wczytaj_plik() or {}
     salon = (dane.get("salony") or {}).get(salon_slug)
     return salon if isinstance(salon, dict) else None
@@ -155,8 +166,78 @@ def _init_postgres() -> None:
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_glovaro_salons_abonament ON glovaro_salons (abonament_status)"
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS glovaro_reservations (
+                salon_slug TEXT NOT NULL REFERENCES glovaro_salons(slug) ON DELETE CASCADE,
+                id TEXT NOT NULL,
+                data_iso TEXT NOT NULL DEFAULT '',
+                godzina TEXT NOT NULL DEFAULT '',
+                status TEXT NOT NULL DEFAULT '',
+                klient_id TEXT NOT NULL DEFAULT '',
+                telefon TEXT NOT NULL DEFAULT '',
+                email TEXT NOT NULL DEFAULT '',
+                payload JSONB NOT NULL,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                PRIMARY KEY (salon_slug, id)
+            )
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_glovaro_reservations_salon_data ON glovaro_reservations (salon_slug, data_iso, godzina)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_glovaro_reservations_salon_status ON glovaro_reservations (salon_slug, status, data_iso)"
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS glovaro_free_slots (
+                salon_slug TEXT NOT NULL REFERENCES glovaro_salons(slug) ON DELETE CASCADE,
+                data_iso TEXT NOT NULL,
+                godzina TEXT NOT NULL,
+                PRIMARY KEY (salon_slug, data_iso, godzina)
+            )
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_glovaro_free_slots_salon_data ON glovaro_free_slots (salon_slug, data_iso)"
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS glovaro_clients (
+                salon_slug TEXT NOT NULL REFERENCES glovaro_salons(slug) ON DELETE CASCADE,
+                id TEXT NOT NULL,
+                telefon TEXT NOT NULL DEFAULT '',
+                email TEXT NOT NULL DEFAULT '',
+                ostatnia_wizyta TEXT NOT NULL DEFAULT '',
+                payload JSONB NOT NULL,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                PRIMARY KEY (salon_slug, id)
+            )
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_glovaro_clients_salon_phone ON glovaro_clients (salon_slug, telefon)"
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS glovaro_waitlist (
+                salon_slug TEXT NOT NULL REFERENCES glovaro_salons(slug) ON DELETE CASCADE,
+                id TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT '',
+                data_preferowana TEXT NOT NULL DEFAULT '',
+                payload JSONB NOT NULL,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                PRIMARY KEY (salon_slug, id)
+            )
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_glovaro_waitlist_salon_status ON glovaro_waitlist (salon_slug, status, data_preferowana)"
+        )
         conn.commit()
         _migruj_state_do_salonow(conn)
+        _uzupelnij_szczegoly_salonow_jesli_puste(conn)
 
 
 def _wczytaj_postgres() -> dict | None:
@@ -175,7 +256,13 @@ def _wczytaj_postgres() -> dict | None:
     return json.loads(payload)
 
 
-def _wczytaj_salon_postgres(salon_slug: str) -> dict | None:
+def _wczytaj_salon_postgres(
+    salon_slug: str,
+    *,
+    data_od: str | None = None,
+    data_do: str | None = None,
+    include_clients: bool = True,
+) -> dict | None:
     import psycopg
 
     with psycopg.connect(DATABASE_URL) as conn:
@@ -187,6 +274,14 @@ def _wczytaj_salon_postgres(salon_slug: str) -> dict | None:
             payload = row[0]
             salon = payload if isinstance(payload, dict) else json.loads(payload)
             salon.setdefault("slug", salon_slug)
+            _wczytaj_szczegoly_salonu_z_tabel(
+                conn,
+                salon_slug,
+                salon,
+                data_od=data_od,
+                data_do=data_do,
+                include_clients=include_clients,
+            )
             return salon
 
         legacy = conn.execute("SELECT payload FROM glovaro_state WHERE id = 1").fetchone()
@@ -197,6 +292,14 @@ def _wczytaj_salon_postgres(salon_slug: str) -> dict | None:
         salon = (dane.get("salony") or {}).get(salon_slug)
         if isinstance(salon, dict):
             salon.setdefault("slug", salon_slug)
+            _wczytaj_szczegoly_salonu_z_tabel(
+                conn,
+                salon_slug,
+                salon,
+                data_od=data_od,
+                data_do=data_do,
+                include_clients=include_clients,
+            )
             return salon
     return None
 
@@ -281,6 +384,7 @@ def _aktualizuj_salon_postgres(salon_slug: str, mutator):
         if row:
             payload = row[0]
             salon = payload if isinstance(payload, dict) else json.loads(payload)
+            _wczytaj_szczegoly_salonu_z_tabel(conn, salon_slug, salon)
         else:
             legacy = conn.execute("SELECT payload FROM glovaro_state WHERE id = 1 FOR UPDATE").fetchone()
             dane = None
@@ -309,12 +413,13 @@ def _aktualizuj_salon_postgres(salon_slug: str, mutator):
                 """,
                 (
                     salon_slug,
-                    Jsonb(salon_do_zapisu),
+                    Jsonb(_lekki_payload_salonu(salon_do_zapisu)),
                     str(salon_do_zapisu.get("nazwa_salonu", "")),
                     str(salon_do_zapisu.get("branza", "")),
                     str(salon_do_zapisu.get("abonament_status", "")),
                 ),
             )
+            _zapisz_szczegoly_salonu_do_tabel(conn, salon_slug, salon_do_zapisu)
             conn.commit()
         return wynik
 
@@ -330,6 +435,7 @@ def _wczytaj_salony_z_tabeli(conn, for_update: bool = False) -> dict | None:
     for slug, payload in rows:
         salon = payload if isinstance(payload, dict) else json.loads(payload)
         salon.setdefault("slug", slug)
+        _wczytaj_szczegoly_salonu_z_tabel(conn, slug, salon)
         salony[slug] = salon
     return {"salony": salony}
 
@@ -359,12 +465,13 @@ def _zapisz_salony_do_tabeli(conn, dane: dict) -> None:
             """,
             (
                 slug,
-                Jsonb(salon),
+                Jsonb(_lekki_payload_salonu(salon)),
                 str(salon.get("nazwa_salonu", "")),
                 str(salon.get("branza", "")),
                 str(salon.get("abonament_status", "")),
             ),
         )
+        _zapisz_szczegoly_salonu_do_tabel(conn, slug, salon)
     if aktualne_slugi:
         conn.execute("DELETE FROM glovaro_salons WHERE NOT (slug = ANY(%s))", (list(aktualne_slugi),))
     else:
@@ -382,6 +489,249 @@ def _migruj_state_do_salonow(conn) -> None:
     dane = payload if isinstance(payload, dict) else json.loads(payload)
     _zapisz_salony_do_tabeli(conn, dane)
     logger.info("Przeniesiono dane z glovaro_state do tabeli glovaro_salons")
+
+
+def _uzupelnij_szczegoly_salonow_jesli_puste(conn) -> None:
+    istnieja_szczegoly = conn.execute(
+        """
+        SELECT 1 FROM glovaro_reservations
+        UNION ALL SELECT 1 FROM glovaro_free_slots
+        UNION ALL SELECT 1 FROM glovaro_clients
+        UNION ALL SELECT 1 FROM glovaro_waitlist
+        LIMIT 1
+        """
+    ).fetchone()
+    if istnieja_szczegoly:
+        return
+
+    rows = conn.execute("SELECT slug, payload FROM glovaro_salons").fetchall()
+    uzupelniono = 0
+    for slug, payload in rows:
+        salon = payload if isinstance(payload, dict) else json.loads(payload)
+        if any(salon.get(klucz) for klucz in ("rezerwacje", "wolne_terminy", "klienci", "lista_rezerwowa")):
+            _zapisz_szczegoly_salonu_do_tabel(conn, slug, salon)
+            uzupelniono += 1
+
+    if uzupelniono:
+        logger.info("Uzupełniono tabele szczegółów z glovaro_salons dla %s salonów", uzupelniono)
+        return
+
+    row = conn.execute("SELECT payload FROM glovaro_state WHERE id = 1").fetchone()
+    if not row:
+        return
+    payload = row[0]
+    dane = payload if isinstance(payload, dict) else json.loads(payload)
+    for slug, salon in (dane.get("salony") or {}).items():
+        if isinstance(salon, dict):
+            _zapisz_szczegoly_salonu_do_tabel(conn, slug, salon)
+            uzupelniono += 1
+    if uzupelniono:
+        logger.info("Uzupełniono tabele szczegółów z glovaro_state dla %s salonów", uzupelniono)
+
+
+def _lekki_payload_salonu(salon: dict) -> dict:
+    payload = dict(salon)
+    for klucz in ("rezerwacje", "wolne_terminy", "klienci", "lista_rezerwowa"):
+        payload.pop(klucz, None)
+    return payload
+
+
+def _zapisz_szczegoly_salonu_do_tabel(conn, salon_slug: str, salon: dict) -> None:
+    from psycopg.types.json import Jsonb
+
+    conn.execute("DELETE FROM glovaro_reservations WHERE salon_slug = %s", (salon_slug,))
+    for rezerwacja in salon.get("rezerwacje", []) or []:
+        if not isinstance(rezerwacja, dict):
+            continue
+        rezerwacja_id = str(rezerwacja.get("id") or "")
+        if not rezerwacja_id:
+            continue
+        conn.execute(
+            """
+            INSERT INTO glovaro_reservations (
+                salon_slug, id, data_iso, godzina, status, klient_id, telefon, email, payload, updated_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+            ON CONFLICT (salon_slug, id) DO UPDATE
+            SET data_iso = EXCLUDED.data_iso,
+                godzina = EXCLUDED.godzina,
+                status = EXCLUDED.status,
+                klient_id = EXCLUDED.klient_id,
+                telefon = EXCLUDED.telefon,
+                email = EXCLUDED.email,
+                payload = EXCLUDED.payload,
+                updated_at = NOW()
+            """,
+            (
+                salon_slug,
+                rezerwacja_id,
+                str(rezerwacja.get("data", "")),
+                str(rezerwacja.get("godzina", "")),
+                str(rezerwacja.get("status", "")),
+                str(rezerwacja.get("klient_id", "")),
+                str(rezerwacja.get("telefon", "")),
+                str(rezerwacja.get("email", "")),
+                Jsonb(rezerwacja),
+            ),
+        )
+
+    conn.execute("DELETE FROM glovaro_free_slots WHERE salon_slug = %s", (salon_slug,))
+    for data_iso, godziny in (salon.get("wolne_terminy", {}) or {}).items():
+        if not isinstance(godziny, list):
+            continue
+        for godzina in godziny:
+            if not godzina:
+                continue
+            conn.execute(
+                """
+                INSERT INTO glovaro_free_slots (salon_slug, data_iso, godzina)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (salon_slug, data_iso, godzina) DO NOTHING
+                """,
+                (salon_slug, str(data_iso), str(godzina)),
+            )
+
+    conn.execute("DELETE FROM glovaro_clients WHERE salon_slug = %s", (salon_slug,))
+    for klient in salon.get("klienci", []) or []:
+        if not isinstance(klient, dict):
+            continue
+        klient_id = str(klient.get("id") or "")
+        if not klient_id:
+            continue
+        conn.execute(
+            """
+            INSERT INTO glovaro_clients (
+                salon_slug, id, telefon, email, ostatnia_wizyta, payload, updated_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, NOW())
+            ON CONFLICT (salon_slug, id) DO UPDATE
+            SET telefon = EXCLUDED.telefon,
+                email = EXCLUDED.email,
+                ostatnia_wizyta = EXCLUDED.ostatnia_wizyta,
+                payload = EXCLUDED.payload,
+                updated_at = NOW()
+            """,
+            (
+                salon_slug,
+                klient_id,
+                str(klient.get("telefon", "")),
+                str(klient.get("email", "")),
+                str(klient.get("ostatnia_wizyta", "")),
+                Jsonb(klient),
+            ),
+        )
+
+    conn.execute("DELETE FROM glovaro_waitlist WHERE salon_slug = %s", (salon_slug,))
+    for zgloszenie in salon.get("lista_rezerwowa", []) or []:
+        if not isinstance(zgloszenie, dict):
+            continue
+        zgloszenie_id = str(zgloszenie.get("id") or "")
+        if not zgloszenie_id:
+            continue
+        conn.execute(
+            """
+            INSERT INTO glovaro_waitlist (
+                salon_slug, id, status, data_preferowana, payload, updated_at
+            )
+            VALUES (%s, %s, %s, %s, %s, NOW())
+            ON CONFLICT (salon_slug, id) DO UPDATE
+            SET status = EXCLUDED.status,
+                data_preferowana = EXCLUDED.data_preferowana,
+                payload = EXCLUDED.payload,
+                updated_at = NOW()
+            """,
+            (
+                salon_slug,
+                zgloszenie_id,
+                str(zgloszenie.get("status", "")),
+                str(zgloszenie.get("data_preferowana", "")),
+                Jsonb(zgloszenie),
+            ),
+        )
+
+
+def _filtr_daty(kolumna: str, data_od: str | None, data_do: str | None) -> tuple[str, list[str]]:
+    warunki: list[str] = []
+    parametry: list[str] = []
+    if data_od:
+        warunki.append(f"{kolumna} >= %s")
+        parametry.append(data_od)
+    if data_do:
+        warunki.append(f"{kolumna} <= %s")
+        parametry.append(data_do)
+    return (" AND " + " AND ".join(warunki) if warunki else ""), parametry
+
+
+def _wczytaj_szczegoly_salonu_z_tabel(
+    conn,
+    salon_slug: str,
+    salon: dict,
+    *,
+    data_od: str | None = None,
+    data_do: str | None = None,
+    include_clients: bool = True,
+) -> None:
+    filtr, parametry = _filtr_daty("data_iso", data_od, data_do)
+    rows = conn.execute(
+        f"""
+        SELECT payload
+        FROM glovaro_reservations
+        WHERE salon_slug = %s{filtr}
+        ORDER BY data_iso, godzina
+        """,
+        [salon_slug, *parametry],
+    ).fetchall()
+    if rows or data_od or data_do:
+        salon["rezerwacje"] = [
+            payload if isinstance(payload, dict) else json.loads(payload)
+            for (payload,) in rows
+        ]
+
+    rows = conn.execute(
+        f"""
+        SELECT data_iso, godzina
+        FROM glovaro_free_slots
+        WHERE salon_slug = %s{filtr}
+        ORDER BY data_iso, godzina
+        """,
+        [salon_slug, *parametry],
+    ).fetchall()
+    if rows or data_od or data_do:
+        wolne: dict[str, list[str]] = {}
+        for data_iso, godzina in rows:
+            wolne.setdefault(data_iso, []).append(godzina)
+        salon["wolne_terminy"] = wolne
+
+    if include_clients:
+        rows = conn.execute(
+            """
+            SELECT payload
+            FROM glovaro_clients
+            WHERE salon_slug = %s
+            ORDER BY ostatnia_wizyta DESC
+            """,
+            (salon_slug,),
+        ).fetchall()
+        if rows:
+            salon["klienci"] = [
+                payload if isinstance(payload, dict) else json.loads(payload)
+                for (payload,) in rows
+            ]
+
+    rows = conn.execute(
+        """
+        SELECT payload
+        FROM glovaro_waitlist
+        WHERE salon_slug = %s
+        ORDER BY data_preferowana DESC
+        """,
+        (salon_slug,),
+    ).fetchall()
+    if rows:
+        salon["lista_rezerwowa"] = [
+            payload if isinstance(payload, dict) else json.loads(payload)
+            for (payload,) in rows
+        ]
 
 
 def _migruj_plik_do_postgres_jesli_trzeba() -> None:

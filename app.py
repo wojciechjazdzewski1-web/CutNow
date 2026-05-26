@@ -578,8 +578,32 @@ def przygotuj_salon_z_raw(salon_slug: str, raw_salon: dict | None) -> dict | Non
     return salon
 
 
-def wczytaj_salon_bezposrednio(salon_slug: str) -> dict | None:
-    return przygotuj_salon_z_raw(salon_slug, wczytaj_salon_raw(salon_slug))
+def wczytaj_salon_bezposrednio(
+    salon_slug: str,
+    *,
+    data_od: str | None = None,
+    data_do: str | None = None,
+    include_clients: bool = True,
+) -> dict | None:
+    return przygotuj_salon_z_raw(
+        salon_slug,
+        wczytaj_salon_raw(
+            salon_slug,
+            data_od=data_od,
+            data_do=data_do,
+            include_clients=include_clients,
+        ),
+    )
+
+
+def zakres_publicznej_rezerwacji(data_iso: str | None = None) -> tuple[str, str]:
+    start = date.today()
+    if data_iso and waliduj_date_iso(data_iso):
+        wybrana = datetime.strptime(data_iso, "%Y-%m-%d").date()
+        if wybrana > start:
+            start = min(start, wybrana)
+    koniec = start + timedelta(days=HORYZONT_REZERWACJI_DNI)
+    return start.isoformat(), koniec.isoformat()
 
 
 def salon_wstrzymany(salon: dict) -> bool:
@@ -2157,7 +2181,15 @@ def inject_globals():
     motyw_klienta = request.endpoint in MOTYW_ROZOWY_ENDPOINTS
     motyw_strony = "rozowy"
     if widok_klienta and salon_slug:
-        motyw_strony = motyw_strony_salonu(wczytaj_salon_bezposrednio(salon_slug))
+        data_od, data_do = zakres_publicznej_rezerwacji(request.values.get("data"))
+        motyw_strony = motyw_strony_salonu(
+            wczytaj_salon_bezposrednio(
+                salon_slug,
+                data_od=data_od,
+                data_do=data_do,
+                include_clients=False,
+            )
+        )
     return {
         "dni_tygodnia": DNI_TYGODNIA,
         "branze_dzialalnosci": BRANZE_DZIALALNOSCI,
@@ -3036,7 +3068,13 @@ def rezerwacja_domyslna():
 
 @app.route("/rezerwacja/<salon_slug>")
 def rezerwacja_publiczna(salon_slug: str):
-    salon = wczytaj_salon_bezposrednio(salon_slug)
+    data_od, data_do = zakres_publicznej_rezerwacji(request.args.get("data"))
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        data_od=data_od,
+        data_do=data_do,
+        include_clients=False,
+    )
     if not salon:
         dane = wczytaj_dane()
         return render_template("404.html", sciezka=request.path, domyslny_slug=domyslny_slug(dane)), 404
@@ -3054,7 +3092,14 @@ def rezerwacja_publiczna(salon_slug: str):
 
 @app.route("/rezerwacja/<salon_slug>/nowa", methods=["GET", "POST"])
 def rezerwacja_formularz(salon_slug: str):
-    salon = wczytaj_salon_bezposrednio(salon_slug)
+    data_zapytania = request.values.get("data", date.today().isoformat())
+    data_od, data_do = zakres_publicznej_rezerwacji(data_zapytania)
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        data_od=data_od,
+        data_do=data_do,
+        include_clients=False,
+    )
     if not salon:
         dane = wczytaj_dane()
         return render_template("404.html", sciezka=request.path, domyslny_slug=domyslny_slug(dane)), 404
@@ -3178,7 +3223,13 @@ def rezerwacja_formularz(salon_slug: str):
 
 @app.route("/rezerwacja/<salon_slug>/lista-rezerwowa", methods=["POST"])
 def lista_rezerwowa_formularz(salon_slug: str):
-    salon = wczytaj_salon_bezposrednio(salon_slug)
+    data_od, data_do = zakres_publicznej_rezerwacji(request.form.get("data_preferowana"))
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        data_od=data_od,
+        data_do=data_do,
+        include_clients=False,
+    )
     if not salon:
         dane = wczytaj_dane()
         return render_template("404.html", sciezka=request.path, domyslny_slug=domyslny_slug(dane)), 404
