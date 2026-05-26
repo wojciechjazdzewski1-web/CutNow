@@ -3447,29 +3447,30 @@ def panel_terminarz(salon_slug: str):
         wybrana_data = date.today().isoformat()
 
     if request.method == "POST" and request.form.get("akcja") == "dodaj_wizyte":
-        dane = wczytaj_dane()
-        salon = pobierz_salon(dane, salon_slug)
-        if not salon:
-            flash("Nie znaleziono takiego salonu.", "error")
-            return redirect(url_for("panel_lista"))
-        rezerwacja, blad = utworz_rezerwacje(
-            salon,
-            data_iso=request.form.get("wizyta_data", wybrana_data).strip(),
-            godzina=request.form.get("wizyta_godzina", "").strip(),
-            imie=request.form.get("wizyta_imie", "").strip(),
-            telefon=request.form.get("wizyta_telefon", "").strip(),
-            email=request.form.get("wizyta_email", "").strip().lower(),
-            uwagi=request.form.get("wizyta_uwagi", "").strip(),
-            pracownik=request.form.get("wizyta_pracownik", "").strip(),
-            usluga_nazwa=request.form.get("wizyta_usluga", "").strip(),
-            status=request.form.get("wizyta_status", "potwierdzona"),
-            zrodlo="salon",
-            salon_wymusza=True,
-        )
+        wizyta_data = request.form.get("wizyta_data", wybrana_data).strip()
+
+        def dodaj_wizyte_atomowo(salon_atomowy: dict | None):
+            if not salon_atomowy:
+                return None, "Nie znaleziono takiego salonu."
+            return utworz_rezerwacje(
+                salon_atomowy,
+                data_iso=wizyta_data,
+                godzina=request.form.get("wizyta_godzina", "").strip(),
+                imie=request.form.get("wizyta_imie", "").strip(),
+                telefon=request.form.get("wizyta_telefon", "").strip(),
+                email=request.form.get("wizyta_email", "").strip().lower(),
+                uwagi=request.form.get("wizyta_uwagi", "").strip(),
+                pracownik=request.form.get("wizyta_pracownik", "").strip(),
+                usluga_nazwa=request.form.get("wizyta_usluga", "").strip(),
+                status=request.form.get("wizyta_status", "potwierdzona"),
+                zrodlo="salon",
+                salon_wymusza=True,
+            )
+
+        rezerwacja, blad = aktualizuj_salon_atomowo(salon_slug, dodaj_wizyte_atomowo)
         if blad:
             flash(blad, "error")
         else:
-            zapisz_dane(dane)
             flash(f"Dodano wizytę: {rezerwacja['imie']} — {rezerwacja['data']} o {rezerwacja['godzina']}.", "success")
             wybrana_data = rezerwacja["data"]
         return redirect(url_for("panel_terminarz", salon_slug=salon_slug, data=wybrana_data))
@@ -3574,41 +3575,42 @@ def panel_lista_rezerwowa(salon_slug: str):
 @app.route("/panel/<salon_slug>/rezerwacje", methods=["GET", "POST"])
 def panel_rezerwacje(salon_slug: str):
     if request.method == "POST":
-        dane = wczytaj_dane()
-        salon = pobierz_salon(dane, salon_slug)
-        if not salon:
-            flash("Nie znaleziono takiego salonu.", "error")
-            return redirect(url_for("panel_lista"))
         akcja = request.form.get("akcja")
         rezerwacja_id = request.form.get("id", "")
-        rezerwacja = znajdz_rezerwacje(salon, rezerwacja_id)
 
-        if akcja in {"oznacz_oplacone", "cofnij_oplacone"} and rezerwacja:
+        def zmien_rezerwacje_atomowo(salon_atomowy: dict | None):
+            if not salon_atomowy:
+                return "Nie znaleziono takiego salonu.", "error"
+            rezerwacja = znajdz_rezerwacje(salon_atomowy, rezerwacja_id)
+            if not rezerwacja:
+                return "Nie znaleziono rezerwacji.", "error"
+
             if akcja == "oznacz_oplacone":
                 rezerwacja["oplacona_recznie"] = True
                 rezerwacja["oplacono_recznie_at"] = datetime.now().isoformat(timespec="minutes")
-                flash(f"Oznaczono jako opłacone: {rezerwacja['imie']}.", "success")
-            else:
+                return f"Oznaczono jako opłacone: {rezerwacja['imie']}.", "success"
+            if akcja == "cofnij_oplacone":
                 rezerwacja.pop("oplacona_recznie", None)
                 rezerwacja.pop("oplacono_recznie_at", None)
-                flash(f"Cofnięto oznaczenie opłaty: {rezerwacja['imie']}.", "success")
-            zapisz_dane(dane)
-        elif akcja in {"potwierdz", "odrzuc", "anuluj"} and rezerwacja:
+                return f"Cofnięto oznaczenie opłaty: {rezerwacja['imie']}.", "success"
             if akcja == "potwierdz":
                 rezerwacja["status"] = "potwierdzona"
                 rezerwacja["potwierdzono"] = datetime.now().isoformat(timespec="minutes")
-                flash(f"Potwierdzono rezerwację: {rezerwacja['imie']}.", "success")
-            elif akcja == "odrzuc":
+                return f"Potwierdzono rezerwację: {rezerwacja['imie']}.", "success"
+            if akcja == "odrzuc":
                 imie_klienta = rezerwacja["imie"]
-                przywroc_wolny_termin(salon, rezerwacja)
-                usun_rezerwacje_z_salonu(salon, rezerwacja_id)
-                flash(f"Odrzucono rezerwację: {imie_klienta}. Termin wrócił do wolnych.", "success")
-            elif akcja == "anuluj":
+                przywroc_wolny_termin(salon_atomowy, rezerwacja)
+                usun_rezerwacje_z_salonu(salon_atomowy, rezerwacja_id)
+                return f"Odrzucono rezerwację: {imie_klienta}. Termin wrócił do wolnych.", "success"
+            if akcja == "anuluj":
                 imie_klienta = rezerwacja["imie"]
-                przywroc_wolny_termin(salon, rezerwacja)
-                usun_rezerwacje_z_salonu(salon, rezerwacja_id)
-                flash(f"Anulowano rezerwację: {imie_klienta}. Termin wrócił do wolnych.", "success")
-            zapisz_dane(dane)
+                przywroc_wolny_termin(salon_atomowy, rezerwacja)
+                usun_rezerwacje_z_salonu(salon_atomowy, rezerwacja_id)
+                return f"Anulowano rezerwację: {imie_klienta}. Termin wrócił do wolnych.", "success"
+            return "Nieznana akcja rezerwacji.", "error"
+
+        komunikat, kategoria = aktualizuj_salon_atomowo(salon_slug, zmien_rezerwacje_atomowo)
+        flash(komunikat, kategoria)
         widok = request.args.get("widok", "nadchodzace")
         return redirect(url_for("panel_rezerwacje", salon_slug=salon_slug, widok=widok))
 
