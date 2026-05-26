@@ -2757,8 +2757,13 @@ def panel(salon_slug: str):
 
 @app.route("/panel/<salon_slug>/instrukcja")
 def panel_instrukcja(salon_slug: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        include_clients=False,
+        include_reservations=False,
+        include_free_slots=False,
+        include_waitlist=False,
+    )
     if not salon:
         flash("Nie znaleziono takiej firmy.", "error")
         return redirect(url_for("panel_lista"))
@@ -2767,12 +2772,6 @@ def panel_instrukcja(salon_slug: str):
 
 @app.route("/panel/<salon_slug>/salon", methods=["GET", "POST"])
 def ustawienia_salonu(salon_slug: str):
-    dane = wczytaj_dane()
-    salon = pobierz_salon(dane, salon_slug)
-    if not salon:
-        flash("Nie znaleziono takiego salonu.", "error")
-        return redirect(url_for("panel_lista"))
-
     if request.method == "POST":
         nazwa = request.form.get("nazwa_salonu", "").strip()
         branza = normalizuj_branze(request.form.get("branza", "beauty"))
@@ -2808,57 +2807,73 @@ def ustawienia_salonu(salon_slug: str):
         pracownicy = parsuj_pracownikow(request.form.get("pracownicy", ""))
         uslugi = parsuj_uslugi(request.form.get("uslugi", ""))
         logo_upload = parsuj_upload_zdjec([request.files.get("logo_upload")])
-        logo_url = logo_upload[0] if logo_upload else logo_z_linku or salon.get("logo_url", "")
-        if request.form.get("usun_logo") == "on":
-            logo_url = ""
         zdjecia_z_linkow = parsuj_linki_zdjec(request.form.get("zdjecia_prac", ""))
         nowe_zdjecia = parsuj_upload_zdjec(request.files.getlist("zdjecia_upload"))
-        dotychczasowe_uploady = [
-            z
-            for z in salon.get("zdjecia_prac", [])
-            if isinstance(z, str) and z.startswith("data:image/")
-        ]
-        if request.form.get("usun_wgrane_zdjecia") == "on":
-            dotychczasowe_uploady = []
-        zdjecia = (zdjecia_z_linkow + dotychczasowe_uploady + nowe_zdjecia)[:12]
-        salon["adres_lokalizacji"] = adres_lokalizacji
-        salon["link_google_maps"] = link_google_maps
-        salon["tryb_platnosci_wizyty"] = tryb_platnosci
-        salon["konto_bankowe"] = konto_bankowe
-        salon["odbiorca_przelewu"] = odbiorca_przelewu
-        salon["link_szybkiej_platnosci"] = link_szybkiej_platnosci
-        if nazwa:
-            salon["nazwa_salonu"] = nazwa
-            salon["branza"] = branza
-            salon["opis"] = opis
-            salon["logo_url"] = logo_url
-            salon["telefon_kontaktowy"] = telefon
-            salon["instagram"] = instagram
-            salon["email_powiadomien"] = email_powiadomien
-            salon["przypomnienia_email_wlaczone"] = przypomnienia_email_wlaczone
-            salon["przypomnienie_godzin_przed"] = przypomnienie_godzin_przed
-            salon["motyw_strony"] = motyw_strony
-            salon["platnosc_online_wlaczona"] = platnosc_online_wlaczona
-            salon["cena_wizyty"] = cena_wizyty
-            salon["pracownicy"] = pracownicy
-            salon["uslugi"] = uslugi
-            salon["zdjecia_prac"] = zdjecia
+
+        def zapisz_ustawienia_atomowo(salon_atomowy: dict | None):
+            if not salon_atomowy:
+                return "Nie znaleziono takiego salonu.", "error"
+
+            logo_url = logo_upload[0] if logo_upload else logo_z_linku or salon_atomowy.get("logo_url", "")
+            if request.form.get("usun_logo") == "on":
+                logo_url = ""
+            dotychczasowe_uploady = [
+                z
+                for z in salon_atomowy.get("zdjecia_prac", [])
+                if isinstance(z, str) and z.startswith("data:image/")
+            ]
+            if request.form.get("usun_wgrane_zdjecia") == "on":
+                dotychczasowe_uploady = []
+            zdjecia = (zdjecia_z_linkow + dotychczasowe_uploady + nowe_zdjecia)[:12]
+
+            salon_atomowy["adres_lokalizacji"] = adres_lokalizacji
+            salon_atomowy["link_google_maps"] = link_google_maps
+            salon_atomowy["tryb_platnosci_wizyty"] = tryb_platnosci
+            salon_atomowy["konto_bankowe"] = konto_bankowe
+            salon_atomowy["odbiorca_przelewu"] = odbiorca_przelewu
+            salon_atomowy["link_szybkiej_platnosci"] = link_szybkiej_platnosci
+
+            if not nazwa:
+                return "Podaj nazwę salonu. Lokalizacja została zapisana.", "error"
+
+            salon_atomowy["nazwa_salonu"] = nazwa
+            salon_atomowy["branza"] = branza
+            salon_atomowy["opis"] = opis
+            salon_atomowy["logo_url"] = logo_url
+            salon_atomowy["telefon_kontaktowy"] = telefon
+            salon_atomowy["instagram"] = instagram
+            salon_atomowy["email_powiadomien"] = email_powiadomien
+            salon_atomowy["przypomnienia_email_wlaczone"] = przypomnienia_email_wlaczone
+            salon_atomowy["przypomnienie_godzin_przed"] = przypomnienie_godzin_przed
+            salon_atomowy["motyw_strony"] = motyw_strony
+            salon_atomowy["platnosc_online_wlaczona"] = platnosc_online_wlaczona
+            salon_atomowy["cena_wizyty"] = cena_wizyty
+            salon_atomowy["pracownicy"] = pracownicy
+            salon_atomowy["uslugi"] = uslugi
+            salon_atomowy["zdjecia_prac"] = zdjecia
             if haslo:
-                salon["haslo_panelu"] = haslo
-            zapisz_dane(dane)
+                salon_atomowy["haslo_panelu"] = haslo
             if tryb_platnosci == "przelew" and not konto_bankowe:
-                flash(
-                    "Zapisano. Uzupełnij numer konta — bez niego klienci nie zobaczą danych do przelewu.",
-                    "error",
-                )
-            elif adres_lokalizacji or link_google_maps:
-                flash("Ustawienia zapisane (w tym lokalizacja).", "success")
-            else:
-                flash("Ustawienia salonu zostały zapisane.", "success")
-        else:
-            zapisz_dane(dane)
-            flash("Podaj nazwę salonu. Lokalizacja została zapisana.", "error")
+                return "Zapisano. Uzupełnij numer konta — bez niego klienci nie zobaczą danych do przelewu.", "error"
+            if adres_lokalizacji or link_google_maps:
+                return "Ustawienia zapisane (w tym lokalizacja).", "success"
+            return "Ustawienia salonu zostały zapisane.", "success"
+
+        komunikat, kategoria = aktualizuj_salon_atomowo(salon_slug, zapisz_ustawienia_atomowo)
+        flash(komunikat, kategoria)
         return redirect(url_for("ustawienia_salonu", salon_slug=salon_slug))
+
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        include_clients=False,
+        include_reservations=False,
+        include_free_slots=False,
+        include_waitlist=False,
+    )
+    if not salon:
+        flash("Nie znaleziono takiego salonu.", "error")
+        return redirect(url_for("panel_lista"))
+
     return render_template(
         "salon.html",
         dane=salon,
