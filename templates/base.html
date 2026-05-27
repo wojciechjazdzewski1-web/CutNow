@@ -6,7 +6,7 @@
   <title>{% block title %}Glovaro{% endblock %}</title>
   <meta name="description" content="{% block meta_description %}Glovaro — rezerwacje online dla usług lokalnych. Znajdź firmę i umów termin bez pisania wiadomości.{% endblock %}">
   <meta name="application-name" content="Glovaro">
-  <meta name="theme-color" content="#020617">
+  <meta name="theme-color" content="#e11d74">
   <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='img/favicon-32x32.png') }}">
   <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='img/favicon-16x16.png') }}">
@@ -314,7 +314,7 @@
     <div class="max-w-5xl mx-auto px-4 sm:px-6">
       <div class="flex items-center justify-between h-16">
         <a href="{{ url_for('rezerwacja_publiczna', salon_slug=aktywny_salon_slug) if widok_klienta and aktywny_salon_slug else url_for('strona_glowna') }}" class="flex items-center gap-2 group">
-          <img src="{{ url_for('static', filename='img/glovaro-icon-nav.png') }}" alt="" width="36" height="36" class="h-9 w-9 rounded-xl object-contain shadow-lg shadow-brand-500/20 group-hover:scale-105 transition-transform" aria-hidden="true">
+          <img src="{{ url_for('static', filename='img/glovaro-icon-nav.png') }}" alt="" width="40" height="40" class="h-10 w-10 object-contain group-hover:scale-105 transition-transform" aria-hidden="true">
           <span class="font-bold text-lg tracking-tight {% if motyw_klienta %}client-heading{% else %}text-slate-900{% endif %}">Glov<span class="text-brand-600 dark:text-brand-400">aro</span></span>
         </a>
         <div class="flex items-center gap-1 sm:gap-2">

@@ -4,8 +4,8 @@
   "description": "Rezerwacje online dla usług lokalnych",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#020617",
-  "theme_color": "#020617",
+  "background_color": "#fff1f5",
+  "theme_color": "#e11d74",
   "icons": [
     {
       "src": "/static/img/glovaro-icon-192.png",
