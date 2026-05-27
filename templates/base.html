@@ -6,8 +6,11 @@
   <title>{% block title %}Glovaro{% endblock %}</title>
   <meta name="description" content="{% block meta_description %}Glovaro — rezerwacje online dla usług lokalnych. Znajdź firmę i umów termin bez pisania wiadomości.{% endblock %}">
   <meta name="application-name" content="Glovaro">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="{% block canonical_href %}{{ seo_canonical_url }}{% endblock %}">
   <meta name="theme-color" content="#e11d74">
-  <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}" sizes="any">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="48x48" href="{{ url_for('static', filename='img/favicon-48x48.png') }}">
   <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='img/favicon-32x32.png') }}">
   <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='img/favicon-16x16.png') }}">
   <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='img/glovaro-apple-touch.png') }}">
@@ -16,6 +19,7 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="{% block og_title %}Glovaro{% endblock %}">
   <meta property="og:description" content="{% block og_description %}Rezerwacje online dla usług lokalnych — beauty, wellness, serwisy i inne firmy na termin.{% endblock %}">
+  <meta property="og:url" content="{% block og_url %}{{ seo_canonical_url }}{% endblock %}">
   <meta property="og:image" content="{{ url_for('static', filename='img/glovaro-og.png', _external=True) }}">
   <script>
     (function () {

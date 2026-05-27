@@ -1,5 +1,26 @@
 {% extends "base.html" %}
-{% block title %}Glovaro — rezerwacje dla usług lokalnych{% endblock %}
+{% block title %}Glovaro — rezerwacje online dla firm usługowych{% endblock %}
+{% block meta_description %}Znajdź lokalną firmę i umów wizytę online. Glovaro to katalog firm z wolnymi terminami — beauty, wellness, serwisy i inne usługi na termin.{% endblock %}
+{% block og_title %}Glovaro — rezerwacje online{% endblock %}
+{% block og_description %}Katalog firm z rezerwacją online. Sprawdź wolne godziny i umów wizytę bez pisania wiadomości.{% endblock %}
+
+{% block head_extra %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Glovaro",
+  "url": "{{ public_base_url }}/",
+  "description": "Rezerwacje online dla lokalnych firm usługowych.",
+  "publisher": {
+    "@type": "Organization",
+    "name": "Glovaro",
+    "url": "{{ public_base_url }}/",
+    "logo": "{{ seo_logo_url }}"
+  }
+}
+</script>
+{% endblock %}
 
 {% block content %}
 <section class="text-center max-w-3xl mx-auto">

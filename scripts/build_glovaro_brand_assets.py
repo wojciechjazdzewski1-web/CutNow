@@ -126,7 +126,12 @@ def main() -> None:
     full_box = _content_bbox(img)
     full_sq = _prepare_icon(_square_crop(img, full_box, pad=36))
 
-    transparent_sizes = {16: "favicon-16x16.png", 32: "favicon-32x32.png", 192: "glovaro-icon-192.png"}
+    transparent_sizes = {
+        16: "favicon-16x16.png",
+        32: "favicon-32x32.png",
+        48: "favicon-48x48.png",
+        192: "glovaro-icon-192.png",
+    }
     for px, name in transparent_sizes.items():
         _fit_transparent(icon_sq, px).save(OUT / name, optimize=True)
 
@@ -139,11 +144,11 @@ def main() -> None:
     og.paste(logo, ((1200 - 420) // 2, (630 - 420) // 2), logo)
     og.save(OUT / "glovaro-og.png", optimize=True)
 
-    ico_images = [_fit_transparent(icon_sq, s, margin_ratio=0.06) for s in (16, 32, 48)]
+    ico_images = [_fit_transparent(icon_sq, s, margin_ratio=0.06) for s in (16, 32, 48, 64)]
     ico_images[0].save(
         OUT / "favicon.ico",
         format="ICO",
-        sizes=[(16, 16), (32, 32), (48, 48)],
+        sizes=[(16, 16), (32, 32), (48, 48), (64, 64)],
         append_images=ico_images[1:],
     )
     print("Zapisano assety w", OUT)

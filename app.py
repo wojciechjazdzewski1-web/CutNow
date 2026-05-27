@@ -22,7 +22,7 @@ from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode, urlparse
 
-from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, Response, flash, jsonify, redirect, render_template, request, send_from_directory, session, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 try:
@@ -71,6 +71,7 @@ LEGAL_PLACEHOLDERS = frozenset(
 LEGAL_UNREGISTERED_ACTIVITY = (
     os.environ.get("LEGAL_UNREGISTERED_ACTIVITY", "true").strip().lower()
 )
+PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "https://glovaro.pl").strip().rstrip("/")
 REZERWACJA_RATE_LIMIT: dict[str, list[float]] = {}
 GODZIN_PO_WIZYCIE_DO_ARCHIWUM = 1
 DNI_W_ARCHIWUM_PRZED_USUNIECIEM = 90
@@ -158,6 +159,9 @@ DEFAULT_SALON = {
 PUBLIC_ENDPOINTS = {
     "strona_glowna",
     "dolacz_firma",
+    "favicon_root",
+    "robots_txt",
+    "sitemap_xml",
     "health",
     "rezerwacja_domyslna",
     "rezerwacja_publiczna",
@@ -2329,7 +2333,58 @@ def panel_wyloguj(salon_slug: str | None = None):
     return redirect(url_for("strona_glowna"))
 
 
-BUILD_ID = "2026-05-20-wywiad-oswiadczenie"
+BUILD_ID = "2026-05-27-seo-favicon"
+
+
+@app.context_processor
+def inject_seo():
+    path = request.path or "/"
+    canonical = f"{PUBLIC_BASE_URL}{path}" if path != "/" else f"{PUBLIC_BASE_URL}/"
+    logo = f"{PUBLIC_BASE_URL}{url_for('static', filename='img/glovaro-icon-192.png')}"
+    return {
+        "public_base_url": PUBLIC_BASE_URL,
+        "seo_canonical_url": canonical,
+        "seo_logo_url": logo,
+    }
+
+
+@app.route("/favicon.ico")
+def favicon_root():
+    return send_from_directory(
+        Path(app.root_path) / "static" / "img",
+        "favicon.ico",
+        mimetype="image/vnd.microsoft.icon",
+        max_age=86400,
+    )
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    body = f"User-agent: *\nAllow: /\n\nSitemap: {PUBLIC_BASE_URL}/sitemap.xml\n"
+    return Response(body, mimetype="text/plain; charset=utf-8")
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    paths = (
+        "/",
+        "/dolacz",
+        "/regulamin",
+        "/polityka-prywatnosci",
+        "/polityka-cookies",
+    )
+    urls = "\n".join(
+        f"  <url><loc>{PUBLIC_BASE_URL}{path if path != '/' else '/'}</loc>"
+        f"<changefreq>weekly</changefreq><priority>{'1.0' if path == '/' else '0.6'}</priority></url>"
+        for path in paths
+    )
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f"{urls}\n"
+        "</urlset>\n"
+    )
+    return Response(xml, mimetype="application/xml; charset=utf-8")
 
 
 @app.route("/health")
