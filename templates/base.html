@@ -162,32 +162,32 @@
   <style>
     :root {
       {% if motyw_neutralny %}
-      --glo-page: #eef2ff;
-      --glo-page-accent: #fae8ff;
-      --glo-page-mid: #f5f3ff;
+      --glo-page: #f8fafc;
+      --glo-page-accent: #ffffff;
+      --glo-page-mid: #f1f5f9;
       --glo-surface: #ffffff;
       --glo-surface-muted: #f8fafc;
-      --glo-border: #a5b4fc;
-      --glo-border-soft: #e0e7ff;
-      --glo-text: #1e293b;
+      --glo-border: #94a3b8;
+      --glo-border-soft: #e2e8f0;
+      --glo-text: #334155;
       --glo-text-muted: #64748b;
-      --glo-heading: #312e81;
-      --glo-hero-from: #e0e7ff;
-      --glo-hero-via: #ede9fe;
-      --glo-hero-to: #fbcfe8;
-      --glo-hero-text: #3730a3;
-      --glo-hero-sub: #6366f1;
+      --glo-heading: #1e293b;
+      --glo-hero-from: #ffffff;
+      --glo-hero-via: #f8fafc;
+      --glo-hero-to: #e2e8f0;
+      --glo-hero-text: #1e293b;
+      --glo-hero-sub: #64748b;
       --glo-slot-bg: #ffffff;
-      --glo-slot-border: #c7d2fe;
-      --glo-slot-text: #4338ca;
-      --glo-primary-from: #6366f1;
-      --glo-primary-to: #a78bfa;
-      --glo-primary-bg: #6366f1;
-      --glo-primary-hover: #818cf8;
+      --glo-slot-border: #cbd5e1;
+      --glo-slot-text: #475569;
+      --glo-primary-from: #94a3b8;
+      --glo-primary-to: #64748b;
+      --glo-primary-bg: #64748b;
+      --glo-primary-hover: #94a3b8;
       --glo-primary-text: #ffffff;
-      --glo-soft-panel-bg: linear-gradient(135deg, #eef2ff 0%, #fae8ff 100%);
-      --glo-soft-panel-text: #312e81;
-      --glo-soft-panel-muted: #6366f1;
+      --glo-soft-panel-bg: linear-gradient(135deg, #ffffff 0%, #f1f5f9 55%, #e2e8f0 100%);
+      --glo-soft-panel-text: #334155;
+      --glo-soft-panel-muted: #64748b;
       {% else %}
       --glo-page: #fff1f5;
       --glo-page-accent: #ffe4ec;
@@ -219,32 +219,32 @@
     }
     html.dark {
       {% if motyw_neutralny %}
-      --glo-page: #0f172a;
-      --glo-page-accent: #1e1b4b;
-      --glo-page-mid: #312e81;
-      --glo-surface: #1e1b4b;
-      --glo-surface-muted: #25214a;
-      --glo-border: #818cf8;
-      --glo-border-soft: #4338ca;
-      --glo-text: #e0e7ff;
-      --glo-text-muted: #c7d2fe;
-      --glo-heading: #f5f3ff;
-      --glo-hero-from: #3730a3;
-      --glo-hero-via: #5b21b6;
-      --glo-hero-to: #1e3a8a;
-      --glo-hero-text: #f5f3ff;
-      --glo-hero-sub: #c4b5fd;
-      --glo-slot-bg: #25214a;
-      --glo-slot-border: #818cf8;
-      --glo-slot-text: #e0e7ff;
-      --glo-primary-from: #818cf8;
-      --glo-primary-to: #c084fc;
-      --glo-primary-bg: #6366f1;
-      --glo-primary-hover: #a5b4fc;
-      --glo-primary-text: #1e1b4b;
-      --glo-soft-panel-bg: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-      --glo-soft-panel-text: #f5f3ff;
-      --glo-soft-panel-muted: #c4b5fd;
+      --glo-page: #111827;
+      --glo-page-accent: #1f2937;
+      --glo-page-mid: #374151;
+      --glo-surface: #1f2937;
+      --glo-surface-muted: #374151;
+      --glo-border: #9ca3af;
+      --glo-border-soft: #4b5563;
+      --glo-text: #e5e7eb;
+      --glo-text-muted: #d1d5db;
+      --glo-heading: #f9fafb;
+      --glo-hero-from: #4b5563;
+      --glo-hero-via: #374151;
+      --glo-hero-to: #1f2937;
+      --glo-hero-text: #f9fafb;
+      --glo-hero-sub: #d1d5db;
+      --glo-slot-bg: #374151;
+      --glo-slot-border: #9ca3af;
+      --glo-slot-text: #f3f4f6;
+      --glo-primary-from: #d1d5db;
+      --glo-primary-to: #9ca3af;
+      --glo-primary-bg: #9ca3af;
+      --glo-primary-hover: #e5e7eb;
+      --glo-primary-text: #111827;
+      --glo-soft-panel-bg: linear-gradient(135deg, #374151 0%, #1f2937 55%, #111827 100%);
+      --glo-soft-panel-text: #f9fafb;
+      --glo-soft-panel-muted: #d1d5db;
       {% else %}
       --glo-page: #1a0a12;
       --glo-page-accent: #2a0f1c;
@@ -420,11 +420,23 @@
     }
     body.client-theme-neutral [class*="from-brand-"] {
       --tw-gradient-from: var(--glo-primary-from) var(--tw-gradient-from-position) !important;
-      --tw-gradient-to: rgb(99 102 241 / 0) var(--tw-gradient-to-position) !important;
+      --tw-gradient-to: rgb(148 163 184 / 0) var(--tw-gradient-to-position) !important;
       --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
     }
     body.client-theme-neutral [class*="to-brand-"] {
       --tw-gradient-to: var(--glo-primary-to) var(--tw-gradient-to-position) !important;
+    }
+    body.client-theme-neutral .client-card,
+    body.client-theme-neutral .client-panel-card {
+      box-shadow: 0 10px 30px -12px rgba(100, 116, 139, 0.18) !important;
+    }
+    body.client-theme-neutral .client-slot:hover {
+      background: #f8fafc !important;
+      border-color: #94a3b8 !important;
+    }
+    html.dark body.client-theme-neutral .client-slot:hover {
+      background: #4b5563 !important;
+      border-color: #d1d5db !important;
     }
   </style>
   {% endif %}
