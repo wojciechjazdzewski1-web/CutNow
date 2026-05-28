@@ -9,7 +9,7 @@
 </div>
 
 <div class="grid lg:grid-cols-3 gap-6">
-  <section class="lg:col-span-2 rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+  <section class="lg:col-span-2 client-panel-card rounded-2xl p-5">
     <h2 class="font-semibold text-slate-900 mb-4">Aktywne firmy</h2>
     {% if salony %}
       <div class="space-y-3">
@@ -96,7 +96,7 @@
     {% endif %}
   </section>
 
-  <aside class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm h-fit">
+  <aside class="client-panel-card rounded-2xl p-5 h-fit">
     <h2 class="font-semibold text-slate-900 mb-4">Dodaj nową firmę</h2>
     <form method="post" action="{{ url_for('panel_nowy_salon') }}" class="space-y-4">
       <div>

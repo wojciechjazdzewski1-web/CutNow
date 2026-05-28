@@ -196,6 +196,27 @@ MOTYW_ROZOWY_ENDPOINTS = WIDOK_KLIENTA_ENDPOINTS | {
     "polityka_cookies",
 }
 
+PANEL_ENDPOINTS = frozenset(
+    {
+        "ustawienia_salonu",
+        "godziny_pracy",
+        "wolne_terminy",
+        "podglad_klienta",
+        "stripe_checkout",
+        "stripe_sukces",
+    }
+)
+
+
+def endpoint_ma_motyw_glovaro(endpoint: str | None) -> bool:
+    if not endpoint:
+        return False
+    if endpoint in MOTYW_ROZOWY_ENDPOINTS:
+        return True
+    if endpoint in PANEL_ENDPOINTS or endpoint.startswith("panel"):
+        return True
+    return False
+
 MOTYWY_STRONY = frozenset({"rozowy", "neutralny"})
 STATUSY_ABONAMENTU = frozenset({"pending_payment", "trial", "active", "suspended"})
 
@@ -2336,7 +2357,7 @@ def dodaj_naglowki_bezpieczenstwa(response):
 def inject_globals():
     salon_slug = request.view_args.get("salon_slug") if request.view_args else None
     widok_klienta = request.endpoint in WIDOK_KLIENTA_ENDPOINTS
-    motyw_klienta = request.endpoint in MOTYW_ROZOWY_ENDPOINTS
+    motyw_klienta = endpoint_ma_motyw_glovaro(request.endpoint)
     motyw_strony = "rozowy"
     if widok_klienta and salon_slug:
         data_od, data_do = zakres_publicznej_rezerwacji(request.values.get("data"))
