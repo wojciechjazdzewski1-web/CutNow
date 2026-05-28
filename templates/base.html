@@ -23,12 +23,8 @@
   <meta property="og:image" content="{{ url_for('static', filename='img/glovaro-og.png', _external=True) }}">
   <script>
     (function () {
-      var clientView = {{ 'true' if widok_klienta else 'false' }};
-      if (clientView && localStorage.getItem('glovaro_theme') === 'dark') {
+      if (localStorage.getItem('glovaro_theme') === 'dark') {
         document.documentElement.classList.add('dark');
-      }
-      if (!clientView) {
-        document.documentElement.classList.remove('dark');
       }
     })();
   </script>
@@ -63,6 +59,89 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .glovaro-nav-logo {
+      display: inline-block;
+      background-color: currentColor;
+      -webkit-mask-image: url("{{ url_for('static', filename='img/glovaro-icon-nav.png') }}");
+      mask-image: url("{{ url_for('static', filename='img/glovaro-icon-nav.png') }}");
+      -webkit-mask-size: contain;
+      mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      mask-position: center;
+    }
+    body.client-theme-rose .glovaro-nav-logo { color: #e11d74; }
+    html.dark body.client-theme-rose .glovaro-nav-logo { color: #ff6b9d; }
+    body.client-theme-neutral .glovaro-nav-logo { color: var(--glo-heading, #0f172a); }
+    body.app-theme-default .glovaro-nav-logo { color: #e11d74; }
+    html.dark body.app-theme-default .glovaro-nav-logo { color: #f472b6; }
+
+    body.app-theme-default {
+      --app-bg: #f8fafc;
+      --app-surface: #ffffff;
+      --app-surface-muted: #f1f5f9;
+      --app-border: #e2e8f0;
+      --app-heading: #0f172a;
+      --app-text: #475569;
+      --app-text-muted: #64748b;
+    }
+    html.dark body.app-theme-default {
+      --app-bg: #0f172a;
+      --app-surface: #1e293b;
+      --app-surface-muted: #334155;
+      --app-border: #475569;
+      --app-heading: #f1f5f9;
+      --app-text: #cbd5e1;
+      --app-text-muted: #94a3b8;
+      background-color: var(--app-bg) !important;
+      color: var(--app-text) !important;
+    }
+    html.dark body.app-theme-default nav {
+      background: rgba(15, 23, 42, 0.95) !important;
+      border-color: var(--app-border) !important;
+    }
+    html.dark body.app-theme-default footer {
+      background: var(--app-surface) !important;
+      border-color: var(--app-border) !important;
+      color: var(--app-text-muted) !important;
+    }
+    html.dark body.app-theme-default .bg-white { background-color: var(--app-surface) !important; }
+    html.dark body.app-theme-default .bg-slate-50,
+    html.dark body.app-theme-default .bg-slate-100 { background-color: var(--app-surface-muted) !important; }
+    html.dark body.app-theme-default .border-slate-200,
+    html.dark body.app-theme-default .border-slate-100 { border-color: var(--app-border) !important; }
+    html.dark body.app-theme-default .text-slate-900 { color: var(--app-heading) !important; }
+    html.dark body.app-theme-default .text-slate-800,
+    html.dark body.app-theme-default .text-slate-700,
+    html.dark body.app-theme-default .text-slate-600 { color: var(--app-text) !important; }
+    html.dark body.app-theme-default .text-slate-500 { color: var(--app-text-muted) !important; }
+    html.dark body.app-theme-default .text-slate-300 { color: #64748b !important; }
+    html.dark body.app-theme-default input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+    html.dark body.app-theme-default select,
+    html.dark body.app-theme-default textarea {
+      background-color: var(--app-surface-muted) !important;
+      border-color: var(--app-border) !important;
+      color: var(--app-heading) !important;
+    }
+    html.dark body.app-theme-default #cookie-banner {
+      background: var(--app-surface) !important;
+      border-color: var(--app-border) !important;
+      color: var(--app-text) !important;
+    }
+    html.dark body.app-theme-default #cookie-banner .text-slate-900 { color: var(--app-heading) !important; }
+    html.dark body.app-theme-default #cookie-banner .text-slate-600 { color: var(--app-text) !important; }
+    html.dark body.client-theme .bg-white { background-color: var(--glo-surface) !important; }
+    html.dark body.client-theme .bg-slate-50 { background-color: var(--glo-surface-muted) !important; }
+    html.dark body.client-theme .border-slate-200,
+    html.dark body.client-theme .border-slate-100 { border-color: var(--glo-border-soft) !important; }
+    html.dark body.client-theme .text-slate-900 { color: var(--glo-heading) !important; }
+    html.dark body.client-theme .text-slate-800,
+    html.dark body.client-theme .text-slate-700,
+    html.dark body.client-theme .text-slate-600 { color: var(--glo-text-muted) !important; }
+    html.dark body.client-theme .text-slate-500 { color: var(--glo-text-muted) !important; }
+  </style>
   {% if motyw_klienta %}
   <style>
     :root {
@@ -313,26 +392,26 @@
   {% endif %}
   {% block head_extra %}{% endblock %}
 </head>
-<body class="h-full min-h-screen font-sans antialiased {% if motyw_klienta %}client-theme {% if motyw_neutralny %}client-theme-neutral{% else %}client-theme-rose{% endif %}{% else %}bg-slate-50 text-slate-800{% endif %}">
-  <nav class="sticky top-0 z-50 border-b backdrop-blur-md {% if motyw_klienta %}client-nav{% else %}border-slate-200 bg-white/80{% endif %}">
+<body class="h-full min-h-screen font-sans antialiased {% if motyw_klienta %}client-theme {% if motyw_neutralny %}client-theme-neutral{% else %}client-theme-rose{% endif %}{% else %}app-theme-default bg-slate-50 text-slate-800{% endif %}">
+  <nav class="sticky top-0 z-50 border-b backdrop-blur-md {% if motyw_klienta %}client-nav{% else %}border-slate-200 bg-white/80 dark:border-slate-700 dark:bg-slate-900/90{% endif %}">
     <div class="max-w-5xl mx-auto px-4 sm:px-6">
       <div class="flex items-center justify-between h-16">
         <a href="{{ url_for('rezerwacja_publiczna', salon_slug=aktywny_salon_slug) if widok_klienta and aktywny_salon_slug else url_for('strona_glowna') }}" class="flex items-center gap-2 group">
-          <img src="{{ url_for('static', filename='img/glovaro-icon-nav.png') }}" alt="" width="40" height="40" class="h-10 w-10 object-contain group-hover:scale-105 transition-transform" aria-hidden="true">
-          <span class="font-bold text-lg tracking-tight {% if motyw_klienta %}client-heading{% else %}text-slate-900{% endif %}">Glov<span class="text-brand-600 dark:text-brand-400">aro</span></span>
+          <span class="glovaro-nav-logo h-10 w-10 shrink-0 group-hover:scale-105 transition-transform" aria-hidden="true"></span>
+          <span class="font-bold text-lg tracking-tight {% if motyw_klienta %}client-heading{% else %}text-slate-900 dark:text-slate-100{% endif %}">Glov<span class="text-brand-600 dark:text-brand-400">aro</span></span>
         </a>
         <div class="flex items-center gap-1 sm:gap-2">
+          <button type="button" id="theme-toggle" onclick="toggleGlovaroTheme()" class="rounded-lg border px-3 py-2 text-sm font-medium transition-colors {% if motyw_klienta %}border-brand-300 dark:border-brand-700 bg-brand-100 dark:bg-brand-950/50 text-brand-800 dark:text-brand-200 hover:bg-brand-200 dark:hover:bg-brand-900/50{% else %}border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700{% endif %}" aria-label="Przełącz tryb wyświetlania">
+            <span id="theme-toggle-label">Tryb nocny</span>
+          </button>
           {% if widok_klienta %}
-            <button type="button" id="theme-toggle" onclick="toggleClientTheme()" class="rounded-lg border border-brand-300 dark:border-brand-700 bg-brand-100 dark:bg-brand-950/50 px-3 py-2 text-sm font-medium text-brand-800 dark:text-brand-200 hover:bg-brand-200 dark:hover:bg-brand-900/50 transition-colors" aria-label="Przełącz tryb nocny">
-              <span id="theme-toggle-label">Tryb nocny</span>
-            </button>
             <span class="hidden sm:inline px-3 py-2 text-sm font-medium text-brand-800 dark:text-brand-200 bg-brand-100 dark:bg-brand-950/40 rounded-lg border border-brand-200 dark:border-brand-900">Rezerwacja wizyty</span>
           {% else %}
-            <a href="{{ url_for('strona_glowna') }}" class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.endpoint == 'strona_glowna' %}text-brand-800 bg-brand-100{% elif motyw_klienta %}client-heading hover:bg-white/70 dark:hover:bg-white/10{% else %}text-slate-600 hover:bg-slate-100{% endif %}">Znajdź termin</a>
-            <a href="{{ url_for('dolacz_firma') }}" class="hidden sm:inline-flex px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.endpoint == 'dolacz_firma' %}text-brand-800 bg-brand-100{% elif motyw_klienta %}client-heading hover:bg-white/70 dark:hover:bg-white/10{% else %}text-slate-600 hover:bg-slate-100{% endif %}">Dla firm</a>
-            <a href="{{ url_for('panel', salon_slug=aktywny_salon_slug) if aktywny_salon_slug else url_for('panel_lista') }}" class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.endpoint in ['panel', 'panel_instrukcja', 'panel_lista', 'ustawienia_salonu', 'godziny_pracy', 'wolne_terminy', 'panel_rezerwacje', 'panel_lista_rezerwowa', 'panel_klienci', 'panel_klient_szczegoly', 'panel_wywiad', 'podglad_klienta', 'panel_login'] %}text-brand-800 bg-brand-100{% elif motyw_klienta %}client-heading hover:bg-white/70 dark:hover:bg-white/10{% else %}text-slate-600 hover:bg-slate-100{% endif %}">Panel</a>
+            <a href="{{ url_for('strona_glowna') }}" class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.endpoint == 'strona_glowna' %}text-brand-800 bg-brand-100 dark:text-brand-200 dark:bg-brand-950/50{% elif motyw_klienta %}client-heading hover:bg-white/70 dark:hover:bg-white/10{% else %}text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800{% endif %}">Znajdź termin</a>
+            <a href="{{ url_for('dolacz_firma') }}" class="hidden sm:inline-flex px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.endpoint == 'dolacz_firma' %}text-brand-800 bg-brand-100 dark:text-brand-200 dark:bg-brand-950/50{% elif motyw_klienta %}client-heading hover:bg-white/70 dark:hover:bg-white/10{% else %}text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800{% endif %}">Dla firm</a>
+            <a href="{{ url_for('panel', salon_slug=aktywny_salon_slug) if aktywny_salon_slug else url_for('panel_lista') }}" class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.endpoint in ['panel', 'panel_instrukcja', 'panel_lista', 'ustawienia_salonu', 'godziny_pracy', 'wolne_terminy', 'panel_rezerwacje', 'panel_lista_rezerwowa', 'panel_klienci', 'panel_klient_szczegoly', 'panel_wywiad', 'podglad_klienta', 'panel_login'] %}text-brand-800 bg-brand-100 dark:text-brand-200 dark:bg-brand-950/50{% elif motyw_klienta %}client-heading hover:bg-white/70 dark:hover:bg-white/10{% else %}text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800{% endif %}">Panel</a>
             {% if panel_chroniony_haslem and zalogowany_do_panelu %}
-              <a href="{{ url_for('panel_wyloguj', salon_slug=aktywny_salon_slug) if aktywny_salon_slug else url_for('panel_wyloguj') }}" class="px-3 py-2 text-sm font-medium rounded-lg {% if motyw_klienta %}client-muted hover:bg-white/70 dark:hover:bg-white/10{% else %}text-slate-500 hover:bg-slate-100{% endif %}">Wyloguj</a>
+              <a href="{{ url_for('panel_wyloguj', salon_slug=aktywny_salon_slug) if aktywny_salon_slug else url_for('panel_wyloguj') }}" class="px-3 py-2 text-sm font-medium rounded-lg {% if motyw_klienta %}client-muted hover:bg-white/70 dark:hover:bg-white/10{% else %}text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800{% endif %}">Wyloguj</a>
             {% endif %}
           {% endif %}
         </div>
@@ -356,7 +435,7 @@
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="mt-auto border-t {% if motyw_klienta %}client-footer{% else %}border-slate-200 bg-white{% endif %}">
+  <footer class="mt-auto border-t {% if motyw_klienta %}client-footer{% else %}border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900{% endif %}">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 text-center text-sm">
       <p>&copy; 2026 Glovaro — rezerwacje online dla usług lokalnych</p>
       <div class="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2">
@@ -367,7 +446,7 @@
     </div>
   </footer>
 
-  <div id="cookie-banner" class="fixed inset-x-0 bottom-0 z-[200] hidden border-t p-4 shadow-2xl backdrop-blur {% if motyw_klienta %}client-card{% else %}border-slate-200 bg-white/95{% endif %}">
+  <div id="cookie-banner" class="fixed inset-x-0 bottom-0 z-[200] hidden border-t p-4 shadow-2xl backdrop-blur {% if motyw_klienta %}client-card{% else %}border-slate-200 bg-white/95 dark:border-slate-700 dark:bg-slate-900/95{% endif %}">
     <div class="mx-auto flex max-w-5xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div class="text-sm {% if motyw_klienta %}client-muted{% else %}text-slate-600{% endif %}">
         <p class="font-semibold {% if motyw_klienta %}client-heading{% else %}text-slate-900{% endif %}">Pliki cookies</p>
@@ -385,7 +464,7 @@
       document.getElementById('cookie-banner')?.classList.add('hidden');
     }
 
-    function toggleClientTheme() {
+    function toggleGlovaroTheme() {
       var root = document.documentElement;
       var isDark = root.classList.toggle('dark');
       localStorage.setItem('glovaro_theme', isDark ? 'dark' : 'light');
