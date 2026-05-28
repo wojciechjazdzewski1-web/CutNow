@@ -8,7 +8,7 @@
     <a href="{{ url_for('strona_glowna') }}" class="rounded-xl bg-brand-600 text-white px-5 py-3 font-semibold hover:bg-brand-700">Strona główna</a>
     <a href="{{ url_for('rezerwacja_publiczna', salon_slug=domyslny_slug) }}" class="rounded-xl border border-slate-300 px-5 py-3 font-semibold hover:bg-slate-50">Terminy dla klientów</a>
     {% if not widok_klienta %}
-      <a href="{{ url_for('panel_lista') }}" class="rounded-xl border border-slate-300 px-5 py-3 font-semibold hover:bg-slate-50">Panel właściciela</a>
+      <a href="{{ url_for('panel_login') }}" class="rounded-xl border border-slate-300 px-5 py-3 font-semibold hover:bg-slate-50">Logowanie do panelu</a>
     {% endif %}
   </div>
 </div>

@@ -48,7 +48,7 @@
       <div class="sm:col-span-2">
         <label for="haslo_panelu" class="block text-sm font-medium client-heading mb-2">Hasło do Twojego panelu *</label>
         <input id="haslo_panelu" name="haslo_panelu" type="password" required minlength="6" class="client-input w-full px-4 py-3" placeholder="Minimum 6 znaków">
-        <p class="client-muted text-xs mt-1">Tym hasłem zalogujesz się później tylko do panelu swojej firmy.</p>
+        <p class="client-muted text-xs mt-1">Tym hasłem zalogujesz się na <a href="{{ url_for('panel_login') }}" class="font-semibold text-brand-700 hover:underline">stronie logowania do panelu</a> — podaj e-mail firmy i hasło.</p>
       </div>
     </div>
 

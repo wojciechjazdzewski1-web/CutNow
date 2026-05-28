@@ -2162,16 +2162,97 @@ def panel_auth_key(salon_slug: str) -> str:
     return f"panel_auth_{salon_slug}"
 
 
+def pierwszy_zalogowany_salon_slug() -> str | None:
+    for key, value in session.items():
+        if key.startswith("panel_auth_") and value:
+            return key.removeprefix("panel_auth_")
+    return None
+
+
+def ustaw_sesje_salonu(salon_slug: str) -> None:
+    for key in list(session.keys()):
+        if key.startswith("panel_auth_"):
+            session.pop(key, None)
+    session[panel_auth_key(salon_slug)] = True
+
+
+def parsuj_identyfikator_salonu(tekst: str) -> str:
+    wartosc = (tekst or "").strip()
+    if not wartosc:
+        return ""
+    lower = wartosc.lower()
+    for marker in ("/rezerwacja/", "/panel/"):
+        if marker in lower:
+            idx = lower.index(marker)
+            wartosc = wartosc[idx + len(marker) :]
+    wartosc = wartosc.split("?")[0].split("#")[0].strip().strip("/")
+    if "@" in wartosc:
+        return wartosc.lower()
+    return slugify(wartosc)
+
+
+def salon_slug_z_sciezki(path: str | None) -> str | None:
+    if not path:
+        return None
+    match = re.match(r"^/panel/([^/]+)", path)
+    if not match:
+        return None
+    slug = match.group(1)
+    if slug in {"login", "wyloguj", "nowy"}:
+        return None
+    return slug
+
+
+def znajdz_salon_do_logowania(identyfikator: str) -> tuple[str, dict] | None | str:
+    ident = parsuj_identyfikator_salonu(identyfikator)
+    if not ident:
+        return None
+    dane = wczytaj_salony_raw(
+        include_clients=False,
+        include_reservations=False,
+        include_free_slots=False,
+        include_waitlist=False,
+    )
+    if not dane:
+        return None
+    salony = dane.get("salony", {})
+    if "@" in ident:
+        dopasowania = [
+            (slug, salon)
+            for slug, salon in salony.items()
+            if (salon.get("email_powiadomien") or "").strip().lower() == ident
+        ]
+        if len(dopasowania) == 1:
+            slug, salon = dopasowania[0]
+            salon.setdefault("slug", slug)
+            return slug, salon
+        if len(dopasowania) > 1:
+            return "wiele_firm"
+        return None
+    if ident in salony:
+        salon = salony[ident]
+        salon.setdefault("slug", ident)
+        return ident, salon
+    return None
+
+
 def admin_auth_key() -> str:
     return "admin_auth"
 
 
-def bezpieczny_next_url(url: str | None) -> str:
+def bezpieczny_next_url(url: str | None, *, salon_slug: str | None = None) -> str:
+    if salon_slug:
+        domyslny = url_for("panel", salon_slug=salon_slug)
+    elif session.get(admin_auth_key()):
+        domyslny = url_for("panel_lista")
+    else:
+        zalogowany = pierwszy_zalogowany_salon_slug()
+        domyslny = url_for("panel", salon_slug=zalogowany) if zalogowany else url_for("panel_login")
     if not url:
-        return url_for("panel_lista")
+        return domyslny
     parsed = urlparse(url)
     if parsed.netloc or not url.startswith("/") or url.startswith("//"):
-        return url_for("panel_lista")
+        return domyslny
     return url
 
 
@@ -2228,7 +2309,7 @@ def wymagaj_hasla_panelu():
         return
 
     if not zalogowany_do_salonu(salon_slug):
-        return redirect(url_for("panel_login", salon=salon_slug, next=request.path))
+        return redirect(url_for("panel_login", next=request.path))
 
 
 @app.after_request
@@ -2274,7 +2355,12 @@ def inject_globals():
         "etykieta_branzy": etykieta_branzy,
         "panel_chroniony_haslem": bool(PANEL_PASSWORD),
         "admin_zalogowany": bool(session.get(admin_auth_key())),
-        "zalogowany_do_panelu": bool(salon_slug and zalogowany_do_salonu(salon_slug)),
+        "zalogowany_salon_slug": pierwszy_zalogowany_salon_slug(),
+        "zalogowany_do_panelu": bool(
+            session.get(admin_auth_key())
+            or (salon_slug and zalogowany_do_salonu(salon_slug))
+            or pierwszy_zalogowany_salon_slug()
+        ),
         "widok_klienta": widok_klienta,
         "motyw_klienta": motyw_klienta,
         "motyw_strony": motyw_strony,
@@ -2300,26 +2386,56 @@ def inject_globals():
 
 @app.route("/panel/login", methods=["GET", "POST"])
 def panel_login():
-    dane = wczytaj_dane()
-    salon_slug = request.args.get("salon") or request.form.get("salon") or ""
-    salon = pobierz_salon(dane, salon_slug) if salon_slug else None
-    wymagane_haslo = haslo_panelu(salon) if salon else PANEL_PASSWORD
-
-    if not wymagane_haslo:
-        return redirect(url_for("panel", salon_slug=salon_slug) if salon else url_for("panel_lista"))
+    next_url = request.form.get("next") or request.args.get("next") or ""
+    identyfikator_prefill = (request.form.get("identyfikator") or request.args.get("identyfikator") or "").strip()
+    if not identyfikator_prefill:
+        identyfikator_prefill = request.args.get("salon") or ""
+    if not identyfikator_prefill:
+        slug_z_next = salon_slug_z_sciezki(next_url)
+        if slug_z_next:
+            identyfikator_prefill = slug_z_next
 
     if request.method == "POST":
         haslo = request.form.get("haslo", "")
-        if haslo == wymagane_haslo:
-            if salon:
-                session[panel_auth_key(salon_slug)] = True
+        identyfikator = request.form.get("identyfikator", "").strip()
+        if identyfikator:
+            wynik = znajdz_salon_do_logowania(identyfikator)
+            if wynik == "wiele_firm":
+                flash(
+                    "Ten e-mail jest przypisany do kilku firm. Podaj link firmy (np. nazwa-firmy) zamiast e-maila.",
+                    "error",
+                )
+            elif not wynik:
+                flash("Nie znaleziono firmy. Sprawdź e-mail lub link w panelu.", "error")
             else:
-                session[admin_auth_key()] = True
-            flash("Zalogowano do panelu.", "success")
-            return redirect(bezpieczny_next_url(request.form.get("next") or request.args.get("next")))
-        flash("Nieprawidłowe hasło.", "error")
+                salon_slug, salon = wynik
+                if haslo == haslo_panelu(salon):
+                    ustaw_sesje_salonu(salon_slug)
+                    flash("Zalogowano do panelu.", "success")
+                    return redirect(bezpieczny_next_url(next_url, salon_slug=salon_slug))
+                flash("Nieprawidłowe hasło.", "error")
+        elif PANEL_PASSWORD and haslo == PANEL_PASSWORD:
+            session[admin_auth_key()] = True
+            flash("Zalogowano jako administrator.", "success")
+            return redirect(bezpieczny_next_url(next_url))
+        elif PANEL_PASSWORD:
+            flash("Podaj e-mail firmy lub link do panelu.", "error")
+        else:
+            flash("Podaj dane logowania firmy.", "error")
+    else:
+        zalogowany_slug = pierwszy_zalogowany_salon_slug()
+        if zalogowany_slug and not session.get(admin_auth_key()):
+            return redirect(bezpieczny_next_url(next_url, salon_slug=zalogowany_slug))
+        if session.get(admin_auth_key()):
+            return redirect(bezpieczny_next_url(next_url))
 
-    return render_template("login.html", salon=salon, salon_slug=salon_slug)
+    pokaz_logowanie_admina = bool(PANEL_PASSWORD)
+    return render_template(
+        "login.html",
+        identyfikator_prefill=identyfikator_prefill,
+        next_url=next_url,
+        pokaz_logowanie_admina=pokaz_logowanie_admina,
+    )
 
 
 @app.route("/panel/wyloguj")
@@ -2532,7 +2648,7 @@ def dolacz_firma():
         )
         dane.setdefault("salony", {})[slug] = salon
         zapisz_dane(dane)
-        session[panel_auth_key(slug)] = True
+        ustaw_sesje_salonu(slug)
         flash("Panel został utworzony. Uzupełnij profil, usługi i terminy, a potem opłać abonament, aby uruchomić rezerwacje.", "success")
         if pokaz_instrukcje:
             return redirect(url_for("panel", salon_slug=slug, tour=1))
