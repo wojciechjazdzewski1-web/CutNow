@@ -217,6 +217,38 @@ def endpoint_ma_motyw_glovaro(endpoint: str | None) -> bool:
         return True
     return False
 
+
+ENDPOINTS_GLOBALNE_BEZ_SALONU = frozenset(
+    {
+        "strona_glowna",
+        "dolacz_firma",
+        "regulamin",
+        "polityka_prywatnosci",
+        "polityka_cookies",
+        "panel_lista",
+        "panel_login",
+        "panel_nowy_salon",
+        "panel_wyloguj",
+        "health",
+        "favicon_root",
+        "robots_txt",
+        "sitemap_xml",
+        "nie_znaleziono",
+        "wyslij_przypomnienia",
+        "stripe_webhook",
+    }
+)
+
+
+def slug_salonu_dla_motywu(salon_slug_z_url: str | None, endpoint: str | None) -> str | None:
+    if salon_slug_z_url:
+        return salon_slug_z_url
+    if not endpoint or endpoint in ENDPOINTS_GLOBALNE_BEZ_SALONU:
+        return None
+    if endpoint_ma_motyw_glovaro(endpoint):
+        return pierwszy_zalogowany_salon_slug()
+    return None
+
 MOTYWY_STRONY = frozenset({"rozowy", "neutralny"})
 STATUSY_ABONAMENTU = frozenset({"pending_payment", "trial", "active", "suspended"})
 
@@ -2358,17 +2390,22 @@ def inject_globals():
     salon_slug = request.view_args.get("salon_slug") if request.view_args else None
     widok_klienta = request.endpoint in WIDOK_KLIENTA_ENDPOINTS
     motyw_klienta = endpoint_ma_motyw_glovaro(request.endpoint)
+    slug_motywu = slug_salonu_dla_motywu(salon_slug, request.endpoint)
     motyw_strony = "rozowy"
-    if widok_klienta and salon_slug:
-        data_od, data_do = zakres_publicznej_rezerwacji(request.values.get("data"))
-        motyw_strony = motyw_strony_salonu(
-            wczytaj_salon_bezposrednio(
-                salon_slug,
-                data_od=data_od,
-                data_do=data_do,
-                include_clients=False,
-            )
+    if slug_motywu:
+        data_od, data_do = (
+            zakres_publicznej_rezerwacji(request.values.get("data")) if widok_klienta else (None, None)
         )
+        salon_motywu = wczytaj_salon_bezposrednio(
+            slug_motywu,
+            data_od=data_od,
+            data_do=data_do,
+            include_clients=False,
+            include_reservations=False,
+            include_free_slots=False,
+            include_waitlist=False,
+        )
+        motyw_strony = motyw_strony_salonu(salon_motywu)
     return {
         "dni_tygodnia": DNI_TYGODNIA,
         "branze_dzialalnosci": BRANZE_DZIALALNOSCI,
