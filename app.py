@@ -2333,7 +2333,7 @@ def panel_wyloguj(salon_slug: str | None = None):
     return redirect(url_for("strona_glowna"))
 
 
-BUILD_ID = "2026-05-27-seo-favicon"
+BUILD_ID = "2026-05-27-favicon-transparent"
 
 
 @app.context_processor
@@ -2345,6 +2345,7 @@ def inject_seo():
         "public_base_url": PUBLIC_BASE_URL,
         "seo_canonical_url": canonical,
         "seo_logo_url": logo,
+        "favicon_version": BUILD_ID,
     }
 
 

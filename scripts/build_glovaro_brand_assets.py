@@ -64,7 +64,11 @@ def _strip_dark_background(img: Image.Image) -> Image.Image:
     for y in range(h):
         for x in range(w):
             r, g, b, a = pixels[x, y]
-            if not _is_brand_pixel(r, g, b, a):
+            if _is_brand_pixel(r, g, b, a):
+                continue
+            lum = _luminance(r, g, b)
+            chroma = max(r, g, b) - min(r, g, b)
+            if lum < 55 or (lum < 95 and chroma < 40):
                 pixels[x, y] = (0, 0, 0, 0)
     return out
 
@@ -126,6 +130,7 @@ def main() -> None:
     full_box = _content_bbox(img)
     full_sq = _prepare_icon(_square_crop(img, full_box, pad=36))
 
+    favicon_margin = 0.04
     transparent_sizes = {
         16: "favicon-16x16.png",
         32: "favicon-32x32.png",
@@ -133,10 +138,11 @@ def main() -> None:
         192: "glovaro-icon-192.png",
     }
     for px, name in transparent_sizes.items():
-        _fit_transparent(icon_sq, px).save(OUT / name, optimize=True)
+        _fit_transparent(icon_sq, px, margin_ratio=favicon_margin).save(OUT / name, optimize=True)
 
-    _fit_transparent(icon_sq, 40, margin_ratio=0.06).save(OUT / "glovaro-icon-nav.png", optimize=True)
-    _fit_transparent(icon_sq, 180, margin_ratio=0.08).save(OUT / "glovaro-apple-touch.png", optimize=True)
+    nav_icon = _fit_transparent(icon_sq, 128, margin_ratio=0.06)
+    nav_icon.save(OUT / "glovaro-icon-nav.png", optimize=True)
+    _fit_transparent(icon_sq, 180, margin_ratio=favicon_margin).save(OUT / "glovaro-apple-touch.png", optimize=True)
     _fit_transparent(icon_sq, 512, margin_ratio=0.08).save(OUT / "glovaro-profile.png", optimize=True)
 
     og = Image.new("RGBA", (1200, 630), LIGHT_BG)
@@ -144,11 +150,12 @@ def main() -> None:
     og.paste(logo, ((1200 - 420) // 2, (630 - 420) // 2), logo)
     og.save(OUT / "glovaro-og.png", optimize=True)
 
-    ico_images = [_fit_transparent(icon_sq, s, margin_ratio=0.06) for s in (16, 32, 48, 64)]
+    ico_sizes = (16, 32, 48)
+    ico_images = [_fit_transparent(icon_sq, s, margin_ratio=favicon_margin) for s in ico_sizes]
     ico_images[0].save(
         OUT / "favicon.ico",
         format="ICO",
-        sizes=[(16, 16), (32, 32), (48, 48), (64, 64)],
+        sizes=[(s, s) for s in ico_sizes],
         append_images=ico_images[1:],
     )
     print("Zapisano assety w", OUT)

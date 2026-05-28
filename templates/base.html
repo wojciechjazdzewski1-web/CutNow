@@ -9,11 +9,11 @@
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="{% block canonical_href %}{{ seo_canonical_url }}{% endblock %}">
   <meta name="theme-color" content="#e11d74">
-  <link rel="icon" href="/favicon.ico" sizes="any">
-  <link rel="icon" type="image/png" sizes="48x48" href="{{ url_for('static', filename='img/favicon-48x48.png') }}">
-  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='img/favicon-32x32.png') }}">
-  <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='img/favicon-16x16.png') }}">
-  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='img/glovaro-apple-touch.png') }}">
+  <link rel="icon" type="image/png" sizes="48x48" href="{{ url_for('static', filename='img/favicon-48x48.png') }}?v={{ favicon_version }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='img/favicon-32x32.png') }}?v={{ favicon_version }}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='img/favicon-16x16.png') }}?v={{ favicon_version }}">
+  <link rel="icon" href="/favicon.ico?v={{ favicon_version }}" sizes="any">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='img/glovaro-apple-touch.png') }}?v={{ favicon_version }}">
   <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
   <meta property="og:site_name" content="Glovaro">
   <meta property="og:type" content="website">
