@@ -148,51 +148,77 @@
     }
     body.client-theme-rose .client-panel-heading { color: var(--glo-heading) !important; }
     body.client-theme-rose .client-panel-muted { color: var(--glo-text-muted) !important; }
-    body.client-theme-rose main .rounded-2xl.bg-white,
-    body.client-theme-rose main .rounded-3xl.bg-white,
-    body.client-theme-rose main article.bg-white {
-      background: var(--glo-surface) !important;
-      border-color: var(--glo-border-soft) !important;
+    body.client-theme-rose main > h1.text-slate-900,
+    body.client-theme-rose main > p.text-slate-600,
+    body.client-theme-rose main > .text-slate-900:first-child {
+      color: var(--glo-heading) !important;
     }
-    body.client-theme-rose main .text-slate-900 { color: var(--glo-heading) !important; }
-    body.client-theme-rose main .text-slate-600,
-    body.client-theme-rose main .text-slate-700 { color: var(--glo-text-muted) !important; }
+    body.client-theme-rose main > p.text-slate-600 {
+      color: var(--glo-text-muted) !important;
+    }
 
-    /* Jasne karty i formularze — zawsze ciemny tekst (panel admina, rozliczenia) */
-    .glo-light-block {
-      background-color: rgba(255, 255, 255, 0.96) !important;
+    /* Jasne karty i formularze panelu — czytelny tekst na jasnym tle (także w dark mode) */
+    :is(
+      .glo-light-block,
+      .glo-form-surface,
+      body.client-theme main form.rounded-2xl.bg-white,
+      body.client-theme main .rounded-2xl.bg-white.border,
+      body.client-theme main .rounded-3xl.bg-white.border,
+      body.client-theme main article.rounded-2xl.bg-white.border,
+      body.client-theme main .rounded-2xl.border-dashed.bg-white
+    ) {
+      background-color: #fafbfc !important;
       border-color: #e2e8f0 !important;
+      color: #334155 !important;
+      color-scheme: light;
+    }
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border, body.client-theme main .rounded-3xl.bg-white.border, body.client-theme main article.rounded-2xl.bg-white.border) .text-slate-900,
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) h1,
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) h2,
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) h3 {
       color: #1e293b !important;
     }
-    .glo-light-block .text-slate-900,
-    .glo-light-block h2,
-    .glo-light-block h3 {
-      color: #0f172a !important;
-    }
-    .glo-light-block .text-slate-800,
-    .glo-light-block .text-slate-700,
-    .glo-light-block .text-slate-600,
-    .glo-light-block .text-slate-500,
-    .glo-light-block label {
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border, body.client-theme main .rounded-3xl.bg-white.border, body.client-theme main article.rounded-2xl.bg-white.border) .text-slate-800,
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .text-slate-700,
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .text-slate-600,
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .text-slate-500,
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) label {
       color: #475569 !important;
     }
-    .glo-light-block input,
-    .glo-light-block select,
-    .glo-light-block textarea {
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .bg-slate-50 {
+      background-color: #f1f5f9 !important;
+      border-color: #e2e8f0 !important;
+    }
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .bg-white {
       background-color: #ffffff !important;
-      color: #0f172a !important;
+    }
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) select,
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) textarea {
+      background-color: #ffffff !important;
+      color: #334155 !important;
       border-color: #cbd5e1 !important;
     }
-    .glo-light-block input::placeholder,
-    .glo-light-block textarea::placeholder {
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white) input[type="file"] {
+      color: #334155 !important;
+    }
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) input::placeholder,
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white) textarea::placeholder {
       color: #94a3b8 !important;
     }
-    .glo-light-block option {
-      color: #0f172a !important;
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) select option,
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white) option {
+      color: #334155 !important;
       background-color: #ffffff !important;
     }
-    .glo-light-block code {
+    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white) code {
       color: #334155 !important;
+    }
+    html.dark body.client-theme main form.rounded-2xl.bg-gradient-to-br select,
+    html.dark body.client-theme main form.rounded-2xl.bg-gradient-to-br select option {
+      color: #334155 !important;
+      background-color: #ffffff !important;
+      color-scheme: light;
     }
 
     html.dark body.client-theme article.bg-slate-50,
