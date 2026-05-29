@@ -132,15 +132,25 @@
     }
     html.dark body.app-theme-default #cookie-banner .text-slate-900 { color: var(--app-heading) !important; }
     html.dark body.app-theme-default #cookie-banner .text-slate-600 { color: var(--app-text) !important; }
-    html.dark body.client-theme .bg-white { background-color: var(--glo-surface) !important; }
-    html.dark body.client-theme .bg-slate-50 { background-color: var(--glo-surface-muted) !important; }
+    html.dark body.client-theme .bg-white:not(form):not(.glo-light-block):not(.glo-form-surface) {
+      background-color: var(--glo-surface) !important;
+    }
+    html.dark body.client-theme .bg-slate-50:not(form *):not(.glo-light-block *):not(.glo-form-surface *) {
+      background-color: var(--glo-surface-muted) !important;
+    }
     html.dark body.client-theme .border-slate-200,
     html.dark body.client-theme .border-slate-100 { border-color: var(--glo-border-soft) !important; }
-    html.dark body.client-theme .text-slate-900 { color: var(--glo-heading) !important; }
-    html.dark body.client-theme .text-slate-800,
-    html.dark body.client-theme .text-slate-700,
-    html.dark body.client-theme .text-slate-600 { color: var(--glo-text-muted) !important; }
-    html.dark body.client-theme .text-slate-500 { color: var(--glo-text-muted) !important; }
+    html.dark body.client-theme .text-slate-900:not(.glo-light-block *):not(.glo-form-surface *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *) {
+      color: var(--glo-heading) !important;
+    }
+    html.dark body.client-theme .text-slate-800:not(.glo-light-block *):not(.glo-form-surface *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *),
+    html.dark body.client-theme .text-slate-700:not(.glo-light-block *):not(.glo-form-surface *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *),
+    html.dark body.client-theme .text-slate-600:not(.glo-light-block *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *) {
+      color: var(--glo-text-muted) !important;
+    }
+    html.dark body.client-theme .text-slate-500:not(.glo-light-block *):not(.glo-form-surface *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *) {
+      color: var(--glo-text-muted) !important;
+    }
     body.client-theme-rose .client-panel-card {
       background: var(--glo-surface) !important;
       border: 1px solid var(--glo-border-soft) !important;
@@ -167,7 +177,8 @@
       body.client-theme main article.rounded-2xl.bg-white.border,
       body.client-theme main .rounded-2xl.border-dashed.bg-white
     ) {
-      background: var(--glo-form-surface-bg, linear-gradient(165deg, #f8fafc 0%, #ffffff 48%, #f1f5f9 100%)) !important;
+      background-color: var(--glo-form-surface-solid, #faf8fa) !important;
+      background-image: var(--glo-form-surface-bg, linear-gradient(165deg, #f8fafc 0%, #ffffff 48%, #f1f5f9 100%)) !important;
       border-color: var(--glo-form-surface-border, #e2e8f0) !important;
       box-shadow: var(--glo-form-surface-shadow, 0 1px 3px rgba(15, 23, 42, 0.05));
       color: #334155 !important;
@@ -220,6 +231,38 @@
       color: #334155 !important;
       background-color: #ffffff !important;
       color-scheme: light;
+    }
+    html.dark body.client-theme main form.rounded-2xl.bg-white label,
+    html.dark body.client-theme main form.rounded-2xl.bg-white .text-slate-700,
+    html.dark body.client-theme main form.rounded-2xl.bg-white .text-slate-600,
+    html.dark body.client-theme main form.rounded-2xl.bg-white .text-slate-500,
+    html.dark body.client-theme main form.rounded-2xl.bg-white .text-slate-900,
+    html.dark body.client-theme main form.rounded-2xl.bg-white p,
+    html.dark body.client-theme main form.rounded-2xl.bg-white h3,
+    html.dark body.client-theme main .rounded-2xl.bg-white.border label,
+    html.dark body.client-theme main .rounded-2xl.bg-white.border .text-slate-700,
+    html.dark body.client-theme main .rounded-2xl.bg-white.border .text-slate-600,
+    html.dark body.client-theme main .rounded-2xl.bg-white.border .text-slate-500,
+    html.dark body.client-theme main .rounded-2xl.bg-white.border .text-slate-900,
+    html.dark body.client-theme main .rounded-2xl.bg-white.border p,
+    html.dark body.client-theme .glo-light-block label,
+    html.dark body.client-theme .glo-light-block .text-slate-700,
+    html.dark body.client-theme .glo-light-block .text-slate-600,
+    html.dark body.client-theme .glo-light-block .text-slate-500,
+    html.dark body.client-theme .glo-light-block .text-slate-900,
+    html.dark body.client-theme .glo-light-block p {
+      color: #475569 !important;
+    }
+    html.dark body.client-theme main form.rounded-2xl.bg-white .text-slate-900,
+    html.dark body.client-theme main form.rounded-2xl.bg-white h3,
+    html.dark body.client-theme main .rounded-2xl.bg-white.border .text-slate-900,
+    html.dark body.client-theme .glo-light-block .text-slate-900 {
+      color: #1e293b !important;
+    }
+    html.dark body.client-theme main form.rounded-2xl.bg-white .text-slate-500,
+    html.dark body.client-theme main .rounded-2xl.bg-white.border .text-slate-500,
+    html.dark body.client-theme .glo-light-block .text-slate-500 {
+      color: #64748b !important;
     }
 
     html.dark body.client-theme article.bg-slate-50,
@@ -353,6 +396,7 @@
       --glo-soft-panel-bg: linear-gradient(135deg, #ffffff 0%, #f1f5f9 55%, #e2e8f0 100%);
       --glo-soft-panel-text: #334155;
       --glo-soft-panel-muted: #64748b;
+      --glo-form-surface-solid: #f8fafc;
       --glo-form-surface-bg: linear-gradient(165deg, #f8fafc 0%, #ffffff 48%, #f1f5f9 100%);
       --glo-form-surface-nested-bg: linear-gradient(165deg, #f1f5f9 0%, #f8fafc 100%);
       --glo-form-surface-border: #e2e8f0;
@@ -384,6 +428,7 @@
       --glo-soft-panel-bg: linear-gradient(135deg, #fff1f5 0%, #ffe4ec 100%);
       --glo-soft-panel-text: #831843;
       --glo-soft-panel-muted: #be185d;
+      --glo-form-surface-solid: #fff7fb;
       --glo-form-surface-bg: linear-gradient(165deg, #fff7fb 0%, #ffffff 50%, #fff1f5 100%);
       --glo-form-surface-nested-bg: linear-gradient(165deg, #fff0f7 0%, #fff7fb 100%);
       --glo-form-surface-border: #fbcfe8;
@@ -418,15 +463,16 @@
       --glo-soft-panel-bg: linear-gradient(135deg, #374151 0%, #1f2937 55%, #111827 100%);
       --glo-soft-panel-text: #f9fafb;
       --glo-soft-panel-muted: #d1d5db;
+      --glo-form-surface-solid: #f4f6f8;
       --glo-form-surface-bg: linear-gradient(
-        168deg,
-        color-mix(in srgb, var(--glo-page-mid) 38%, #c5ccd4) 0%,
-        #e8ebf0 18%,
-        #f8fafc 52%,
-        #e2e7ee 82%,
-        color-mix(in srgb, var(--glo-page-accent) 30%, #d5dbe3) 100%
+        165deg,
+        color-mix(in srgb, var(--glo-page-mid) 12%, #eef1f5) 0%,
+        #f8fafc 22%,
+        #ffffff 50%,
+        #f8fafc 78%,
+        color-mix(in srgb, var(--glo-page-accent) 10%, #eef1f5) 100%
       );
-      --glo-form-surface-nested-bg: linear-gradient(165deg, #e2e8f0 0%, #f1f5f9 100%);
+      --glo-form-surface-nested-bg: linear-gradient(165deg, #eef1f5 0%, #f8fafc 100%);
       --glo-form-surface-border: color-mix(in srgb, var(--glo-border-soft) 45%, #cbd5e1);
       --glo-form-surface-shadow: 0 4px 22px -8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.55);
       {% else %}
@@ -456,15 +502,16 @@
       --glo-soft-panel-bg: linear-gradient(135deg, #3b1028 0%, #5c2444 100%);
       --glo-soft-panel-text: #ffffff;
       --glo-soft-panel-muted: #fce7f3;
+      --glo-form-surface-solid: #faf6f8;
       --glo-form-surface-bg: linear-gradient(
-        168deg,
-        color-mix(in srgb, var(--glo-page-mid) 32%, #4a3540) 0%,
-        #f0e8ed 20%,
-        #faf8fa 54%,
-        #efe6eb 80%,
-        color-mix(in srgb, var(--glo-page-accent) 26%, #3d2834) 100%
+        165deg,
+        color-mix(in srgb, var(--glo-page-mid) 14%, #f3e8ee) 0%,
+        #faf6f8 22%,
+        #ffffff 50%,
+        #faf6f8 78%,
+        color-mix(in srgb, var(--glo-page-accent) 12%, #f0e4ea) 100%
       );
-      --glo-form-surface-nested-bg: linear-gradient(165deg, #ede4e9 0%, #faf5f8 100%);
+      --glo-form-surface-nested-bg: linear-gradient(165deg, #f3e8ee 0%, #faf6f8 100%);
       --glo-form-surface-border: color-mix(in srgb, var(--glo-border-soft) 50%, #e8d4de);
       --glo-form-surface-shadow: 0 4px 22px -8px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.5);
       {% endif %}
