@@ -157,6 +157,120 @@
     body.client-theme-rose main .text-slate-900 { color: var(--glo-heading) !important; }
     body.client-theme-rose main .text-slate-600,
     body.client-theme-rose main .text-slate-700 { color: var(--glo-text-muted) !important; }
+
+    /* Jasne karty i formularze — zawsze ciemny tekst (panel admina, rozliczenia) */
+    .glo-light-block {
+      background-color: rgba(255, 255, 255, 0.96) !important;
+      border-color: #e2e8f0 !important;
+      color: #1e293b !important;
+    }
+    .glo-light-block .text-slate-900,
+    .glo-light-block h2,
+    .glo-light-block h3 {
+      color: #0f172a !important;
+    }
+    .glo-light-block .text-slate-800,
+    .glo-light-block .text-slate-700,
+    .glo-light-block .text-slate-600,
+    .glo-light-block .text-slate-500,
+    .glo-light-block label {
+      color: #475569 !important;
+    }
+    .glo-light-block input,
+    .glo-light-block select,
+    .glo-light-block textarea {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+    .glo-light-block input::placeholder,
+    .glo-light-block textarea::placeholder {
+      color: #94a3b8 !important;
+    }
+    .glo-light-block option {
+      color: #0f172a !important;
+      background-color: #ffffff !important;
+    }
+    .glo-light-block code {
+      color: #334155 !important;
+    }
+
+    html.dark body.client-theme article.bg-slate-50,
+    html.dark body.client-theme article.border-slate-100.bg-slate-50 {
+      background-color: #f1f5f9 !important;
+      color: #1e293b !important;
+    }
+    html.dark body.client-theme article.bg-slate-50 .text-slate-900,
+    html.dark body.client-theme article.bg-slate-50 h3 {
+      color: #0f172a !important;
+    }
+    html.dark body.client-theme article.bg-slate-50 .text-slate-600,
+    html.dark body.client-theme article.bg-slate-50 .text-slate-500,
+    html.dark body.client-theme article.bg-slate-50 label {
+      color: #475569 !important;
+    }
+    html.dark body.client-theme article.bg-slate-50 input,
+    html.dark body.client-theme article.bg-slate-50 select,
+    html.dark body.client-theme article.bg-slate-50 textarea {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+    html.dark body.client-theme .bg-white\/70,
+    html.dark body.client-theme .bg-white\/80 {
+      background-color: rgba(255, 255, 255, 0.95) !important;
+      color: #1e293b !important;
+    }
+    html.dark body.client-theme .bg-white\/70 label,
+    html.dark body.client-theme .bg-white\/70 .text-slate-600,
+    html.dark body.client-theme .bg-white\/80 .text-slate-600 {
+      color: #475569 !important;
+    }
+    html.dark body.client-theme .bg-white\/70 input,
+    html.dark body.client-theme .bg-white\/70 select,
+    html.dark body.client-theme .bg-white\/70 textarea,
+    html.dark body.client-theme .bg-white\/80 input {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+    html.dark body.client-theme .client-panel-card input:not([type="checkbox"]):not([type="radio"]),
+    html.dark body.client-theme .client-panel-card select,
+    html.dark body.client-theme .client-panel-card textarea {
+      background-color: var(--glo-surface-muted) !important;
+      color: var(--glo-heading) !important;
+      border-color: var(--glo-border-soft) !important;
+    }
+    html.dark body.client-theme .client-panel-card label.text-slate-700,
+    html.dark body.client-theme .client-panel-card .text-slate-700 {
+      color: var(--glo-text-muted) !important;
+    }
+    html.dark body.client-theme .client-panel-card .text-slate-500 {
+      color: var(--glo-text-muted) !important;
+    }
+    html.dark body.client-theme-neutral .client-panel-card input:not([type="checkbox"]):not([type="radio"]),
+    html.dark body.client-theme-neutral .client-panel-card select,
+    html.dark body.client-theme-neutral .client-panel-card textarea,
+    body.client-theme-neutral .client-panel-card input:not([type="checkbox"]):not([type="radio"]),
+    body.client-theme-neutral .client-panel-card select,
+    body.client-theme-neutral .client-panel-card textarea {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+    body.client-theme-neutral .client-panel-card label,
+    body.client-theme-neutral .client-panel-card .text-slate-700,
+    body.client-theme-neutral .client-panel-card .text-slate-600,
+    body.client-theme-neutral .client-panel-card .text-slate-500 {
+      color: #475569 !important;
+    }
+    body.client-theme-neutral .client-panel-card h1,
+    body.client-theme-neutral .client-panel-card h2,
+    body.client-theme-neutral main .client-panel-heading,
+    body.client-theme-neutral main h1.text-slate-900,
+    body.client-theme-neutral main h2.text-slate-900 {
+      color: #1e293b !important;
+    }
   </style>
   {% if motyw_klienta %}
   <style>
