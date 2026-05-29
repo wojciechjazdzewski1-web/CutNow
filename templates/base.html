@@ -132,23 +132,23 @@
     }
     html.dark body.app-theme-default #cookie-banner .text-slate-900 { color: var(--app-heading) !important; }
     html.dark body.app-theme-default #cookie-banner .text-slate-600 { color: var(--app-text) !important; }
-    html.dark body.client-theme .bg-white:not(form):not(.glo-light-block):not(.glo-form-surface) {
+    html.dark body.client-theme .bg-white:not(form):not(.glo-light-block):not(.glo-form-surface):not(.glo-panel-calendar):not(.glo-accent-panel):not(.glo-cal-nav) {
       background-color: var(--glo-surface) !important;
     }
-    html.dark body.client-theme .bg-slate-50:not(form *):not(.glo-light-block *):not(.glo-form-surface *) {
+    html.dark body.client-theme .bg-slate-50:not(form *):not(.glo-light-block *):not(.glo-form-surface *):not(.glo-panel-calendar *):not(.glo-accent-panel *) {
       background-color: var(--glo-surface-muted) !important;
     }
     html.dark body.client-theme .border-slate-200,
     html.dark body.client-theme .border-slate-100 { border-color: var(--glo-border-soft) !important; }
-    html.dark body.client-theme .text-slate-900:not(.glo-light-block *):not(.glo-form-surface *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *) {
+    html.dark body.client-theme .text-slate-900:not(.glo-light-block *):not(.glo-form-surface *):not(.glo-panel-calendar *):not(.glo-accent-panel *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *) {
       color: var(--glo-heading) !important;
     }
-    html.dark body.client-theme .text-slate-800:not(.glo-light-block *):not(.glo-form-surface *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *),
-    html.dark body.client-theme .text-slate-700:not(.glo-light-block *):not(.glo-form-surface *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *),
-    html.dark body.client-theme .text-slate-600:not(.glo-light-block *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *) {
+    html.dark body.client-theme .text-slate-800:not(.glo-light-block *):not(.glo-form-surface *):not(.glo-panel-calendar *):not(.glo-accent-panel *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *),
+    html.dark body.client-theme .text-slate-700:not(.glo-light-block *):not(.glo-form-surface *):not(.glo-panel-calendar *):not(.glo-accent-panel *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *),
+    html.dark body.client-theme .text-slate-600:not(.glo-light-block *):not(.glo-panel-calendar *):not(.glo-accent-panel *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *) {
       color: var(--glo-text-muted) !important;
     }
-    html.dark body.client-theme .text-slate-500:not(.glo-light-block *):not(.glo-form-surface *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *) {
+    html.dark body.client-theme .text-slate-500:not(.glo-light-block *):not(.glo-form-surface *):not(.glo-panel-calendar *):not(.glo-accent-panel *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *) {
       color: var(--glo-text-muted) !important;
     }
     body.client-theme-rose .client-panel-card {
@@ -171,6 +171,8 @@
     :is(
       .glo-light-block,
       .glo-form-surface,
+      .glo-accent-panel,
+      .glo-panel-calendar,
       body.client-theme main form.rounded-2xl.bg-white,
       body.client-theme main .rounded-2xl.bg-white.border,
       body.client-theme main .rounded-3xl.bg-white.border,
@@ -204,9 +206,9 @@
     :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .bg-white {
       background-color: #ffffff !important;
     }
-    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),
-    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) select,
-    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) textarea {
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) select,
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) textarea {
       background-color: #ffffff !important;
       color: #334155 !important;
       border-color: #cbd5e1 !important;
@@ -218,8 +220,8 @@
     :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white) textarea::placeholder {
       color: #94a3b8 !important;
     }
-    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) select option,
-    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white) option {
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) select option,
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, body.client-theme main form.rounded-2xl.bg-white) option {
       color: #334155 !important;
       background-color: #ffffff !important;
     }
@@ -263,6 +265,104 @@
     html.dark body.client-theme main .rounded-2xl.bg-white.border .text-slate-500,
     html.dark body.client-theme .glo-light-block .text-slate-500 {
       color: #64748b !important;
+    }
+    html.dark body.client-theme .glo-accent-panel label,
+    html.dark body.client-theme .glo-accent-panel .text-slate-700,
+    html.dark body.client-theme .glo-accent-panel .text-slate-600,
+    html.dark body.client-theme .glo-accent-panel .text-slate-500,
+    html.dark body.client-theme .glo-accent-panel .text-slate-900,
+    html.dark body.client-theme .glo-accent-panel p,
+    html.dark body.client-theme .glo-accent-panel h2,
+    html.dark body.client-theme .glo-panel-calendar label,
+    html.dark body.client-theme .glo-panel-calendar .text-slate-500,
+    html.dark body.client-theme .glo-panel-calendar .text-slate-900,
+    html.dark body.client-theme .glo-panel-calendar h2 {
+      color: #475569 !important;
+    }
+    html.dark body.client-theme .glo-accent-panel .text-slate-900,
+    html.dark body.client-theme .glo-accent-panel h2,
+    html.dark body.client-theme .glo-panel-calendar .text-slate-900,
+    html.dark body.client-theme .glo-panel-calendar h2 {
+      color: #1e293b !important;
+    }
+    html.dark body.client-theme .glo-accent-panel .text-slate-500,
+    html.dark body.client-theme .glo-panel-calendar .text-slate-500 {
+      color: #64748b !important;
+    }
+    html.dark body.client-theme .glo-accent-panel select,
+    html.dark body.client-theme .glo-accent-panel input:not([type="checkbox"]):not([type="radio"]) {
+      background-color: #ffffff !important;
+      color: #334155 !important;
+      border-color: #cbd5e1 !important;
+      color-scheme: light;
+    }
+    html.dark body.client-theme .glo-accent-panel select option {
+      color: #334155 !important;
+      background-color: #ffffff !important;
+    }
+    html.dark body.client-theme .glo-accent-panel select option:checked {
+      background: linear-gradient(0deg, #fce7f3, #fce7f3) !important;
+      color: #831843 !important;
+    }
+    html.dark body.client-theme .glo-panel-calendar .glo-cal-day {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      color: #334155 !important;
+    }
+    html.dark body.client-theme .glo-panel-calendar .glo-cal-day:hover {
+      background-color: #fff7fb !important;
+      border-color: #f9a8d4 !important;
+    }
+    html.dark body.client-theme .glo-panel-calendar .glo-cal-day.is-active {
+      background: linear-gradient(165deg, #fff1f5 0%, #fce7f3 100%) !important;
+      border-color: #f472b6 !important;
+      box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.35);
+    }
+    html.dark body.client-theme .glo-panel-calendar .glo-cal-day .text-slate-900 {
+      color: #1e293b !important;
+    }
+    html.dark body.client-theme .glo-panel-calendar .glo-cal-day .text-slate-500,
+    html.dark body.client-theme .glo-panel-calendar .glo-cal-day .text-brand-700 {
+      color: #64748b !important;
+    }
+    html.dark body.client-theme .glo-panel-calendar .glo-cal-day.is-active .text-brand-700,
+    html.dark body.client-theme .glo-panel-calendar .glo-cal-day.is-active .text-emerald-700 {
+      color: #be185d !important;
+    }
+    html.dark body.client-theme .glo-panel-calendar .glo-cal-empty {
+      background-color: #f8fafc !important;
+    }
+    html.dark body.client-theme a.glo-cal-nav {
+      background-color: #ffffff !important;
+      color: #475569 !important;
+      border-color: #e2e8f0 !important;
+    }
+    html.dark body.client-theme a.glo-cal-nav.is-today {
+      background: linear-gradient(165deg, #fff1f5, #fce7f3) !important;
+      color: #9d174d !important;
+      border-color: #f9a8d4 !important;
+    }
+    html.dark body.client-theme a.glo-cal-nav:hover {
+      background-color: #fff7fb !important;
+      border-color: #f9a8d4 !important;
+    }
+    html.dark body.client-theme-neutral .glo-panel-calendar .glo-cal-day.is-active {
+      background: linear-gradient(165deg, #f8fafc 0%, #e2e8f0 100%) !important;
+      border-color: #94a3b8 !important;
+      box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.35);
+    }
+    html.dark body.client-theme-neutral .glo-panel-calendar .glo-cal-day:hover {
+      background-color: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+    }
+    html.dark body.client-theme-neutral a.glo-cal-nav.is-today {
+      background: linear-gradient(165deg, #f8fafc, #e2e8f0) !important;
+      color: #334155 !important;
+      border-color: #94a3b8 !important;
+    }
+    html.dark body.client-theme-neutral a.glo-cal-nav:hover {
+      background-color: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
     }
 
     html.dark body.client-theme article.bg-slate-50,

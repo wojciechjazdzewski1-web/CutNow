@@ -17,13 +17,13 @@
     <p class="text-sm text-slate-500 mt-1">Kliknij dzień, aby dodać, usunąć albo sprawdzić wolne godziny.</p>
   </div>
   <div class="flex flex-wrap gap-2">
-    <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=poprzedni_miesiac) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">← Poprzedni miesiąc</a>
-    <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug) }}" class="rounded-xl border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-800">Dzisiaj</a>
-    <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=nastepny_miesiac) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Następny miesiąc →</a>
+    <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=poprzedni_miesiac) }}" class="glo-cal-nav rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">← Poprzedni miesiąc</a>
+    <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug) }}" class="glo-cal-nav is-today rounded-xl border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-800">Dzisiaj</a>
+    <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=nastepny_miesiac) }}" class="glo-cal-nav rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Następny miesiąc →</a>
   </div>
 </div>
 
-<div class="rounded-2xl bg-white border border-slate-200 p-4 shadow-sm mb-6">
+<div class="glo-panel-calendar rounded-2xl bg-white border border-slate-200 p-4 shadow-sm mb-6">
   <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-slate-500 mb-2">
     <span>Pon</span>
     <span>Wt</span>
@@ -35,11 +35,11 @@
   </div>
   <div class="grid grid-cols-7 gap-1 sm:gap-2">
     {% for _ in range(puste_przed) %}
-      <div class="min-h-20 rounded-xl bg-slate-50/60"></div>
+      <div class="glo-cal-empty min-h-20 rounded-xl bg-slate-50/60"></div>
     {% endfor %}
     {% for d in dni_kalendarza %}
       <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=d.data) }}"
-        class="min-h-20 rounded-xl border p-2 text-left transition-all {% if d.aktywny %}border-brand-400 bg-brand-50 ring-2 ring-brand-200{% else %}border-slate-200 bg-white hover:border-brand-200 hover:bg-slate-50{% endif %}">
+        class="glo-cal-day min-h-20 rounded-xl border p-2 text-left transition-all {% if d.aktywny %}is-active border-brand-400 bg-brand-50 ring-2 ring-brand-200{% else %}border-slate-200 bg-white hover:border-brand-200 hover:bg-slate-50{% endif %}">
         <p class="text-sm font-bold text-slate-900">{{ d.numer }}</p>
         <p class="text-[11px] mt-1 {% if d.zamkniety %}text-red-600{% elif d.wolne %}text-emerald-700 font-semibold{% else %}text-slate-500{% endif %}">
           {% if d.zamkniety %}Zamk.{% elif d.wolne %}{{ d.wolne|length }} wolnych{% else %}—{% endif %}

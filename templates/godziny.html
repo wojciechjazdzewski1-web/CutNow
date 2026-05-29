@@ -13,7 +13,7 @@
 <form method="post" class="space-y-3">
   {% for klucz, nazwa in dni_tygodnia %}
     {% set dzien = dane.godziny_pracy[klucz] %}
-    <div class="rounded-2xl bg-white border border-slate-200 p-4 sm:p-5 shadow-sm">
+    <div class="glo-form-surface rounded-2xl bg-white border border-slate-200 p-4 sm:p-5 shadow-sm">
       <div class="flex flex-col sm:flex-row sm:items-center gap-4">
         <div class="sm:w-36 font-semibold text-slate-900">{{ nazwa }}</div>
 
@@ -35,12 +35,12 @@
     </div>
   {% endfor %}
 
-  <div class="rounded-2xl bg-brand-50 border border-brand-100 p-5 mt-6">
+  <div class="glo-accent-panel rounded-2xl bg-brand-50 border border-brand-100 p-5 mt-6">
     <h2 class="font-semibold text-slate-900 mb-3">Generowanie terminów w panelu</h2>
     <div>
       <label for="interwal_terminow" class="block text-sm font-medium text-slate-700 mb-2">Domyślny interwał przy „Wygeneruj terminy”</label>
       <select id="interwal_terminow" name="interwal_terminow"
-        class="rounded-xl border border-slate-300 px-4 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+        class="w-full max-w-xs rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 outline-none">
         <option value="15" {% if dane.interwal_terminow == 15 %}selected{% endif %}>15 minut</option>
         <option value="30" {% if (dane.interwal_terminow or 30) == 30 %}selected{% endif %}>30 minut</option>
         <option value="45" {% if dane.interwal_terminow == 45 %}selected{% endif %}>45 minut</option>
