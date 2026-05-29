@@ -62,7 +62,7 @@
                 </div>
               </form>
             </details>
-            <form method="post" action="{{ url_for('panel_rozliczenia', salon_slug=slug) }}" class="mt-4 grid sm:grid-cols-5 gap-3 rounded-xl bg-white/70 p-3 border border-white">
+            <form method="post" action="{{ url_for('panel_rozliczenia', salon_slug=slug) }}" class="glo-light-block mt-4 grid sm:grid-cols-5 gap-3 rounded-xl p-3 border">
               <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">Status</label>
                 <select name="abonament_status" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -96,7 +96,7 @@
     {% endif %}
   </section>
 
-  <aside class="client-panel-card rounded-2xl p-5 h-fit">
+  <aside class="client-panel-card glo-light-block rounded-2xl p-5 h-fit">
     <h2 class="font-semibold text-slate-900 mb-4">Dodaj nową firmę</h2>
     <form method="post" action="{{ url_for('panel_nowy_salon') }}" class="space-y-4">
       <div>
