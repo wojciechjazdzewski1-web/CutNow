@@ -132,11 +132,17 @@
     }
     html.dark body.app-theme-default #cookie-banner .text-slate-900 { color: var(--app-heading) !important; }
     html.dark body.app-theme-default #cookie-banner .text-slate-600 { color: var(--app-text) !important; }
-    html.dark body.client-theme .bg-white:not(form):not(.glo-light-block):not(.glo-form-surface):not(.glo-panel-calendar):not(.glo-accent-panel):not(.glo-cal-nav) {
+    html.dark body.client-theme .bg-white:not(form):not(.glo-light-block):not(.glo-form-surface):not(.glo-panel-calendar):not(.glo-accent-panel):not(.glo-cal-nav):not(.glo-cal-day):not(.glo-cal-empty) {
       background-color: var(--glo-surface) !important;
     }
-    html.dark body.client-theme .bg-slate-50:not(form *):not(.glo-light-block *):not(.glo-form-surface *):not(.glo-panel-calendar *):not(.glo-accent-panel *) {
+    html.dark body.client-theme .bg-slate-50:not(form *):not(.glo-light-block *):not(.glo-form-surface *):not(.glo-panel-calendar *):not(.glo-accent-panel *):not(.glo-cal-day):not(.glo-cal-empty) {
       background-color: var(--glo-surface-muted) !important;
+    }
+    html.dark body.client-theme :is(.glo-panel-calendar, .glo-form-surface, .glo-light-block, .glo-accent-panel, main form.rounded-2xl.bg-white, main .rounded-2xl.bg-white.border, main article.rounded-2xl.bg-white.border) .bg-white,
+    html.dark body.client-theme a.glo-cal-day,
+    html.dark body.client-theme .glo-cal-empty,
+    html.dark body.client-theme a.glo-cal-nav:not(.is-today) {
+      background-color: #fffbfc !important;
     }
     html.dark body.client-theme .border-slate-200,
     html.dark body.client-theme .border-slate-100 { border-color: var(--glo-border-soft) !important; }
@@ -186,25 +192,31 @@
       color: #334155 !important;
       color-scheme: light;
     }
-    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border, body.client-theme main .rounded-3xl.bg-white.border, body.client-theme main article.rounded-2xl.bg-white.border) .text-slate-900,
-    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) h1,
-    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) h2,
-    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) h3 {
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border, body.client-theme main .rounded-3xl.bg-white.border, body.client-theme main article.rounded-2xl.bg-white.border) .text-slate-900,
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) h1,
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) h2,
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) h3 {
       color: #1e293b !important;
     }
-    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border, body.client-theme main .rounded-3xl.bg-white.border, body.client-theme main article.rounded-2xl.bg-white.border) .text-slate-800,
-    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .text-slate-700,
-    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .text-slate-600,
-    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .text-slate-500,
-    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) label {
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border, body.client-theme main .rounded-3xl.bg-white.border, body.client-theme main article.rounded-2xl.bg-white.border) .text-slate-800,
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .text-slate-700,
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .text-slate-600,
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .text-slate-500,
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) label,
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) p {
       color: #475569 !important;
     }
-    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .bg-slate-50 {
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .text-slate-500 {
+      color: #64748b !important;
+    }
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .bg-slate-50,
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar) .bg-brand-50 {
       background: var(--glo-form-surface-nested-bg, linear-gradient(165deg, #f1f5f9 0%, #f8fafc 100%)) !important;
       border-color: #e2e8f0 !important;
     }
-    :is(.glo-light-block, .glo-form-surface, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .bg-white {
-      background-color: #ffffff !important;
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .bg-white,
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar) .glo-cal-day {
+      background-color: #fffbfc !important;
     }
     :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),
     :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) select,
@@ -304,38 +316,51 @@
       background: linear-gradient(0deg, #fce7f3, #fce7f3) !important;
       color: #831843 !important;
     }
-    html.dark body.client-theme .glo-panel-calendar .glo-cal-day {
-      background-color: #ffffff !important;
-      border-color: #e2e8f0 !important;
+    html.dark body.client-theme .glo-panel-calendar a.glo-cal-day,
+    html.dark body.client-theme .glo-panel-calendar a.glo-cal-day.bg-white {
+      background-color: #fffbfc !important;
+      border-color: #f3e8ee !important;
       color: #334155 !important;
     }
-    html.dark body.client-theme .glo-panel-calendar .glo-cal-day:hover {
-      background-color: #fff7fb !important;
+    html.dark body.client-theme .glo-panel-calendar a.glo-cal-day:hover {
+      background-color: #fff1f5 !important;
       border-color: #f9a8d4 !important;
     }
-    html.dark body.client-theme .glo-panel-calendar .glo-cal-day.is-active {
-      background: linear-gradient(165deg, #fff1f5 0%, #fce7f3 100%) !important;
+    html.dark body.client-theme .glo-panel-calendar a.glo-cal-day.is-active {
+      background: linear-gradient(165deg, #fff5f8 0%, #fce7f3 100%) !important;
       border-color: #f472b6 !important;
-      box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.35);
+      box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.3);
     }
-    html.dark body.client-theme .glo-panel-calendar .glo-cal-day .text-slate-900 {
+    html.dark body.client-theme .glo-panel-calendar a.glo-cal-day .text-slate-900,
+    html.dark body.client-theme .glo-panel-calendar > .grid span {
       color: #1e293b !important;
     }
-    html.dark body.client-theme .glo-panel-calendar .glo-cal-day .text-slate-500,
-    html.dark body.client-theme .glo-panel-calendar .glo-cal-day .text-brand-700 {
+    html.dark body.client-theme .glo-panel-calendar a.glo-cal-day .text-slate-500 {
       color: #64748b !important;
     }
-    html.dark body.client-theme .glo-panel-calendar .glo-cal-day.is-active .text-brand-700,
-    html.dark body.client-theme .glo-panel-calendar .glo-cal-day.is-active .text-emerald-700 {
+    html.dark body.client-theme .glo-panel-calendar a.glo-cal-day .text-brand-700 {
+      color: #9d174d !important;
+    }
+    html.dark body.client-theme .glo-panel-calendar a.glo-cal-day .text-emerald-700 {
+      color: #047857 !important;
+    }
+    html.dark body.client-theme .glo-panel-calendar a.glo-cal-day .text-red-600 {
+      color: #dc2626 !important;
+    }
+    html.dark body.client-theme .glo-panel-calendar a.glo-cal-day .text-amber-700 {
+      color: #b45309 !important;
+    }
+    html.dark body.client-theme .glo-panel-calendar a.glo-cal-day.is-active .text-brand-700,
+    html.dark body.client-theme .glo-panel-calendar a.glo-cal-day.is-active .text-emerald-700 {
       color: #be185d !important;
     }
     html.dark body.client-theme .glo-panel-calendar .glo-cal-empty {
-      background-color: #f8fafc !important;
+      background-color: #fff5f8 !important;
     }
     html.dark body.client-theme a.glo-cal-nav {
-      background-color: #ffffff !important;
+      background-color: #fffbfc !important;
       color: #475569 !important;
-      border-color: #e2e8f0 !important;
+      border-color: #f3e8ee !important;
     }
     html.dark body.client-theme a.glo-cal-nav.is-today {
       background: linear-gradient(165deg, #fff1f5, #fce7f3) !important;
@@ -602,16 +627,16 @@
       --glo-soft-panel-bg: linear-gradient(135deg, #3b1028 0%, #5c2444 100%);
       --glo-soft-panel-text: #ffffff;
       --glo-soft-panel-muted: #fce7f3;
-      --glo-form-surface-solid: #faf6f8;
+      --glo-form-surface-solid: #fff8fa;
       --glo-form-surface-bg: linear-gradient(
         165deg,
-        color-mix(in srgb, var(--glo-page-mid) 14%, #f3e8ee) 0%,
-        #faf6f8 22%,
+        color-mix(in srgb, var(--glo-page-mid) 8%, #fff0f5) 0%,
+        #fff8fa 20%,
         #ffffff 50%,
-        #faf6f8 78%,
-        color-mix(in srgb, var(--glo-page-accent) 12%, #f0e4ea) 100%
+        #fff8fa 80%,
+        color-mix(in srgb, var(--glo-page-accent) 6%, #fff0f5) 100%
       );
-      --glo-form-surface-nested-bg: linear-gradient(165deg, #f3e8ee 0%, #faf6f8 100%);
+      --glo-form-surface-nested-bg: linear-gradient(165deg, #fff0f5 0%, #fff8fa 100%);
       --glo-form-surface-border: color-mix(in srgb, var(--glo-border-soft) 50%, #e8d4de);
       --glo-form-surface-shadow: 0 4px 22px -8px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.5);
       {% endif %}
@@ -747,8 +772,12 @@
     body.client-theme-neutral [class*="text-brand-"] {
       color: var(--glo-slot-text) !important;
     }
-    body.client-theme-neutral [class*="bg-brand-"]:not(.bg-brand-600):not(.dark\:bg-brand-500) {
+    body.client-theme-neutral [class*="bg-brand-"]:not(.bg-brand-600):not(.dark\:bg-brand-500):not(:is(.glo-panel-calendar, .glo-form-surface, .glo-light-block, .glo-accent-panel) *):not(.glo-cal-day):not(.glo-cal-nav) {
       background-color: var(--glo-surface-muted) !important;
+    }
+    html.dark body.client-theme :is(.glo-panel-calendar, .glo-form-surface, .glo-light-block, .glo-accent-panel) [class*="bg-brand-50"],
+    html.dark body.client-theme :is(.glo-panel-calendar, .glo-form-surface, .glo-light-block, .glo-accent-panel) [class*="bg-brand-100"] {
+      background-color: #fff1f5 !important;
     }
     body.client-theme-neutral .bg-brand-600,
     body.client-theme-neutral .dark\:bg-brand-500,
