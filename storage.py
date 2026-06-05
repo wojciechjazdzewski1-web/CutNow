@@ -736,12 +736,23 @@ def _filtr_daty(kolumna: str, data_od: str | None, data_do: str | None) -> tuple
 
 
 def _sanityzuj_salon_payload(salon: dict) -> None:
+    for klucz in (
+        "zdjecia_prac",
+        "pracownicy",
+        "uslugi",
+        "blokady",
+        "rezerwacje",
+        "lista_rezerwowa",
+        "opinie",
+        "klienci",
+        "pytania_wywiadu",
+    ):
+        if not isinstance(salon.get(klucz), list):
+            salon[klucz] = []
     if not isinstance(salon.get("wolne_terminy"), dict):
         salon["wolne_terminy"] = {}
-    if not isinstance(salon.get("rezerwacje"), list):
-        salon["rezerwacje"] = []
-    if not isinstance(salon.get("blokady"), list):
-        salon["blokady"] = []
+    if not isinstance(salon.get("godziny_pracy"), dict):
+        salon["godziny_pracy"] = {}
 
 
 def _wczytaj_szczegoly_salonu_z_tabel(

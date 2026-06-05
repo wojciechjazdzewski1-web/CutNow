@@ -349,9 +349,35 @@ def nowy_salon(nazwa: str = "Mój Salon", haslo: str = "") -> dict:
     return salon
 
 
+def napraw_kolekcje_salonu(salon: dict) -> None:
+    """PostgreSQL/JSONB potrafi trzymać null zamiast [] lub {} — setdefault tego nie naprawia."""
+    for klucz in (
+        "zdjecia_prac",
+        "pracownicy",
+        "uslugi",
+        "blokady",
+        "rezerwacje",
+        "lista_rezerwowa",
+        "opinie",
+        "klienci",
+        "pytania_wywiadu",
+    ):
+        if not isinstance(salon.get(klucz), list):
+            salon[klucz] = []
+    if not isinstance(salon.get("wolne_terminy"), dict):
+        salon["wolne_terminy"] = {}
+    if not isinstance(salon.get("godziny_pracy"), dict):
+        salon["godziny_pracy"] = copy.deepcopy(DEFAULT_SALON["godziny_pracy"])
+    else:
+        for key, _ in DNI_TYGODNIA:
+            if not isinstance(salon["godziny_pracy"].get(key), dict):
+                salon["godziny_pracy"][key] = copy.deepcopy(DEFAULT_SALON["godziny_pracy"][key])
+
+
 def migracja_danych(dane: dict) -> dict:
     if "salony" in dane:
         for slug, salon in dane["salony"].items():
+            napraw_kolekcje_salonu(salon)
             salon.setdefault("slug", slug)
             salon.setdefault("branza", "beauty")
             salon.setdefault("haslo_panelu", "")
@@ -381,16 +407,6 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("przypomnienia_email_wlaczone", True)
             salon.setdefault("przypomnienie_godzin_przed", 24)
             salon.setdefault("godziny_pracy", copy.deepcopy(DEFAULT_SALON["godziny_pracy"]))
-            if not isinstance(salon.get("wolne_terminy"), dict):
-                salon["wolne_terminy"] = {}
-            if not isinstance(salon.get("blokady"), list):
-                salon["blokady"] = []
-            if not isinstance(salon.get("rezerwacje"), list):
-                salon["rezerwacje"] = []
-            salon.setdefault("lista_rezerwowa", [])
-            salon.setdefault("opinie", [])
-            salon.setdefault("klienci", [])
-            salon.setdefault("pytania_wywiadu", [])
             salon.setdefault("tresc_wywiadu_zdrowotnego", "")
             salon.setdefault("wywiad_wlaczony", False)
             salon.setdefault("wywiad_przy_rezerwacji", False)
@@ -1068,7 +1084,7 @@ def klucz_dnia_tygodnia(data_iso: str) -> str:
 
 
 def aktywni_pracownicy(salon: dict) -> list[str]:
-    return [p.strip() for p in salon.get("pracownicy", []) if isinstance(p, str) and p.strip()]
+    return [p.strip() for p in (salon.get("pracownicy") or []) if isinstance(p, str) and p.strip()]
 
 
 def aktywne_rezerwacje_dnia(salon: dict, data_iso: str) -> list[dict]:
@@ -1139,7 +1155,9 @@ def automatyczne_terminy_wlaczone(salon: dict) -> bool:
 
 
 def harmonogram_dnia(salon: dict, data_iso: str) -> dict:
-    return salon.get("godziny_pracy", {}).get(klucz_dnia_tygodnia(data_iso), {})
+    godziny = salon.get("godziny_pracy") or {}
+    dzien = godziny.get(klucz_dnia_tygodnia(data_iso))
+    return dzien if isinstance(dzien, dict) else {}
 
 
 def sloty_z_harmonogramu(salon: dict, data_iso: str) -> list[str]:
@@ -1523,7 +1541,7 @@ def parsuj_pytania_wywiadu(wartosc: str) -> list[dict]:
 
 def pytania_wywiadu_salonu(salon: dict) -> list[dict]:
     wynik = []
-    for wpis in salon.get("pytania_wywiadu", []):
+    for wpis in salon.get("pytania_wywiadu") or []:
         if not isinstance(wpis, dict):
             continue
         tresc = str(wpis.get("tresc", "")).strip()
@@ -1628,7 +1646,8 @@ def znajdz_klienta_po_telefonie(salon: dict, telefon: str) -> dict | None:
 
 def synchronizuj_kartoteke_salonu(salon: dict) -> None:
     """Powiąż istniejące rezerwacje z kartoteką (telefon = klucz)."""
-    salon.setdefault("klienci", [])
+    if not isinstance(salon.get("klienci"), list):
+        salon["klienci"] = []
     mapa = {k.get("telefon"): k for k in salon["klienci"] if k.get("telefon")}
     for rezerwacja in salon.get("rezerwacje", []):
         cyfry = normalizuj_telefon(rezerwacja.get("telefon", ""))
@@ -3265,7 +3284,7 @@ def wolne_terminy(salon_slug: str):
 
     if request.method == "POST":
         akcja = request.form.get("akcja")
-        godzina = request.form.get("godzina", "").strip()
+        godzina_formularza = request.form.get("godzina", "").strip()
 
         def zmien_wolne_terminy_atomowo(salon_atomowy: dict | None):
             if not salon_atomowy:
@@ -3326,23 +3345,24 @@ def wolne_terminy(salon_slug: str):
                 return f"Wygenerowano {dodane} nowych terminów.", "success", data_od
 
             if akcja == "dodaj":
-                godzina = normalizuj_godzine(godzina)
-                blad_dodania = powod_odbioru_wolnego_terminu(salon_atomowy, wybrana_data, godzina)
+                slot = normalizuj_godzine(godzina_formularza)
+                blad_dodania = powod_odbioru_wolnego_terminu(salon_atomowy, wybrana_data, slot)
                 if blad_dodania:
                     return blad_dodania, "error", wybrana_data
                 terminy = normalizuj_wolne_terminy_dnia(salon_atomowy, wybrana_data)
-                terminy.append(godzina)
+                terminy.append(slot)
                 terminy.sort()
                 salon_atomowy["wolne_terminy"][wybrana_data] = terminy
-                return f"Dodano wolny termin: {godzina}.", "success", wybrana_data
+                return f"Dodano wolny termin: {slot}.", "success", wybrana_data
 
             if akcja == "usun":
+                slot = normalizuj_godzine(godzina_formularza) or godzina_formularza
                 terminy = salon_atomowy.get("wolne_terminy", {}).get(wybrana_data, [])
-                if godzina in terminy:
-                    terminy.remove(godzina)
+                if slot in terminy:
+                    terminy.remove(slot)
                     if not terminy:
                         salon_atomowy["wolne_terminy"].pop(wybrana_data, None)
-                    return f"Usunięto termin: {godzina}.", "success", wybrana_data
+                    return f"Usunięto termin: {slot}.", "success", wybrana_data
                 return "Nie znaleziono takiego wolnego terminu.", "error", wybrana_data
 
             if akcja == "blokuj":
