@@ -436,6 +436,7 @@ def _aktualizuj_salon_postgres(salon_slug: str, mutator):
         if row:
             payload = row[0]
             salon = payload if isinstance(payload, dict) else json.loads(payload)
+            _sanityzuj_salon_payload(salon)
             _wczytaj_szczegoly_salonu_z_tabel(conn, salon_slug, salon)
         else:
             legacy = conn.execute("SELECT payload FROM glovaro_state WHERE id = 1 FOR UPDATE").fetchone()
@@ -734,6 +735,15 @@ def _filtr_daty(kolumna: str, data_od: str | None, data_do: str | None) -> tuple
     return (" AND " + " AND ".join(warunki) if warunki else ""), parametry
 
 
+def _sanityzuj_salon_payload(salon: dict) -> None:
+    if not isinstance(salon.get("wolne_terminy"), dict):
+        salon["wolne_terminy"] = {}
+    if not isinstance(salon.get("rezerwacje"), list):
+        salon["rezerwacje"] = []
+    if not isinstance(salon.get("blokady"), list):
+        salon["blokady"] = []
+
+
 def _wczytaj_szczegoly_salonu_z_tabel(
     conn,
     salon_slug: str,
@@ -746,6 +756,7 @@ def _wczytaj_szczegoly_salonu_z_tabel(
     include_free_slots: bool = True,
     include_waitlist: bool = True,
 ) -> None:
+    _sanityzuj_salon_payload(salon)
     filtr, parametry = _filtr_daty("data_iso", data_od, data_do)
     if include_reservations:
         rows = conn.execute(

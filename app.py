@@ -381,9 +381,12 @@ def migracja_danych(dane: dict) -> dict:
             salon.setdefault("przypomnienia_email_wlaczone", True)
             salon.setdefault("przypomnienie_godzin_przed", 24)
             salon.setdefault("godziny_pracy", copy.deepcopy(DEFAULT_SALON["godziny_pracy"]))
-            salon.setdefault("wolne_terminy", {})
-            salon.setdefault("blokady", [])
-            salon.setdefault("rezerwacje", [])
+            if not isinstance(salon.get("wolne_terminy"), dict):
+                salon["wolne_terminy"] = {}
+            if not isinstance(salon.get("blokady"), list):
+                salon["blokady"] = []
+            if not isinstance(salon.get("rezerwacje"), list):
+                salon["rezerwacje"] = []
             salon.setdefault("lista_rezerwowa", [])
             salon.setdefault("opinie", [])
             salon.setdefault("klienci", [])
@@ -450,11 +453,14 @@ def usun_rezerwacje_z_salonu(salon: dict, rezerwacja_id: str) -> bool:
 
 
 def oczysc_anulowane_rezerwacje_salonu(salon: dict) -> bool:
-    przed = len(salon.get("rezerwacje", []))
+    rezerwacje = salon.get("rezerwacje") or []
+    if not isinstance(rezerwacje, list):
+        rezerwacje = []
+    przed = len(rezerwacje)
     salon["rezerwacje"] = [
         r
-        for r in salon.get("rezerwacje", [])
-        if r.get("status") not in {"anulowana", "odrzucona"}
+        for r in rezerwacje
+        if isinstance(r, dict) and r.get("status") not in {"anulowana", "odrzucona"}
     ]
     return len(salon["rezerwacje"]) < przed
 
@@ -1068,8 +1074,9 @@ def aktywni_pracownicy(salon: dict) -> list[str]:
 def aktywne_rezerwacje_dnia(salon: dict, data_iso: str) -> list[dict]:
     return [
         r
-        for r in salon.get("rezerwacje", [])
-        if not rezerwacja_w_archiwum(r)
+        for r in (salon.get("rezerwacje") or [])
+        if isinstance(r, dict)
+        and not rezerwacja_w_archiwum(r)
         and r.get("data") == data_iso
         and r.get("status", "potwierdzona") not in {"anulowana", "odrzucona"}
     ]
@@ -1179,8 +1186,9 @@ def zajete_godziny(salon: dict, data_iso: str) -> set[str]:
 def blokady_dnia(salon: dict, data_iso: str) -> list[dict]:
     return [
         blokada
-        for blokada in salon.get("blokady", [])
-        if blokada.get("data_od", "") <= data_iso <= blokada.get("data_do", "")
+        for blokada in (salon.get("blokady") or [])
+        if isinstance(blokada, dict)
+        and blokada.get("data_od", "") <= data_iso <= blokada.get("data_do", "")
     ]
 
 
@@ -1199,7 +1207,14 @@ def godzina_zablokowana(salon: dict, data_iso: str, godzina: str, czas_min: int 
 
 
 def normalizuj_wolne_terminy_dnia(salon: dict, data_iso: str) -> list[str]:
-    terminy = salon.setdefault("wolne_terminy", {}).setdefault(data_iso, [])
+    wolne = salon.get("wolne_terminy")
+    if not isinstance(wolne, dict):
+        wolne = {}
+        salon["wolne_terminy"] = wolne
+    terminy = wolne.setdefault(data_iso, [])
+    if not isinstance(terminy, list):
+        terminy = []
+        wolne[data_iso] = terminy
     znormalizowane: list[str] = []
     widziane: set[str] = set()
     for godzina in terminy:
@@ -3294,16 +3309,18 @@ def wolne_terminy(salon_slug: str):
                         koniec_min = czas_na_minuty(dzien_zamkniecie)
                     if start_min >= koniec_min:
                         continue
+                    if not isinstance(salon_atomowy.get("wolne_terminy"), dict):
+                        salon_atomowy["wolne_terminy"] = {}
                     if nadpisz:
                         salon_atomowy["wolne_terminy"][data_key] = []
-                    salon_atomowy.setdefault("wolne_terminy", {}).setdefault(data_key, [])
                     for minuta in range(start_min, koniec_min, krok):
                         slot = minuty_na_czas(minuta)
                         if not powod_odbioru_wolnego_terminu(salon_atomowy, data_key, slot):
-                            salon_atomowy["wolne_terminy"][data_key].append(slot)
+                            terminy_dnia = normalizuj_wolne_terminy_dnia(salon_atomowy, data_key)
+                            terminy_dnia.append(slot)
                             dodane += 1
-                    salon_atomowy["wolne_terminy"][data_key].sort()
-                    if not salon_atomowy["wolne_terminy"][data_key]:
+                    terminy_dnia = normalizuj_wolne_terminy_dnia(salon_atomowy, data_key)
+                    if not terminy_dnia:
                         salon_atomowy["wolne_terminy"].pop(data_key, None)
 
                 return f"Wygenerowano {dodane} nowych terminów.", "success", data_od
