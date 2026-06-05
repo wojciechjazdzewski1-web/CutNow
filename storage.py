@@ -757,11 +757,10 @@ def _wczytaj_szczegoly_salonu_z_tabel(
             """,
             [salon_slug, *parametry],
         ).fetchall()
-        if rows or data_od or data_do:
-            salon["rezerwacje"] = [
-                payload if isinstance(payload, dict) else json.loads(payload)
-                for (payload,) in rows
-            ]
+        salon["rezerwacje"] = [
+            payload if isinstance(payload, dict) else json.loads(payload)
+            for (payload,) in rows
+        ]
 
     if include_free_slots:
         rows = conn.execute(
@@ -773,11 +772,10 @@ def _wczytaj_szczegoly_salonu_z_tabel(
             """,
             [salon_slug, *parametry],
         ).fetchall()
-        if rows or data_od or data_do:
-            wolne: dict[str, list[str]] = {}
-            for data_iso, godzina in rows:
-                wolne.setdefault(data_iso, []).append(godzina)
-            salon["wolne_terminy"] = wolne
+        wolne: dict[str, list[str]] = {}
+        for data_iso, godzina in rows:
+            wolne.setdefault(data_iso, []).append(godzina)
+        salon["wolne_terminy"] = wolne
 
     if include_clients:
         rows = conn.execute(

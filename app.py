@@ -1006,6 +1006,13 @@ def waliduj_godzine(wartosc: str) -> bool:
         return False
 
 
+def normalizuj_godzine(wartosc: str) -> str:
+    if not waliduj_godzine((wartosc or "").strip()):
+        return ""
+    godzina, minuta = wartosc.strip().split(":")
+    return f"{int(godzina):02d}:{int(minuta):02d}"
+
+
 def waliduj_date_iso(wartosc: str) -> bool:
     try:
         datetime.strptime(wartosc, "%Y-%m-%d")
@@ -1189,6 +1196,37 @@ def godzina_zablokowana(salon: dict, data_iso: str, godzina: str, czas_min: int 
         if zakresy_nachodza(minuta, koniec_slotu, czas_na_minuty(start), czas_na_minuty(koniec)):
             return True
     return False
+
+
+def normalizuj_wolne_terminy_dnia(salon: dict, data_iso: str) -> list[str]:
+    terminy = salon.setdefault("wolne_terminy", {}).setdefault(data_iso, [])
+    znormalizowane: list[str] = []
+    widziane: set[str] = set()
+    for godzina in terminy:
+        slot = normalizuj_godzine(str(godzina))
+        if slot and slot not in widziane:
+            widziane.add(slot)
+            znormalizowane.append(slot)
+    znormalizowane.sort()
+    if znormalizowane:
+        salon["wolne_terminy"][data_iso] = znormalizowane
+    else:
+        salon["wolne_terminy"].pop(data_iso, None)
+    return znormalizowane
+
+
+def powod_odbioru_wolnego_terminu(salon: dict, data_iso: str, godzina: str) -> str | None:
+    godzina = normalizuj_godzine(godzina)
+    if not godzina:
+        return "Podaj godzinę w formacie HH:MM (np. 10:30)."
+    terminy = normalizuj_wolne_terminy_dnia(salon, data_iso)
+    if godzina in terminy:
+        return "Ten termin jest już na liście wolnych godzin."
+    if godzina_zablokowana(salon, data_iso, godzina):
+        return "Ten termin jest zablokowany — usuń lub zmień blokadę w tym widoku."
+    if slot_w_pelni_zajety(salon, data_iso, godzina):
+        return "Ten termin jest już zajęty przez wizytę w salonie — sprawdź terminarz."
+    return None
 
 
 def dostepne_terminy(salon: dict, data_iso: str) -> list[str]:
@@ -3259,15 +3297,9 @@ def wolne_terminy(salon_slug: str):
                     if nadpisz:
                         salon_atomowy["wolne_terminy"][data_key] = []
                     salon_atomowy.setdefault("wolne_terminy", {}).setdefault(data_key, [])
-                    zajete = zajete_godziny(salon_atomowy, data_key)
                     for minuta in range(start_min, koniec_min, krok):
                         slot = minuty_na_czas(minuta)
-                        if (
-                            slot not in salon_atomowy["wolne_terminy"][data_key]
-                            and slot not in zajete
-                            and not slot_w_pelni_zajety(salon_atomowy, data_key, slot)
-                            and not godzina_zablokowana(salon_atomowy, data_key, slot)
-                        ):
+                        if not powod_odbioru_wolnego_terminu(salon_atomowy, data_key, slot):
                             salon_atomowy["wolne_terminy"][data_key].append(slot)
                             dodane += 1
                     salon_atomowy["wolne_terminy"][data_key].sort()
@@ -3277,19 +3309,14 @@ def wolne_terminy(salon_slug: str):
                 return f"Wygenerowano {dodane} nowych terminów.", "success", data_od
 
             if akcja == "dodaj":
-                salon_atomowy.setdefault("wolne_terminy", {}).setdefault(wybrana_data, [])
-                terminy = salon_atomowy["wolne_terminy"][wybrana_data]
-                if not waliduj_godzine(godzina):
-                    return "Podaj godzinę w formacie HH:MM (np. 10:30).", "error", wybrana_data
-                if (
-                    godzina in terminy
-                    or godzina in zajete_godziny(salon_atomowy, wybrana_data)
-                    or slot_w_pelni_zajety(salon_atomowy, wybrana_data, godzina)
-                    or godzina_zablokowana(salon_atomowy, wybrana_data, godzina)
-                ):
-                    return "Ten termin już istnieje, jest zajęty albo zablokowany.", "error", wybrana_data
+                godzina = normalizuj_godzine(godzina)
+                blad_dodania = powod_odbioru_wolnego_terminu(salon_atomowy, wybrana_data, godzina)
+                if blad_dodania:
+                    return blad_dodania, "error", wybrana_data
+                terminy = normalizuj_wolne_terminy_dnia(salon_atomowy, wybrana_data)
                 terminy.append(godzina)
                 terminy.sort()
+                salon_atomowy["wolne_terminy"][wybrana_data] = terminy
                 return f"Dodano wolny termin: {godzina}.", "success", wybrana_data
 
             if akcja == "usun":
