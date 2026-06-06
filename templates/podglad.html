@@ -15,8 +15,8 @@
     <div class="absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-brand-300/30 blur-3xl"></div>
     <div class="relative text-center">
       {% if dane.logo_url %}
-        <div class="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl border border-white/60 bg-white/80 p-2 shadow-lg dark:border-white/20 dark:bg-white/10">
-          <img src="{{ dane.logo_url }}" alt="Logo {{ dane.nazwa_salonu }}" class="max-h-full max-w-full object-contain">
+        <div class="salon-logo-frame salon-logo-frame-lg mx-auto mb-4">
+          <img src="{{ dane.logo_url|logo_src(salon_slug) }}" alt="Logo {{ dane.nazwa_salonu }}" class="salon-logo-img" referrerpolicy="no-referrer" decoding="async">
         </div>
       {% endif %}
       <p class="text-sm client-hero-sub font-medium mb-2">Rezerwacja online</p>

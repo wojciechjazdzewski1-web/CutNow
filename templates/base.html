@@ -78,6 +78,49 @@
     body.app-theme-default .glovaro-nav-logo { color: #e11d74; }
     html.dark body.app-theme-default .glovaro-nav-logo { color: #f472b6; }
 
+    .salon-logo-frame {
+      overflow: hidden;
+      display: block;
+      flex-shrink: 0;
+      background: #fff;
+    }
+    .salon-logo-frame-sm {
+      width: 3.5rem;
+      height: 3.5rem;
+      border-radius: 0.75rem;
+      border: 1px solid rgb(252 231 243);
+    }
+    .salon-logo-frame-md {
+      width: 4rem;
+      height: 4rem;
+      border-radius: 0.75rem;
+      border: 1px solid rgb(226 232 240);
+    }
+    .salon-logo-frame-lg {
+      width: 5.5rem;
+      height: 5.5rem;
+      border-radius: 1rem;
+      border: 1px solid rgb(255 255 255 / 0.6);
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }
+    html.dark .salon-logo-frame-lg {
+      border-color: rgb(255 255 255 / 0.2);
+      background: rgb(255 255 255 / 0.1);
+    }
+    @media (min-width: 640px) {
+      .salon-logo-frame-lg {
+        width: 6.5rem;
+        height: 6.5rem;
+      }
+    }
+    .salon-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display: block;
+    }
+
     body.app-theme-default {
       --app-bg: #f8fafc;
       --app-surface: #ffffff;

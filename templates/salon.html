@@ -45,7 +45,9 @@
       </div>
       {% if dane.logo_url %}
         <div class="flex items-center gap-4 rounded-lg border border-slate-200 bg-white p-3">
-          <img src="{{ dane.logo_url }}" alt="Logo {{ dane.nazwa_salonu }}" class="h-16 w-16 rounded-xl object-contain border border-slate-100 bg-white">
+          <div class="salon-logo-frame salon-logo-frame-md">
+            <img src="{{ dane.logo_url|logo_src(salon_slug) }}" alt="Logo {{ dane.nazwa_salonu }}" class="salon-logo-img" referrerpolicy="no-referrer" decoding="async">
+          </div>
           <label class="inline-flex items-center gap-2 text-sm text-red-700">
             <input type="checkbox" name="usun_logo" class="rounded border-slate-300 text-red-600">
             Usuń logo przy zapisie

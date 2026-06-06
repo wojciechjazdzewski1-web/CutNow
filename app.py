@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import calendar
 import base64
+import binascii
 import hashlib
 import hmac
 import io
@@ -22,7 +23,7 @@ from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode, urlparse
 
-from flask import Flask, Response, flash, jsonify, redirect, render_template, request, send_from_directory, session, url_for
+from flask import Flask, Response, abort, flash, jsonify, redirect, render_template, request, send_from_directory, session, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 try:
@@ -81,7 +82,9 @@ KATALOG_CACHE_TTL_SEK = 60
 WOLNY_REQUEST_LOG_SEK = 0.75
 MAKS_UPLOAD_ZDJECIA_BAJTOW = 2_500_000
 MAKS_ZDJECIE_PO_KOMPRESJI_BAJTOW = 650_000
+MAKS_LOGO_PO_KOMPRESJI_BAJTOW = 220_000
 MAKS_WYMIAR_ZDJECIA = 1600
+MAKS_WYMIAR_LOGO = 512
 _ostatnie_czyszczenie_rezerwacji = 0.0
 _katalog_cache: dict[tuple[str, str], tuple[float, list[dict]]] = {}
 
@@ -1905,7 +1908,63 @@ def zoptymalizuj_upload_zdjecia(dane: bytes, mimetype: str) -> tuple[bytes, str]
                 return zoptymalizowane, "image/jpeg"
     except Exception as exc:
         app.logger.warning("Nie udało się zoptymalizować zdjęcia: %s", exc)
-    return b"", mimetype
+    return dane, mimetype
+
+
+def zoptymalizuj_logo(dane: bytes, mimetype: str) -> tuple[bytes, str]:
+    if Image is None or ImageOps is None:
+        return dane, mimetype
+    try:
+        with Image.open(io.BytesIO(dane)) as obraz:
+            if mimetype == "image/gif":
+                obraz = ImageOps.exif_transpose(obraz.convert("RGBA"))
+                obraz.thumbnail((MAKS_WYMIAR_LOGO, MAKS_WYMIAR_LOGO))
+                bufor = io.BytesIO()
+                obraz.save(bufor, format="WEBP", quality=85, method=6)
+                return bufor.getvalue(), "image/webp"
+            obraz = ImageOps.exif_transpose(obraz)
+            if obraz.mode == "P":
+                obraz = obraz.convert("RGBA")
+            obraz.thumbnail((MAKS_WYMIAR_LOGO, MAKS_WYMIAR_LOGO))
+            ma_alpha = obraz.mode in {"RGBA", "LA"} and (
+                obraz.mode != "RGBA" or obraz.getchannel("A").getextrema()[1] < 255
+            )
+            bufor = io.BytesIO()
+            if ma_alpha:
+                obraz.save(bufor, format="WEBP", quality=85, method=6)
+                return bufor.getvalue(), "image/webp"
+            obraz = obraz.convert("RGB")
+            obraz.save(bufor, format="JPEG", quality=86, optimize=True, progressive=True)
+            return bufor.getvalue(), "image/jpeg"
+    except Exception as exc:
+        app.logger.warning("Nie udało się zoptymalizować logo: %s", exc)
+    return dane, mimetype
+
+
+def _skrot_logo(logo: str) -> str:
+    return hashlib.sha256(logo.encode("utf-8")).hexdigest()[:12]
+
+
+def url_logo_salonu(logo_url: str | None, salon_slug: str) -> str:
+    logo = (logo_url or "").strip()
+    if not logo:
+        return ""
+    if logo.startswith("data:image/"):
+        return url_for("salon_logo_media", salon_slug=salon_slug, v=_skrot_logo(logo))
+    if logo.startswith("//"):
+        return f"https:{logo}"
+    return normalizuj_url_https(logo)
+
+
+def _dekoduj_data_url_obrazu(data_url: str) -> tuple[bytes, str] | None:
+    dopasowanie = re.match(r"^data:(image/[^;]+);base64,(.+)$", data_url.strip(), re.DOTALL)
+    if not dopasowanie:
+        return None
+    mimetype, zakodowane = dopasowanie.groups()
+    try:
+        return base64.b64decode(zakodowane, validate=True), mimetype
+    except (ValueError, binascii.Error):
+        return None
 
 
 def upload_ma_poprawna_sygnature(dane: bytes, mimetype: str) -> bool:
@@ -1920,8 +1979,12 @@ def upload_ma_poprawna_sygnature(dane: bytes, mimetype: str) -> bool:
     return False
 
 
-def parsuj_upload_zdjec(pliki) -> list[str]:
-    """Zapisuje małe zdjęcia jako data URL w JSON, bez osobnego hostingu plików."""
+def parsuj_upload_obrazow(
+    pliki,
+    optymalizuj,
+    *,
+    maks_po_kompresji: int,
+) -> list[str]:
     zdjecia = []
     dozwolone_typy = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 
@@ -1935,12 +1998,29 @@ def parsuj_upload_zdjec(pliki) -> list[str]:
             continue
         if not upload_ma_poprawna_sygnature(dane, plik.mimetype):
             continue
-        dane, mimetype = zoptymalizuj_upload_zdjecia(dane, plik.mimetype)
-        if not dane or len(dane) > MAKS_ZDJECIE_PO_KOMPRESJI_BAJTOW:
+        dane, mimetype = optymalizuj(dane, plik.mimetype)
+        if not dane or len(dane) > maks_po_kompresji:
             continue
         zakodowane = base64.b64encode(dane).decode("ascii")
         zdjecia.append(f"data:{mimetype};base64,{zakodowane}")
     return zdjecia
+
+
+def parsuj_upload_logo(plik) -> list[str]:
+    return parsuj_upload_obrazow(
+        [plik],
+        zoptymalizuj_logo,
+        maks_po_kompresji=MAKS_LOGO_PO_KOMPRESJI_BAJTOW,
+    )
+
+
+def parsuj_upload_zdjec(pliki) -> list[str]:
+    """Zapisuje małe zdjęcia jako data URL w JSON, bez osobnego hostingu plików."""
+    return parsuj_upload_obrazow(
+        pliki,
+        zoptymalizuj_upload_zdjecia,
+        maks_po_kompresji=MAKS_ZDJECIE_PO_KOMPRESJI_BAJTOW,
+    )
 
 
 def email_skonfigurowany() -> bool:
@@ -2666,6 +2746,43 @@ def favicon_root():
     )
 
 
+@app.route("/media/salony/<salon_slug>/logo")
+def salon_logo_media(salon_slug: str):
+    """Serwuje wgrane logo jako zwykły plik — na telefonach pewniejsze niż ogromny data: URL w HTML."""
+    salon = wczytaj_salon_bezposrednio(
+        salon_slug,
+        include_clients=False,
+        include_reservations=False,
+        include_free_slots=False,
+        include_waitlist=False,
+    )
+    if not salon:
+        abort(404)
+    logo = (salon.get("logo_url") or "").strip()
+    if not logo.startswith("data:image/"):
+        abort(404)
+    rozpakowane = _dekoduj_data_url_obrazu(logo)
+    if not rozpakowane:
+        abort(404)
+    tresc, mimetype = rozpakowane
+    etag = hashlib.sha256(tresc).hexdigest()[:16]
+    if request.headers.get("If-None-Match") == f'"{etag}"':
+        return Response(status=304)
+    return Response(
+        tresc,
+        mimetype=mimetype,
+        headers={
+            "Cache-Control": "public, max-age=86400",
+            "ETag": f'"{etag}"',
+        },
+    )
+
+
+@app.template_filter("logo_src")
+def logo_src_filter(logo_url: str | None, salon_slug: str) -> str:
+    return url_logo_salonu(logo_url, salon_slug)
+
+
 @app.route("/robots.txt")
 def robots_txt():
     body = f"User-agent: *\nAllow: /\n\nSitemap: {PUBLIC_BASE_URL}/sitemap.xml\n"
@@ -3209,7 +3326,7 @@ def ustawienia_salonu(salon_slug: str):
         cena_wizyty = max(cena_wizyty, 0)
         pracownicy = parsuj_pracownikow(request.form.get("pracownicy", ""))
         uslugi = parsuj_uslugi(request.form.get("uslugi", ""))
-        logo_upload = parsuj_upload_zdjec([request.files.get("logo_upload")])
+        logo_upload = parsuj_upload_logo(request.files.get("logo_upload"))
         zdjecia_z_linkow = parsuj_linki_zdjec(request.form.get("zdjecia_prac", ""))
         nowe_zdjecia = parsuj_upload_zdjec(request.files.getlist("zdjecia_upload"))
 
