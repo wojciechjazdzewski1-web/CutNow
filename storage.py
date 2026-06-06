@@ -772,17 +772,24 @@ def _wczytaj_szczegoly_salonu_z_tabel(
     if include_reservations:
         rows = conn.execute(
             f"""
-            SELECT payload
+            SELECT data_iso, godzina, payload
             FROM glovaro_reservations
             WHERE salon_slug = %s{filtr}
             ORDER BY data_iso, godzina
             """,
             [salon_slug, *parametry],
         ).fetchall()
-        salon["rezerwacje"] = [
-            payload if isinstance(payload, dict) else json.loads(payload)
-            for (payload,) in rows
-        ]
+        rezerwacje: list[dict] = []
+        for data_iso, godzina, payload in rows:
+            rezerwacja = payload if isinstance(payload, dict) else json.loads(payload)
+            if not isinstance(rezerwacja, dict):
+                continue
+            if data_iso and not str(rezerwacja.get("data") or "").strip():
+                rezerwacja["data"] = str(data_iso)
+            if godzina and not str(rezerwacja.get("godzina") or "").strip():
+                rezerwacja["godzina"] = str(godzina)
+            rezerwacje.append(rezerwacja)
+        salon["rezerwacje"] = rezerwacje
 
     if include_free_slots:
         rows = conn.execute(

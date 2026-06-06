@@ -46,6 +46,8 @@
         </p>
         {% if d.zajete %}
           <p class="text-[10px] text-brand-700 mt-0.5">{{ d.zajete|length }} zajętych</p>
+        {% elif d.wizyty %}
+          <p class="text-[10px] text-brand-700 mt-0.5">{{ d.wizyty|length }} wizyt</p>
         {% endif %}
         {% if d.blokady %}
           <p class="text-[10px] text-amber-700 mt-0.5">{{ d.blokady|length }} blokad</p>
@@ -199,6 +201,24 @@
         </ul>
       {% else %}
         <p class="text-slate-500 text-sm">Brak wolnych terminów na ten dzień. Dodaj pierwszy termin powyżej.</p>
+      {% endif %}
+
+      {% if wizyty %}
+        <div class="mt-6 pt-6 border-t border-slate-100">
+          <h3 class="text-sm font-medium text-slate-500 mb-3">Wizyty w terminarzu</h3>
+          <ul class="space-y-2">
+            {% for w in wizyty %}
+              <li class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl bg-brand-50 border border-brand-100 px-4 py-3">
+                <div>
+                  <p class="font-medium text-brand-900">{{ w.godzina }}{% if w.koniec %}–{{ w.koniec }}{% endif %} · {{ w.imie }}</p>
+                  {% if w.usluga %}<p class="text-xs text-brand-700">{{ w.usluga }}</p>{% endif %}
+                </div>
+                <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug, data=wybrana_data) }}" class="text-sm font-medium text-brand-700 hover:text-brand-900">Terminarz →</a>
+              </li>
+            {% endfor %}
+          </ul>
+          <p class="text-xs text-slate-500 mt-3">Te wizyty blokują dodanie wolnych godzin w tym samym czasie (lub nachodzących na czas trwania usługi).</p>
+        </div>
       {% endif %}
 
       {% if zajete %}

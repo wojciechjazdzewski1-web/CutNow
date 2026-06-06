@@ -1083,6 +1083,30 @@ def klucz_dnia_tygodnia(data_iso: str) -> str:
     ][datetime.strptime(data_iso, "%Y-%m-%d").weekday()]
 
 
+def data_rezerwacji_iso(rezerwacja: dict) -> str:
+    wartosc = str(rezerwacja.get("data") or "").strip()
+    return wartosc[:10] if len(wartosc) >= 10 else wartosc
+
+
+def godzina_rezerwacji(rezerwacja: dict) -> str:
+    return normalizuj_godzine(str(rezerwacja.get("godzina") or ""))
+
+
+def opis_wizyty_dnia(salon: dict, rezerwacja: dict) -> dict:
+    start = godzina_rezerwacji(rezerwacja)
+    czas_min = czas_trwania_rezerwacji_min(salon, rezerwacja)
+    koniec = minuty_na_czas(czas_na_minuty(start) + czas_min) if start else ""
+    return {
+        "id": rezerwacja.get("id", ""),
+        "imie": (rezerwacja.get("imie") or "Klient").strip(),
+        "godzina": start or str(rezerwacja.get("godzina") or ""),
+        "koniec": koniec,
+        "czas_min": czas_min,
+        "usluga": (rezerwacja.get("usluga_nazwa") or rezerwacja.get("usluga") or "").strip(),
+        "status": rezerwacja.get("status", "potwierdzona"),
+    }
+
+
 def aktywni_pracownicy(salon: dict) -> list[str]:
     return [p.strip() for p in (salon.get("pracownicy") or []) if isinstance(p, str) and p.strip()]
 
@@ -1093,16 +1117,17 @@ def aktywne_rezerwacje_dnia(salon: dict, data_iso: str) -> list[dict]:
         for r in (salon.get("rezerwacje") or [])
         if isinstance(r, dict)
         and not rezerwacja_w_archiwum(r)
-        and r.get("data") == data_iso
+        and data_rezerwacji_iso(r) == data_iso
         and r.get("status", "potwierdzona") not in {"anulowana", "odrzucona"}
     ]
 
 
 def aktywne_rezerwacje_slotu(salon: dict, data_iso: str, godzina: str) -> list[dict]:
+    slot = normalizuj_godzine(godzina)
     return [
         r
         for r in aktywne_rezerwacje_dnia(salon, data_iso)
-        if r.get("godzina") == godzina
+        if godzina_rezerwacji(r) == slot
     ]
 
 
@@ -1111,10 +1136,10 @@ def rezerwacje_nachodzace_na_slot(salon: dict, data_iso: str, godzina: str, czas
     koniec = start + czas_trwania_rezerwacji_min(salon, domyslnie=czas_min)
     wynik = []
     for rezerwacja in aktywne_rezerwacje_dnia(salon, data_iso):
-        godzina_rezerwacji = rezerwacja.get("godzina", "")
-        if not waliduj_godzine(godzina_rezerwacji):
+        start_godzina = godzina_rezerwacji(rezerwacja)
+        if not start_godzina:
             continue
-        r_start = czas_na_minuty(godzina_rezerwacji)
+        r_start = czas_na_minuty(start_godzina)
         r_koniec = r_start + czas_trwania_rezerwacji_min(salon, rezerwacja)
         if zakresy_nachodza(start, koniec, r_start, r_koniec):
             wynik.append(rezerwacja)
@@ -1194,11 +1219,38 @@ def slot_w_przeszlosci(data_iso: str, godzina: str) -> bool:
 
 
 def zajete_godziny(salon: dict, data_iso: str) -> set[str]:
+    """Godziny wolnych slotów, które są już zajęte przez wizytę."""
     return {
         godzina
         for godzina in salon.get("wolne_terminy", {}).get(data_iso, [])
         if slot_w_pelni_zajety(salon, data_iso, godzina)
     }
+
+
+def wizyty_dnia_panelu(salon: dict, data_iso: str) -> list[dict]:
+    return [
+        opis_wizyty_dnia(salon, rezerwacja)
+        for rezerwacja in sorted(
+            aktywne_rezerwacje_dnia(salon, data_iso),
+            key=lambda r: godzina_rezerwacji(r) or str(r.get("godzina") or ""),
+        )
+    ]
+
+
+def opis_kolizji_wolnego_terminu(salon: dict, data_iso: str, godzina: str) -> str | None:
+    kolizje = rezerwacje_nachodzace_na_slot(salon, data_iso, godzina)
+    if not kolizje:
+        return None
+    wizyta = opis_wizyty_dnia(salon, kolizje[0])
+    if wizyta["godzina"] == godzina:
+        return (
+            f"Godzina {godzina} jest już zajęta przez wizytę: "
+            f"{wizyta['imie']} ({wizyta['godzina']}). Sprawdź terminarz."
+        )
+    return (
+        f"Godzina {godzina} nachodzi na wizytę {wizyta['imie']} "
+        f"({wizyta['godzina']}–{wizyta['koniec']}). Sprawdź terminarz."
+    )
 
 
 def blokady_dnia(salon: dict, data_iso: str) -> list[dict]:
@@ -1257,8 +1309,9 @@ def powod_odbioru_wolnego_terminu(salon: dict, data_iso: str, godzina: str) -> s
         return "Ten termin jest już na liście wolnych godzin."
     if godzina_zablokowana(salon, data_iso, godzina):
         return "Ten termin jest zablokowany — usuń lub zmień blokadę w tym widoku."
-    if slot_w_pelni_zajety(salon, data_iso, godzina):
-        return "Ten termin jest już zajęty przez wizytę w salonie — sprawdź terminarz."
+    kolizja = opis_kolizji_wolnego_terminu(salon, data_iso, godzina)
+    if kolizja:
+        return kolizja
     return None
 
 
@@ -1377,11 +1430,12 @@ def rezerwacje_dnia(salon: dict, data_iso: str) -> list[dict]:
         [
             r
             for r in salon.get("rezerwacje", [])
-            if r.get("data") == data_iso
+            if isinstance(r, dict)
+            and data_rezerwacji_iso(r) == data_iso
             and not rezerwacja_w_archiwum(r)
             and r.get("status", "potwierdzona") not in {"anulowana", "odrzucona"}
         ],
-        key=lambda r: r.get("godzina", ""),
+        key=lambda r: godzina_rezerwacji(r) or str(r.get("godzina", "")),
     )
 
 
@@ -3432,6 +3486,7 @@ def wolne_terminy(salon_slug: str):
         data_iso = (pierwszy_dzien_miesiaca + timedelta(days=przesuniecie)).isoformat()
         wolne_dnia = dostepne_terminy(salon, data_iso)
         zajete_dnia = sorted(zajete_godziny(salon, data_iso))
+        wizyty_dnia = wizyty_dnia_panelu(salon, data_iso)
         blokady = blokady_dnia(salon, data_iso)
         dni_kalendarza.append(
             {
@@ -3440,6 +3495,7 @@ def wolne_terminy(salon_slug: str):
                 "numer": int(data_iso[8:10]),
                 "wolne": wolne_dnia,
                 "zajete": zajete_dnia,
+                "wizyty": wizyty_dnia,
                 "blokady": blokady,
                 "zamkniety": harmonogram_dnia(salon, data_iso).get("zamkniety", False),
                 "aktywny": data_iso == wybrana_data,
@@ -3459,6 +3515,7 @@ def wolne_terminy(salon_slug: str):
         wybrana_data=wybrana_data,
         terminy=dostepne_terminy(salon, wybrana_data),
         zajete=sorted(zajete_godziny(salon, wybrana_data)),
+        wizyty=wizyty_dnia_panelu(salon, wybrana_data),
         blokady=blokady_dnia(salon, wybrana_data),
         wszystkie_terminy=salon.get("wolne_terminy", {}),
         dni_kalendarza=dni_kalendarza,
