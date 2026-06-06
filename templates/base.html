@@ -175,7 +175,7 @@
     }
     html.dark body.app-theme-default #cookie-banner .text-slate-900 { color: var(--app-heading) !important; }
     html.dark body.app-theme-default #cookie-banner .text-slate-600 { color: var(--app-text) !important; }
-    html.dark body.client-theme .bg-white:not(form):not(.glo-light-block):not(.glo-form-surface):not(.glo-panel-calendar):not(.glo-accent-panel):not(.glo-cal-nav):not(.glo-cal-day):not(.glo-cal-empty) {
+    html.dark body.client-theme .bg-white:not(form):not(.glo-light-block):not(.glo-form-surface):not(.glo-panel-calendar):not(.glo-accent-panel):not(.glo-cal-nav):not(.glo-cal-day):not(.glo-cal-empty):not(.glo-light-block *):not(.glo-form-surface *):not(.glo-panel-calendar *):not(.glo-accent-panel *):not(main form.rounded-2xl.bg-white):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border):not(main .rounded-2xl.bg-white.border *):not(main .rounded-3xl.bg-white.border):not(main .rounded-3xl.bg-white.border *):not(main article.rounded-2xl.bg-white.border):not(main article.rounded-2xl.bg-white.border *) {
       background-color: var(--glo-surface) !important;
     }
     html.dark body.client-theme .bg-slate-50:not(form *):not(.glo-light-block *):not(.glo-form-surface *):not(.glo-panel-calendar *):not(.glo-accent-panel *):not(.glo-cal-day):not(.glo-cal-empty) {
@@ -194,7 +194,7 @@
     }
     html.dark body.client-theme .text-slate-800:not(.glo-light-block *):not(.glo-form-surface *):not(.glo-panel-calendar *):not(.glo-accent-panel *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *),
     html.dark body.client-theme .text-slate-700:not(.glo-light-block *):not(.glo-form-surface *):not(.glo-panel-calendar *):not(.glo-accent-panel *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *),
-    html.dark body.client-theme .text-slate-600:not(.glo-light-block *):not(.glo-panel-calendar *):not(.glo-accent-panel *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *) {
+    html.dark body.client-theme .text-slate-600:not(.glo-light-block *):not(.glo-form-surface *):not(.glo-panel-calendar *):not(.glo-accent-panel *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *) {
       color: var(--glo-text-muted) !important;
     }
     html.dark body.client-theme .text-slate-500:not(.glo-light-block *):not(.glo-form-surface *):not(.glo-panel-calendar *):not(.glo-accent-panel *):not(main form.rounded-2xl.bg-white *):not(main .rounded-2xl.bg-white.border *) {
@@ -253,9 +253,22 @@
       color: #64748b !important;
     }
     :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .bg-slate-50,
-    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar) .bg-brand-50 {
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) [class*="bg-brand-50"],
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) [class*="bg-brand-100"],
+    :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) [class*="bg-pink-50"] {
       background: var(--glo-form-surface-nested-bg, linear-gradient(165deg, #f1f5f9 0%, #f8fafc 100%)) !important;
+      background-image: var(--glo-form-surface-nested-bg, linear-gradient(165deg, #f1f5f9 0%, #f8fafc 100%)) !important;
       border-color: #e2e8f0 !important;
+      color: #334155 !important;
+    }
+    html.dark body.client-theme :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, main form.rounded-2xl.bg-white, main .rounded-2xl.bg-white.border, main article.rounded-2xl.bg-white.border) :is(.bg-white, .bg-slate-50, [class*="bg-brand-50"], [class*="bg-brand-100"], [class*="bg-pink-50"], details.bg-white, #dane-przelewu) {
+      background-color: #fffbfc !important;
+      background-image: none !important;
+      border-color: #e2e8f0 !important;
+      color: #334155 !important;
+    }
+    html.dark body.client-theme-neutral :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, main form.rounded-2xl.bg-white, main .rounded-2xl.bg-white.border, main article.rounded-2xl.bg-white.border) :is(.bg-white, .bg-slate-50, [class*="bg-brand-50"], [class*="bg-brand-100"], details.bg-white, #dane-przelewu) {
+      background-color: #f8fafc !important;
     }
     :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar, body.client-theme main form.rounded-2xl.bg-white, body.client-theme main .rounded-2xl.bg-white.border) .bg-white,
     :is(.glo-light-block, .glo-form-surface, .glo-accent-panel, .glo-panel-calendar) .glo-cal-day {
@@ -289,19 +302,14 @@
       background-color: #ffffff !important;
       color-scheme: light;
     }
-    html.dark body.client-theme main form.rounded-2xl.bg-white label,
-    html.dark body.client-theme main form.rounded-2xl.bg-white .text-slate-700,
-    html.dark body.client-theme main form.rounded-2xl.bg-white .text-slate-600,
-    html.dark body.client-theme main form.rounded-2xl.bg-white .text-slate-500,
-    html.dark body.client-theme main form.rounded-2xl.bg-white .text-slate-900,
-    html.dark body.client-theme main form.rounded-2xl.bg-white p,
-    html.dark body.client-theme main form.rounded-2xl.bg-white h3,
-    html.dark body.client-theme main .rounded-2xl.bg-white.border label,
-    html.dark body.client-theme main .rounded-2xl.bg-white.border .text-slate-700,
-    html.dark body.client-theme main .rounded-2xl.bg-white.border .text-slate-600,
-    html.dark body.client-theme main .rounded-2xl.bg-white.border .text-slate-500,
-    html.dark body.client-theme main .rounded-2xl.bg-white.border .text-slate-900,
-    html.dark body.client-theme main .rounded-2xl.bg-white.border p,
+    html.dark body.client-theme :is(.glo-form-surface, main form.rounded-2xl.bg-white, main .rounded-2xl.bg-white.border) label,
+    html.dark body.client-theme :is(.glo-form-surface, main form.rounded-2xl.bg-white, main .rounded-2xl.bg-white.border) .text-slate-700,
+    html.dark body.client-theme :is(.glo-form-surface, main form.rounded-2xl.bg-white, main .rounded-2xl.bg-white.border) .text-slate-600,
+    html.dark body.client-theme :is(.glo-form-surface, main form.rounded-2xl.bg-white, main .rounded-2xl.bg-white.border) .text-slate-500,
+    html.dark body.client-theme :is(.glo-form-surface, main form.rounded-2xl.bg-white, main .rounded-2xl.bg-white.border) .text-slate-900,
+    html.dark body.client-theme :is(.glo-form-surface, main form.rounded-2xl.bg-white, main .rounded-2xl.bg-white.border) p,
+    html.dark body.client-theme :is(.glo-form-surface, main form.rounded-2xl.bg-white, main .rounded-2xl.bg-white.border) h3,
+    html.dark body.client-theme :is(.glo-form-surface, main form.rounded-2xl.bg-white, main .rounded-2xl.bg-white.border) summary,
     html.dark body.client-theme .glo-light-block label,
     html.dark body.client-theme .glo-light-block .text-slate-700,
     html.dark body.client-theme .glo-light-block .text-slate-600,
@@ -310,16 +318,21 @@
     html.dark body.client-theme .glo-light-block p {
       color: #475569 !important;
     }
-    html.dark body.client-theme main form.rounded-2xl.bg-white .text-slate-900,
-    html.dark body.client-theme main form.rounded-2xl.bg-white h3,
-    html.dark body.client-theme main .rounded-2xl.bg-white.border .text-slate-900,
+    html.dark body.client-theme :is(.glo-form-surface, main form.rounded-2xl.bg-white, main .rounded-2xl.bg-white.border) .text-slate-900,
+    html.dark body.client-theme :is(.glo-form-surface, main form.rounded-2xl.bg-white, main .rounded-2xl.bg-white.border) h3,
+    html.dark body.client-theme :is(.glo-form-surface, main form.rounded-2xl.bg-white, main .rounded-2xl.bg-white.border) summary,
     html.dark body.client-theme .glo-light-block .text-slate-900 {
       color: #1e293b !important;
     }
-    html.dark body.client-theme main form.rounded-2xl.bg-white .text-slate-500,
-    html.dark body.client-theme main .rounded-2xl.bg-white.border .text-slate-500,
+    html.dark body.client-theme :is(.glo-form-surface, main form.rounded-2xl.bg-white, main .rounded-2xl.bg-white.border) .text-slate-500,
     html.dark body.client-theme .glo-light-block .text-slate-500 {
       color: #64748b !important;
+    }
+    html.dark body.client-theme :is(.glo-form-surface, main form.rounded-2xl.bg-white) .text-pink-900 {
+      color: #831843 !important;
+    }
+    html.dark body.client-theme :is(.glo-form-surface, main form.rounded-2xl.bg-white) .text-pink-700 {
+      color: #be185d !important;
     }
     html.dark body.client-theme .glo-accent-panel label,
     html.dark body.client-theme .glo-accent-panel .text-slate-700,
