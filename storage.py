@@ -723,6 +723,19 @@ def _zapisz_szczegoly_salonu_do_tabel(conn, salon_slug: str, salon: dict) -> Non
         )
 
 
+def _normalizuj_godzine_slot(wartosc) -> str:
+    tekst = str(wartosc or "").strip()
+    if not tekst:
+        return ""
+    czesci = tekst.split(":")
+    if len(czesci) >= 2:
+        try:
+            return f"{int(czesci[0]):02d}:{int(czesci[1]):02d}"
+        except ValueError:
+            return tekst
+    return tekst
+
+
 def _filtr_daty(kolumna: str, data_od: str | None, data_do: str | None) -> tuple[str, list[str]]:
     warunki: list[str] = []
     parametry: list[str] = []
@@ -803,7 +816,12 @@ def _wczytaj_szczegoly_salonu_z_tabel(
         ).fetchall()
         wolne: dict[str, list[str]] = {}
         for data_iso, godzina in rows:
-            wolne.setdefault(data_iso, []).append(godzina)
+            slot = _normalizuj_godzine_slot(godzina)
+            if not slot:
+                continue
+            wolne.setdefault(str(data_iso), []).append(slot)
+        for data_key in wolne:
+            wolne[data_key] = sorted(set(wolne[data_key]))
         salon["wolne_terminy"] = wolne
 
     if include_clients:

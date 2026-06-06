@@ -685,14 +685,14 @@ def wczytaj_salon_bezposrednio(
     )
 
 
-def zakres_publicznej_rezerwacji(data_iso: str | None = None) -> tuple[str, str]:
-    start = date.today()
-    if data_iso and waliduj_date_iso(data_iso):
-        wybrana = datetime.strptime(data_iso, "%Y-%m-%d").date()
-        if wybrana > start:
-            start = min(start, wybrana)
-    koniec = start + timedelta(days=HORYZONT_REZERWACJI_DNI)
-    return start.isoformat(), koniec.isoformat()
+def zakres_publicznej_rezerwacji(data_iso: str | None = None) -> tuple[str, str | None]:
+    """Zakres ładowania danych dla widoku klienta — od dziś w przód, bez górnego limitu.
+
+    Panel może pokazywać wolne terminy w dowolnym miesiącu; klient musi widzieć
+    te same opublikowane sloty, inaczej kalendarz salonu i strona rezerwacji się rozjeżdżają.
+    """
+    _ = data_iso
+    return date.today().isoformat(), None
 
 
 def wczytaj_dane_katalogowe() -> dict:
@@ -1021,18 +1021,24 @@ def przekroczono_limit_rezerwacji(salon_slug: str) -> bool:
 
 
 def waliduj_godzine(wartosc: str) -> bool:
-    try:
-        datetime.strptime(wartosc, "%H:%M")
-        return True
-    except ValueError:
-        return False
+    tekst = (wartosc or "").strip()
+    for fmt in ("%H:%M", "%H:%M:%S"):
+        try:
+            datetime.strptime(tekst, fmt)
+            return True
+        except ValueError:
+            continue
+    return False
 
 
 def normalizuj_godzine(wartosc: str) -> str:
-    if not waliduj_godzine((wartosc or "").strip()):
-        return ""
-    godzina, minuta = wartosc.strip().split(":")
-    return f"{int(godzina):02d}:{int(minuta):02d}"
+    tekst = (wartosc or "").strip()
+    for fmt in ("%H:%M", "%H:%M:%S"):
+        try:
+            return datetime.strptime(tekst, fmt).strftime("%H:%M")
+        except ValueError:
+            continue
+    return ""
 
 
 def waliduj_date_iso(wartosc: str) -> bool:
@@ -1164,7 +1170,7 @@ def slot_w_pelni_zajety(salon: dict, data_iso: str, godzina: str, czas_min: int 
 
 
 INTERWALY_TERMINOW = frozenset({15, 30, 45, 60})
-HORYZONT_REZERWACJI_DNI = 60
+HORYZONT_REZERWACJI_DNI = 180
 
 
 def interwal_terminow_salonu(salon: dict) -> int:
@@ -1335,10 +1341,11 @@ def najblizsze_daty_z_terminami(
     """Najbliższe dni, w których salon ma wpisane wolne terminy z dostępnymi godzinami."""
     wynik = []
     dzisiaj = date.today().isoformat()
+    koniec_okna = (date.today() + timedelta(days=max_dni)).isoformat()
     kandydaci = sorted(
         data_iso
         for data_iso in salon.get("wolne_terminy", {})
-        if data_iso >= dzisiaj
+        if dzisiaj <= data_iso <= koniec_okna
     )
     for data_iso in kandydaci:
         terminy = dostepne_terminy(salon, data_iso)
@@ -3543,7 +3550,10 @@ def kontekst_rezerwacji(salon: dict, salon_slug: str, wybrana_data: str) -> dict
         "godziny": godziny,
         "terminy": terminy,
         "najblizsze_daty": najblizsze,
-        "najblizszy_inny": next((d for d in najblizsze if d["data"] != wybrana_data), None),
+        "najblizszy_inny": next(
+            (d for d in najblizsze if d["data"] != wybrana_data),
+            najblizsze[0] if najblizsze and not terminy else None,
+        ),
         "dni_tygodnia": dict(DNI_TYGODNIA),
         "pracownicy": aktywni_pracownicy(salon),
         "uslugi": uslugi_salonu(salon),
