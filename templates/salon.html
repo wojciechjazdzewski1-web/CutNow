@@ -256,7 +256,7 @@
 
     <div>
       <label for="uslugi" class="block text-sm font-medium text-slate-700 mb-2">Usługi i ceny</label>
-      <textarea id="uslugi" name="uslugi" rows="5"
+      <textarea id="uslugi" name="uslugi" rows="12"
         class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow resize-none"
         placeholder="Strzyżenie damskie|120|60&#10;Manicure hybrydowy|90|75&#10;Masaż relaksacyjny|150|60">{% for usluga in dane.uslugi or [] %}{{ usluga.nazwa }}{% if usluga.cena_zl or usluga.czas_min %}|{{ usluga.cena_zl or 0 }}{% endif %}{% if usluga.czas_min %}|{{ usluga.czas_min }}{% endif %}
 {% endfor %}</textarea>

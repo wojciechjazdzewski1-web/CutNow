@@ -918,7 +918,7 @@ def parsuj_uslugi(wartosc: str) -> list[dict]:
             cena = 0
         czas_min = parsuj_czas_uslugi_min(czas_txt)
         uslugi.append({"nazwa": nazwa, "cena_zl": cena, "czas_min": czas_min})
-    return uslugi[:30]
+    return uslugi
 
 
 def oczysc_uslugi_w_salonie(salon: dict) -> bool:
