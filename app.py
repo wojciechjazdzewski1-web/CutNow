@@ -783,7 +783,26 @@ def salon_wstrzymany(salon: dict) -> bool:
 
 def abonament_po_terminie(salon: dict) -> bool:
     oplacone_do = salon.get("oplacone_do", "")
-    return bool(oplacone_do and oplacone_do < date.today().isoformat())
+    return bool(oplacone_do and waliduj_date_iso(oplacone_do) and oplacone_do < date.today().isoformat())
+
+
+def abonament_oplacony(salon: dict) -> bool:
+    oplacone_do = salon.get("oplacone_do", "")
+    if oplacone_do and waliduj_date_iso(oplacone_do) and oplacone_do >= date.today().isoformat():
+        return True
+    status = salon.get("abonament_status", "trial")
+    return status == "active" and not abonament_po_terminie(salon)
+
+
+def abonament_wymaga_platnosci(salon: dict) -> bool:
+    if abonament_oplacony(salon):
+        return False
+    status = salon.get("abonament_status", "trial")
+    if status in {"pending_payment", "suspended"}:
+        return True
+    if abonament_po_terminie(salon):
+        return True
+    return status == "trial"
 
 
 def stripe_skonfigurowany() -> bool:
@@ -3192,7 +3211,16 @@ def platnosc_rezerwacji_sukces(salon_slug: str):
 
 @app.route("/panel/<salon_slug>/stripe/sukces")
 def stripe_sukces(salon_slug: str):
-    flash("Dziękujemy za płatność. Stripe potwierdzi ją automatycznie po webhooku.", "success")
+    def aktywuj_po_platnosci(salon_atomowy: dict | None) -> bool:
+        if not salon_atomowy:
+            return False
+        przedluz_abonament(salon_atomowy)
+        return True
+
+    if aktualizuj_salon_atomowo(salon_slug, aktywuj_po_platnosci):
+        flash("Abonament opłacony — rezerwacje online są aktywne. Dziękujemy!", "success")
+    else:
+        flash("Dziękujemy za płatność. Stripe potwierdzi ją automatycznie po webhooku.", "success")
     return redirect(url_for("panel", salon_slug=salon_slug))
 
 
@@ -3299,6 +3327,9 @@ def panel(salon_slug: str):
             "wszystkie_rezerwacje": len(aktywne),
             "rezerwacje_7_dni": len(rezerwacje_7_dni),
         },
+        abonament_oplacony=abonament_oplacony(salon),
+        abonament_wymaga_platnosci=abonament_wymaga_platnosci(salon),
+        abonament_po_terminie=abonament_po_terminie(salon),
     )
 
 

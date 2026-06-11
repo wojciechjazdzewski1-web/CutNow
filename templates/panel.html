@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_panel_icons.html" import icon %}
+{% from "_panel_stat_card.html" import stat_number, stat_panel %}
 {% block title %}Panel — Glovaro{% endblock %}
 
 {% block content %}
@@ -16,99 +17,89 @@
     {% endif %}
   </div>
   <div class="mt-3 flex flex-wrap gap-2 text-xs">
-    <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
-      Abonament: {{ dane.oplata_miesieczna }} zł / mies.
-    </span>
-    {% if dane.oplacone_do %}
-      <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-600">Opłacone do {{ dane.oplacone_do }}</span>
-    {% endif %}
-    {% if dane.abonament_status == 'pending_payment' %}
-      <span class="rounded-full bg-amber-100 px-3 py-1 font-medium text-amber-800">Oczekuje na płatność</span>
-    {% elif dane.abonament_status == 'suspended' %}
-      <span class="rounded-full bg-red-100 px-3 py-1 font-medium text-red-700">Wstrzymany</span>
-    {% elif dane.abonament_status == 'active' %}
-      <span class="rounded-full bg-emerald-100 px-3 py-1 font-medium text-emerald-700">Aktywny</span>
+    {% if abonament_oplacony %}
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 font-medium text-emerald-800">
+        {{ icon('abonament', 'w-3.5 h-3.5') }}
+        Abonament aktywny{% if dane.oplacone_do %} · do {{ dane.oplacone_do }}{% endif %}
+      </span>
     {% else %}
-      <span class="rounded-full bg-brand-100 px-3 py-1 font-medium text-brand-700">Okres testowy</span>
+      <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
+        Abonament: {{ dane.oplata_miesieczna }} zł / mies.
+      </span>
+      {% if dane.oplacone_do %}
+        <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-600">Opłacone do {{ dane.oplacone_do }}</span>
+      {% endif %}
+      {% if dane.abonament_status == 'pending_payment' %}
+        <span class="rounded-full bg-amber-100 px-3 py-1 font-medium text-amber-800">Oczekuje na płatność</span>
+      {% elif dane.abonament_status == 'suspended' %}
+        <span class="rounded-full bg-red-100 px-3 py-1 font-medium text-red-700">Wstrzymany</span>
+      {% elif dane.abonament_status == 'active' %}
+        <span class="rounded-full bg-emerald-100 px-3 py-1 font-medium text-emerald-700">Aktywny</span>
+      {% else %}
+        <span class="rounded-full bg-brand-100 px-3 py-1 font-medium text-brand-700">Okres testowy</span>
+      {% endif %}
     {% endif %}
   </div>
-  {% if dane.abonament_status == 'pending_payment' %}
+
+  {% if dane.abonament_status == 'pending_payment' and not abonament_oplacony %}
     <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
       <p class="font-semibold">Panel rezerwacji nie jest jeszcze aktywny.</p>
       <p class="mt-1 text-sm">Uzupełnij profil firmy, usługi, godziny i wolne terminy. Publiczna strona rezerwacji ruszy dopiero po opłaceniu abonamentu.</p>
     </div>
-  {% endif %}
-  <div id="abonament" class="client-panel-card mt-4 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" data-tour="abonament">
-    <div>
-      <p class="font-semibold text-slate-900">Abonament Glovaro</p>
-      <p class="text-sm text-slate-600">
-        Opłata: {{ dane.oplata_miesieczna }} zł miesięcznie{% if dane.oplacone_do %}, opłacone do {{ dane.oplacone_do }}{% endif %}.
-      </p>
+  {% elif abonament_po_terminie %}
+    <div class="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-900">
+      <p class="font-semibold">Abonament wygasł.</p>
+      <p class="mt-1 text-sm">Opłać abonament ponownie, aby przywrócić publiczne rezerwacje online.</p>
     </div>
-    {% if stripe_skonfigurowany %}
-      <form method="post" action="{{ url_for('stripe_checkout', salon_slug=salon_slug) }}">
-        <button type="submit" class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800">
-          Opłać abonament
-        </button>
-      </form>
-    {% else %}
-      <span class="rounded-xl bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700">Stripe nie skonfigurowany</span>
-    {% endif %}
-  </div>
-  {% if dane.opis or dane.zdjecia_prac %}
-    <div class="mt-4 client-panel-card rounded-2xl p-4">
-      {% if dane.opis %}
-        <p class="text-sm text-slate-600">{{ dane.opis }}</p>
-      {% endif %}
-      {% if dane.zdjecia_prac %}
-        <p class="text-xs text-slate-500 mt-2">Zdjęcia w galerii: {{ dane.zdjecia_prac|length }}</p>
+  {% endif %}
+
+  {% if abonament_wymaga_platnosci %}
+    <div id="abonament" class="client-panel-card mt-4 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border border-amber-100" data-tour="abonament">
+      <div class="flex items-start gap-3">
+        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+          {{ icon('abonament', 'w-5 h-5') }}
+        </span>
+        <div>
+          <p class="font-semibold text-slate-900">Opłać abonament Glovaro</p>
+          <p class="text-sm text-slate-600 mt-0.5">
+            {{ dane.oplata_miesieczna }} zł miesięcznie — po opłacie ten komunikat zniknie z pulpitu.
+          </p>
+        </div>
+      </div>
+      {% if stripe_skonfigurowany %}
+        <form method="post" action="{{ url_for('stripe_checkout', salon_slug=salon_slug) }}">
+          <button type="submit" class="w-full sm:w-auto rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800">
+            Opłać abonament
+          </button>
+        </form>
+      {% else %}
+        <span class="rounded-xl bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700">Stripe nie skonfigurowany</span>
       {% endif %}
     </div>
   {% endif %}
 </div>
 
-<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-  <div class="client-panel-card rounded-2xl p-5">
-    <p class="text-sm text-slate-500 mb-1">Dzisiaj</p>
-    <p class="text-2xl font-bold text-brand-700">{{ terminy_dzis|length }}</p>
-    <p class="text-xs text-slate-500 mt-1">wolnych terminów</p>
-  </div>
-  <div class="client-panel-card rounded-2xl p-5 sm:col-span-2 lg:col-span-3">
-    <p class="text-sm text-slate-500 mb-1">Najbliższe terminy ({{ dzisiaj }})</p>
+<div class="grid sm:grid-cols-2 gap-4 mb-10">
+  {{ stat_number('sloty', 'bg-emerald-100', 'text-emerald-600', 'Dzisiaj', terminy_dzis|length, 'wolnych terminów', url_for('wolne_terminy', salon_slug=salon_slug)) }}
+
+  {% call stat_panel('bliskie', 'bg-sky-100', 'text-sky-600', 'Najbliższe terminy (' ~ dzisiaj ~ ')', url_for('wolne_terminy', salon_slug=salon_slug)) %}
     {% if terminy_dzis %}
-      <div class="flex flex-wrap gap-2 mt-2">
+      <div class="flex flex-wrap gap-2">
         {% for t in terminy_dzis %}
           <span class="inline-flex px-3 py-1 rounded-lg bg-brand-50 text-brand-800 text-sm font-medium border border-brand-100">{{ t }}</span>
         {% endfor %}
       </div>
     {% else %}
-      <p class="text-slate-400 text-sm mt-1">Brak wolnych na dziś — <a href="{{ url_for('godziny_pracy', salon_slug=salon_slug) }}" class="text-brand-600 hover:underline">sprawdź godziny</a></p>
+      <p class="text-sm text-slate-500">Brak wolnych na dziś — <span class="text-brand-600 group-hover:underline">dodaj terminy</span></p>
     {% endif %}
     {% if najblizsze_daty %}
       <p class="text-xs text-slate-500 mt-2">Najbliżej: {% for d in najblizsze_daty[:3] %}{{ d.dzien }} {{ d.data[8:10] }}.{{ d.data[5:7] }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
     {% endif %}
-  </div>
-</div>
+  {% endcall %}
 
-<div class="grid sm:grid-cols-2 gap-4 mb-10">
-  <div class="client-panel-card rounded-2xl p-5 flex items-start gap-4">
-    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-600">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-    </span>
-    <div>
-      <p class="text-sm text-slate-500 mb-1">Aktywne rezerwacje</p>
-      <p class="text-2xl font-bold text-slate-900">{{ statystyki.wszystkie_rezerwacje }}</p>
-    </div>
-  </div>
-  <div class="client-panel-card rounded-2xl p-5 flex items-start gap-4">
-    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-    </span>
-    <div>
-      <p class="text-sm text-slate-500 mb-1">Następne 7 dni</p>
-      <p class="text-2xl font-bold text-slate-900">{{ statystyki.rezerwacje_7_dni }}</p>
-    </div>
-  </div>
+  {{ stat_number('rezerwacje', 'bg-brand-100', 'text-brand-600', 'Aktywne rezerwacje', statystyki.wszystkie_rezerwacje, 'potwierdzone i oczekujące', url_for('panel_rezerwacje', salon_slug=salon_slug)) }}
+
+  {{ stat_number('kalendarz', 'bg-violet-100', 'text-violet-600', 'Następne 7 dni', statystyki.rezerwacje_7_dni, 'zaplanowanych wizyt', url_for('panel_terminarz', salon_slug=salon_slug)) }}
 </div>
 
 {% if ostatnie_rezerwacje %}

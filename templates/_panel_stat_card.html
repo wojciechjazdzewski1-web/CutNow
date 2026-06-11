@@ -1,0 +1,31 @@
+{% from "_panel_icons.html" import icon %}
+{% macro stat_number(icon_name, icon_bg, icon_color, title, value, subtitle='', href='') %}
+  {% set tag = 'a' if href else 'article' %}
+  <{{ tag }}{% if href %} href="{{ href }}"{% endif %}
+    class="client-panel-card glo-stat-card group rounded-2xl p-5 flex items-start gap-4 transition-all {% if href %}hover:border-brand-300 hover:shadow-md{% endif %}">
+    <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl {{ icon_bg }} {{ icon_color }} shadow-sm">
+      {{ icon(icon_name, 'w-5 h-5') }}
+    </span>
+    <div class="min-w-0 flex-1">
+      <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{{ title }}</p>
+      <p class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{{ value }}</p>
+      {% if subtitle %}
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5">{{ subtitle }}</p>
+      {% endif %}
+    </div>
+  </{{ tag }}>
+{% endmacro %}
+
+{% macro stat_panel(icon_name, icon_bg, icon_color, title, href='') %}
+  {% set tag = 'a' if href else 'article' %}
+  <{{ tag }}{% if href %} href="{{ href }}"{% endif %}
+    class="client-panel-card glo-stat-card group rounded-2xl p-5 flex items-start gap-4 transition-all sm:col-span-2 {% if href %}hover:border-brand-300 hover:shadow-md{% endif %}">
+    <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl {{ icon_bg }} {{ icon_color }} shadow-sm">
+      {{ icon(icon_name, 'w-5 h-5') }}
+    </span>
+    <div class="min-w-0 flex-1">
+      <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">{{ title }}</p>
+      {{ caller() }}
+    </div>
+  </{{ tag }}>
+{% endmacro %}
