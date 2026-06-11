@@ -3690,16 +3690,25 @@ def wolne_terminy(salon_slug: str):
     else:
         nastepny_miesiac_data = data_wybrana.replace(month=data_wybrana.month + 1, day=1)
 
+    wybrany_dzien_label = dict(DNI_TYGODNIA)[klucz_dnia_tygodnia(wybrana_data)]
+    inne_dni_z_terminami = sorted(
+        (data_key, lista)
+        for data_key, lista in salon.get("wolne_terminy", {}).items()
+        if data_key != wybrana_data and lista
+    )
+
     return render_template(
         "terminy.html",
         dane=salon,
         salon_slug=salon_slug,
         wybrana_data=wybrana_data,
+        wybrany_dzien_label=wybrany_dzien_label,
+        scroll_do_panelu=bool(request.args.get("data")),
         terminy=dostepne_terminy(salon, wybrana_data),
         zajete=sorted(zajete_godziny(salon, wybrana_data)),
         wizyty=wizyty_dnia_panelu(salon, wybrana_data),
         blokady=blokady_dnia(salon, wybrana_data),
-        wszystkie_terminy=salon.get("wolne_terminy", {}),
+        inne_dni_z_terminami=inne_dni_z_terminami,
         dni_kalendarza=dni_kalendarza,
         puste_przed=pierwszy_dzien_miesiaca.weekday(),
         miesiac_label=f"{MIESIACE[data_wybrana.month]} {data_wybrana.year}",

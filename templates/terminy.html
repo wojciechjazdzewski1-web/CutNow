@@ -5,13 +5,11 @@
 {% include "_panel_subnav_kalendarz.html" %}
 
 <h1 class="text-2xl font-bold text-slate-900 mb-2">Terminy dla klientów</h1>
-<p class="text-slate-600 mb-4 text-sm">Godziny widoczne na stronie rezerwacji. Klient widzi tylko sloty dodane tutaj — nie wszystkie godziny otwarcia.</p>
-<p class="text-sm text-brand-800 bg-brand-50 border border-brand-100 rounded-xl px-4 py-3 mb-6">Użyj <strong>Wygeneruj terminy</strong> na kilka tygodni do przodu.</p>
+<p class="text-slate-600 mb-4 text-sm">Kliknij dzień w kalendarzu — poniżej od razu zobaczysz sloty i dodasz godzinę.</p>
 
 <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-4">
   <div>
     <h2 class="text-xl font-bold text-slate-900">{{ miesiac_label }}</h2>
-    <p class="text-sm text-slate-500 mt-1">Kliknij dzień, aby dodać, usunąć albo sprawdzić wolne godziny.</p>
   </div>
   <div class="flex flex-wrap gap-2">
     <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=poprzedni_miesiac) }}" class="glo-cal-nav rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">← Poprzedni miesiąc</a>
@@ -20,269 +18,265 @@
   </div>
 </div>
 
-<div class="glo-panel-calendar rounded-2xl bg-white border border-slate-200 p-4 shadow-sm mb-6">
+<div class="glo-panel-calendar rounded-2xl bg-white border border-slate-200 p-4 shadow-sm mb-4">
   <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-slate-500 mb-2">
-    <span>Pon</span>
-    <span>Wt</span>
-    <span>Śr</span>
-    <span>Czw</span>
-    <span>Pt</span>
-    <span>Sob</span>
-    <span>Nd</span>
+    <span>Pon</span><span>Wt</span><span>Śr</span><span>Czw</span><span>Pt</span><span>Sob</span><span>Nd</span>
   </div>
   <div class="grid grid-cols-7 gap-1 sm:gap-2">
     {% for _ in range(puste_przed) %}
       <div class="glo-cal-empty min-h-20 rounded-xl bg-slate-50/60"></div>
     {% endfor %}
     {% for d in dni_kalendarza %}
-      <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=d.data) }}"
+      <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=d.data) }}#wybrany-dzien"
         class="glo-cal-day min-h-20 rounded-xl border p-2 text-left transition-all {% if d.aktywny %}is-active border-brand-400 bg-brand-50 ring-2 ring-brand-200{% else %}border-slate-200 bg-white hover:border-brand-200 hover:bg-slate-50{% endif %}">
         <p class="text-sm font-bold text-slate-900">{{ d.numer }}</p>
         <p class="text-[11px] mt-1 {% if d.zamkniety %}text-red-600{% elif d.wolne %}text-emerald-700 font-semibold{% else %}text-slate-500{% endif %}">
-          {% if d.zamkniety %}Zamk.{% elif d.wolne %}{{ d.wolne|length }} {% if d.wolne|length == 1 %}wolny{% else %}wolne{% endif %}{% else %}—{% endif %}
+          {% if d.zamkniety %}Zamk.{% elif d.wolne %}{{ d.wolne|length }} wolne{% else %}—{% endif %}
         </p>
-        {% if d.zajete %}
-          <p class="text-[10px] text-brand-700 mt-0.5">{{ d.zajete|length }} zajętych</p>
-        {% elif d.wizyty %}
-          <p class="text-[10px] text-brand-700 mt-0.5">{{ d.wizyty|length }} wizyt</p>
+        {% if d.zajete or d.wizyty %}
+          <p class="text-[10px] text-brand-700 mt-0.5">{{ (d.zajete or d.wizyty)|length }} zajęte</p>
         {% endif %}
         {% if d.blokady %}
-          <p class="text-[10px] text-amber-700 mt-0.5">{{ d.blokady|length }} blokad</p>
+          <p class="text-[10px] text-amber-700 mt-0.5">{{ d.blokady|length }} blok.</p>
         {% endif %}
       </a>
     {% endfor %}
   </div>
 </div>
 
-<form method="post" class="rounded-2xl bg-white border border-emerald-200 p-5 shadow-sm mb-6">
-  <input type="hidden" name="data" value="{{ wybrana_data }}">
-  <input type="hidden" name="akcja" value="dodaj">
-  <div class="flex flex-col lg:flex-row lg:items-end gap-3">
-    <div class="flex-1">
-      <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700 mb-1">Wybrany dzień: {{ wybrana_data }}</p>
-      <label for="godzina" class="block text-lg font-bold text-slate-900 mb-2">Dodaj godzinę wizyty</label>
-      <input type="time" id="godzina" name="godzina" required
-        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-lg focus:ring-2 focus:ring-emerald-500 outline-none">
-    </div>
-    <button type="submit" class="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-3 transition-colors">
-      + Dodaj godzinę
-    </button>
-  </div>
-  <p class="text-xs text-slate-500 mt-3">Ta godzina od razu pojawi się klientom jako wolny termin dla wybranego dnia.</p>
-</form>
-
-<form method="post" class="rounded-2xl bg-gradient-to-br from-slate-900 to-brand-900 text-white p-5 shadow-lg shadow-slate-900/20 mb-6">
-  <input type="hidden" name="akcja" value="generuj">
-  <h2 class="font-semibold text-lg mb-1">Automatyczne dodawanie terminów</h2>
-  <p class="text-sm text-slate-300 mb-5">Wybierz zakres dat, godziny i interwał — Glovaro utworzy wolne sloty w kalendarzu.</p>
-
-  <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-    <div>
-      <label for="data_od" class="block text-sm font-medium text-slate-200 mb-2">Od daty</label>
-      <input type="date" id="data_od" name="data_od" value="{{ wybrana_data }}" required
-        class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
-    </div>
-    <div>
-      <label for="data_do" class="block text-sm font-medium text-slate-200 mb-2">Do daty</label>
-      <input type="date" id="data_do" name="data_do" value="{{ wybrana_data }}" required
-        class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
-    </div>
-    <div>
-      <label for="od_godziny" class="block text-sm font-medium text-slate-200 mb-2">Od godziny</label>
-      <input type="time" id="od_godziny" name="od_godziny" value="09:00" required
-        class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
-    </div>
-    <div>
-      <label for="do_godziny" class="block text-sm font-medium text-slate-200 mb-2">Do godziny</label>
-      <input type="time" id="do_godziny" name="do_godziny" value="17:00" required
-        class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
+<section id="wybrany-dzien" class="scroll-mt-24 rounded-2xl bg-white border border-brand-200 shadow-sm mb-4 overflow-hidden">
+  <div class="border-b border-brand-100 bg-gradient-to-r from-brand-50 to-white px-4 py-3 sm:px-5">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-brand-700">Wybrany dzień</p>
+        <h2 class="text-lg font-bold text-slate-900">{{ wybrany_dzien_label }}, {{ wybrana_data[8:10] }}.{{ wybrana_data[5:7] }}.{{ wybrana_data[:4] }}</h2>
+      </div>
+      {% if inne_dni_z_terminami %}
+        <div class="flex flex-wrap items-center gap-1.5 text-xs">
+          <span class="text-slate-500 shrink-0">Inne dni:</span>
+          {% for data_key, lista in inne_dni_z_terminami[:8] %}
+            <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=data_key) }}#wybrany-dzien"
+              class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-700 hover:border-brand-300 hover:text-brand-800">
+              {{ data_key[8:10] }}.{{ data_key[5:7] }} <span class="text-slate-400">({{ lista|length }})</span>
+            </a>
+          {% endfor %}
+          {% if inne_dni_z_terminami|length > 8 %}
+            <span class="text-slate-400">+{{ inne_dni_z_terminami|length - 8 }}</span>
+          {% endif %}
+        </div>
+      {% endif %}
     </div>
   </div>
 
-  <div class="flex flex-col lg:flex-row lg:items-center gap-3">
-    <div class="w-full lg:w-56">
-      <label for="interwal" class="block text-sm font-medium text-slate-200 mb-2">Co ile minut</label>
-      <select id="interwal" name="interwal"
-        class="w-full rounded-xl border border-white/20 bg-white px-4 py-3 text-slate-900 focus:ring-2 focus:ring-brand-300 outline-none">
-        <option class="text-slate-900 bg-white" value="15">15 minut</option>
-        <option class="text-slate-900 bg-white" value="30" selected>30 minut</option>
-        <option class="text-slate-900 bg-white" value="45">45 minut</option>
-        <option class="text-slate-900 bg-white" value="60">60 minut</option>
-      </select>
-    </div>
-    <label class="inline-flex items-center gap-2 text-sm text-slate-200 lg:mt-7">
-      <input type="checkbox" name="nadpisz" class="rounded border-white/30 text-brand-600">
-      Nadpisz wolne terminy w wybranych dniach
-    </label>
-    <button type="submit" class="lg:ml-auto lg:mt-7 rounded-xl bg-white text-slate-900 font-semibold px-6 py-3 hover:bg-brand-50">
-      Wygeneruj terminy
-    </button>
-  </div>
-</form>
-
-<div class="grid lg:grid-cols-3 gap-6">
-  <div class="lg:col-span-2 space-y-6">
-
-    <form method="post" class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
-      <input type="hidden" name="akcja" value="blokuj">
-      <h2 class="font-semibold text-lg text-slate-900 mb-1">Zablokuj terminy</h2>
-      <p class="text-sm text-slate-600 mb-5">Dodaj urlop, chorobę, przerwę obiadową albo szkolenie. Klienci nie zobaczą tych godzin.</p>
-
-      <div class="grid sm:grid-cols-2 gap-3 mb-3">
-        <div>
-          <label for="blokada_data_od" class="block text-sm font-medium text-slate-700 mb-2">Od daty</label>
-          <input type="date" id="blokada_data_od" name="blokada_data_od" value="{{ wybrana_data }}" required
-            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none">
-        </div>
-        <div>
-          <label for="blokada_data_do" class="block text-sm font-medium text-slate-700 mb-2">Do daty</label>
-          <input type="date" id="blokada_data_do" name="blokada_data_do" value="{{ wybrana_data }}" required
-            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none">
-        </div>
+  <div class="p-4 sm:p-5 space-y-4">
+    <form method="post" class="flex flex-col sm:flex-row sm:items-end gap-2">
+      <input type="hidden" name="data" value="{{ wybrana_data }}">
+      <input type="hidden" name="akcja" value="dodaj">
+      <div class="flex-1 min-w-0">
+        <label for="godzina" class="block text-sm font-medium text-slate-700 mb-1">Nowa godzina dla klientów</label>
+        <input type="time" id="godzina" name="godzina" required
+          class="w-full sm:max-w-xs rounded-xl border border-slate-300 px-4 py-2.5 text-base focus:ring-2 focus:ring-brand-500 outline-none">
       </div>
-
-      <div class="grid sm:grid-cols-3 gap-3 mb-3">
-        <div>
-          <label for="powod" class="block text-sm font-medium text-slate-700 mb-2">Powód</label>
-          <select id="powod" name="powod" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none">
-            <option>Przerwa</option>
-            <option>Urlop</option>
-            <option>Choroba</option>
-            <option>Szkolenie</option>
-            <option>Inne</option>
-          </select>
-        </div>
-        <div>
-          <label for="blokada_od_godziny" class="block text-sm font-medium text-slate-700 mb-2">Od godziny</label>
-          <input type="time" id="blokada_od_godziny" name="blokada_od_godziny" value="12:00"
-            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none">
-        </div>
-        <div>
-          <label for="blokada_do_godziny" class="block text-sm font-medium text-slate-700 mb-2">Do godziny</label>
-          <input type="time" id="blokada_do_godziny" name="blokada_do_godziny" value="13:00"
-            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none">
-        </div>
-      </div>
-
-      <div class="mb-4">
-        <label for="opis_blokady" class="block text-sm font-medium text-slate-700 mb-2">Notatka (opcjonalnie)</label>
-        <input id="opis_blokady" name="opis_blokady" class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none" placeholder="np. szkolenie w Gdańsku">
-      </div>
-
-      <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-        <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" name="caly_dzien" class="rounded border-slate-300 text-brand-600">
-          Zablokuj cały dzień / całe dni
-        </label>
-        <button type="submit" class="sm:ml-auto rounded-xl bg-slate-900 text-white font-semibold px-6 py-3 hover:bg-slate-800">
-          Dodaj blokadę
-        </button>
-      </div>
+      <button type="submit" class="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 transition-colors shrink-0">
+        Dodaj termin
+      </button>
     </form>
 
-    <div class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
-      <h2 class="font-semibold text-slate-900 mb-4">Terminy na {{ wybrana_data }}</h2>
-      {% if terminy %}
-        <ul class="space-y-2">
-          {% for t in terminy %}
-            <li class="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
-              <span class="font-medium text-slate-800">{{ t }}</span>
-              <form method="post" class="inline">
-                <input type="hidden" name="data" value="{{ wybrana_data }}">
-                <input type="hidden" name="akcja" value="usun">
-                <input type="hidden" name="godzina" value="{{ t }}">
-                <button type="submit" class="text-sm text-red-600 hover:text-red-800 font-medium">Usuń</button>
-              </form>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="text-slate-500 text-sm">Brak wolnych terminów na ten dzień. Dodaj pierwszy termin powyżej.</p>
-      {% endif %}
-
-      {% if wizyty %}
-        <div class="mt-6 pt-6 border-t border-slate-100">
-          <h3 class="text-sm font-medium text-slate-500 mb-3">Wizyty w terminarzu</h3>
-          <ul class="space-y-2">
-            {% for w in wizyty %}
-              <li class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl bg-brand-50 border border-brand-100 px-4 py-3">
-                <div>
-                  <p class="font-medium text-brand-900">{{ w.godzina }}{% if w.koniec %}–{{ w.koniec }}{% endif %} · {{ w.imie }}</p>
-                  {% if w.usluga %}<p class="text-xs text-brand-700">{{ w.usluga }}</p>{% endif %}
-                </div>
-                <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug, data=wybrana_data) }}" class="text-sm font-medium text-brand-700 hover:text-brand-900">Terminarz →</a>
-              </li>
-            {% endfor %}
-          </ul>
-          <p class="text-xs text-slate-500 mt-3">Te wizyty blokują dodanie wolnych godzin w tym samym czasie (lub nachodzących na czas trwania usługi).</p>
-        </div>
-      {% endif %}
-
-      {% if zajete %}
-        <div class="mt-6 pt-6 border-t border-slate-100">
-          <h3 class="text-sm font-medium text-slate-500 mb-3">Zarezerwowane (zajęte)</h3>
-          <div class="flex flex-wrap gap-2">
-            {% for t in zajete %}
-              <span class="inline-flex px-3 py-1 rounded-lg bg-slate-100 text-slate-500 text-sm line-through">{{ t }}</span>
-            {% endfor %}
+    {% if terminy %}
+      <div class="flex flex-wrap gap-2">
+        {% for t in terminy %}
+          <div class="inline-flex items-center gap-1 rounded-xl bg-emerald-50 border border-emerald-100 pl-3 pr-1 py-1.5">
+            <span class="text-sm font-semibold text-emerald-900">{{ t }}</span>
+            <form method="post" class="inline">
+              <input type="hidden" name="data" value="{{ wybrana_data }}">
+              <input type="hidden" name="akcja" value="usun">
+              <input type="hidden" name="godzina" value="{{ t }}">
+              <button type="submit" class="rounded-lg px-2 py-0.5 text-xs font-medium text-red-600 hover:bg-red-50" title="Usuń">×</button>
+            </form>
           </div>
-          <p class="text-xs text-slate-400 mt-2">
-            <a href="{{ url_for('panel_rezerwacje', salon_slug=salon_slug) }}" class="text-brand-600 hover:underline">Zobacz szczegóły w rezerwacjach</a>
-          </p>
-        </div>
-      {% endif %}
-
-      {% if blokady %}
-        <div class="mt-6 pt-6 border-t border-slate-100">
-          <h3 class="text-sm font-medium text-slate-500 mb-3">Blokady w tym dniu</h3>
-          <div class="space-y-2">
-            {% for blokada in blokady %}
-              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
-                <div>
-                  <p class="font-medium text-amber-900">
-                    {{ blokada.powod }}
-                    {% if blokada.caly_dzien %}
-                      · cały dzień
-                    {% else %}
-                      · {{ blokada.od_godziny }}–{{ blokada.do_godziny }}
-                    {% endif %}
-                  </p>
-                  <p class="text-xs text-amber-700">
-                    {{ blokada.data_od }}{% if blokada.data_do != blokada.data_od %} – {{ blokada.data_do }}{% endif %}
-                    {% if blokada.opis %} · {{ blokada.opis }}{% endif %}
-                  </p>
-                </div>
-                <form method="post">
-                  <input type="hidden" name="akcja" value="usun_blokade">
-                  <input type="hidden" name="data" value="{{ wybrana_data }}">
-                  <input type="hidden" name="blokada_id" value="{{ blokada.id }}">
-                  <button type="submit" class="text-sm font-medium text-red-700 hover:text-red-900">Usuń</button>
-                </form>
-              </div>
-            {% endfor %}
-          </div>
-        </div>
-      {% endif %}
-    </div>
-  </div>
-
-  <aside class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm h-fit">
-    <h2 class="font-semibold text-slate-900 mb-4">Inne dni z terminami</h2>
-    {% if wszystkie_terminy %}
-      <ul class="space-y-2 text-sm">
-        {% for data_key, lista in wszystkie_terminy.items()|sort %}
-          <li>
-            <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=data_key) }}"
-              class="flex justify-between rounded-lg px-3 py-2 hover:bg-brand-50 {% if data_key == wybrana_data %}bg-brand-50 text-brand-800 font-medium{% else %}text-slate-700{% endif %}">
-              <span>{{ data_key }}</span>
-              <span class="text-slate-500">{{ lista|length }}</span>
-            </a>
-          </li>
         {% endfor %}
-      </ul>
+      </div>
     {% else %}
-      <p class="text-slate-500 text-sm">Nie dodano jeszcze żadnych terminów.</p>
+      <p class="text-sm text-slate-500">Brak wolnych terminów — wybierz godzinę powyżej i kliknij „Dodaj termin”.</p>
     {% endif %}
-  </aside>
-</div>
+
+    {% if wizyty or zajete or blokady %}
+      <div class="rounded-xl bg-slate-50 border border-slate-100 p-3 space-y-3 text-sm">
+        {% if wizyty %}
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">Wizyty w terminarzu</p>
+            <ul class="space-y-1">
+              {% for w in wizyty %}
+                <li class="flex flex-wrap items-center justify-between gap-2">
+                  <span class="text-brand-900 font-medium">{{ w.godzina }}{% if w.koniec %}–{{ w.koniec }}{% endif %} · {{ w.imie }}{% if w.usluga %} <span class="text-brand-700 font-normal">({{ w.usluga }})</span>{% endif %}</span>
+                  <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug, data=wybrana_data) }}" class="text-xs text-brand-600 hover:underline">Terminarz</a>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+        {% if zajete %}
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">Zarezerwowane</p>
+            <div class="flex flex-wrap gap-1.5">
+              {% for t in zajete %}
+                <span class="inline-flex px-2 py-0.5 rounded-md bg-slate-200/80 text-slate-600 text-xs line-through">{{ t }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+        {% if blokady %}
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">Blokady</p>
+            <ul class="space-y-1.5">
+              {% for blokada in blokady %}
+                <li class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-amber-50/80 px-2 py-1.5">
+                  <span class="text-amber-900">
+                    {{ blokada.powod }}
+                    {% if blokada.caly_dzien %}· cały dzień{% else %}· {{ blokada.od_godziny }}–{{ blokada.do_godziny }}{% endif %}
+                  </span>
+                  <form method="post" class="inline">
+                    <input type="hidden" name="akcja" value="usun_blokade">
+                    <input type="hidden" name="data" value="{{ wybrana_data }}">
+                    <input type="hidden" name="blokada_id" value="{{ blokada.id }}">
+                    <button type="submit" class="text-xs font-medium text-red-700 hover:underline">Usuń</button>
+                  </form>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<details class="group rounded-2xl border border-slate-200 bg-white shadow-sm mb-4 overflow-hidden">
+  <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 sm:px-5 hover:bg-slate-50 transition-colors [&::-webkit-details-marker]:hidden">
+    <div class="flex items-center gap-3">
+      <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-700 text-lg leading-none">⊘</span>
+      <div>
+        <p class="font-semibold text-slate-900">Zablokuj terminy</p>
+        <p class="text-xs text-slate-500">Urlop, przerwa, szkolenie — klienci nie zobaczą tych godzin</p>
+      </div>
+    </div>
+    <span class="text-slate-400 text-sm group-open:rotate-180 transition-transform">▼</span>
+  </summary>
+  <form method="post" class="border-t border-slate-100 p-4 sm:p-5 space-y-3">
+    <input type="hidden" name="akcja" value="blokuj">
+    <div class="grid sm:grid-cols-2 gap-3">
+      <div>
+        <label for="blokada_data_od" class="block text-sm font-medium text-slate-700 mb-1">Od daty</label>
+        <input type="date" id="blokada_data_od" name="blokada_data_od" value="{{ wybrana_data }}" required
+          class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+      </div>
+      <div>
+        <label for="blokada_data_do" class="block text-sm font-medium text-slate-700 mb-1">Do daty</label>
+        <input type="date" id="blokada_data_do" name="blokada_data_do" value="{{ wybrana_data }}" required
+          class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+      </div>
+    </div>
+    <div class="grid sm:grid-cols-3 gap-3">
+      <div>
+        <label for="powod" class="block text-sm font-medium text-slate-700 mb-1">Powód</label>
+        <select id="powod" name="powod" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+          <option>Przerwa</option><option>Urlop</option><option>Choroba</option><option>Szkolenie</option><option>Inne</option>
+        </select>
+      </div>
+      <div>
+        <label for="blokada_od_godziny" class="block text-sm font-medium text-slate-700 mb-1">Od godziny</label>
+        <input type="time" id="blokada_od_godziny" name="blokada_od_godziny" value="12:00"
+          class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+      </div>
+      <div>
+        <label for="blokada_do_godziny" class="block text-sm font-medium text-slate-700 mb-1">Do godziny</label>
+        <input type="time" id="blokada_do_godziny" name="blokada_do_godziny" value="13:00"
+          class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+      </div>
+    </div>
+    <div>
+      <label for="opis_blokady" class="block text-sm font-medium text-slate-700 mb-1">Notatka (opcjonalnie)</label>
+      <input id="opis_blokady" name="opis_blokady" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none" placeholder="np. szkolenie">
+    </div>
+    <div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
+      <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+        <input type="checkbox" name="caly_dzien" class="rounded border-slate-300 text-brand-600">
+        Cały dzień / całe dni
+      </label>
+      <button type="submit" class="sm:ml-auto rounded-xl bg-slate-900 text-white font-semibold px-5 py-2.5 hover:bg-slate-800">
+        Dodaj blokadę
+      </button>
+    </div>
+  </form>
+</details>
+
+<details class="group rounded-2xl bg-gradient-to-br from-slate-900 to-brand-900 text-white shadow-lg mb-6 overflow-hidden">
+  <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 sm:px-5 hover:bg-white/5 transition-colors [&::-webkit-details-marker]:hidden">
+    <div class="flex items-center gap-3">
+      <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-white/15 text-lg">⚡</span>
+      <div>
+        <p class="font-semibold">Wygeneruj terminy automatycznie</p>
+        <p class="text-xs text-slate-300">Zakres dat, godziny i interwał — na kilka tygodni do przodu</p>
+      </div>
+    </div>
+    <span class="text-slate-400 text-sm group-open:rotate-180 transition-transform">▼</span>
+  </summary>
+  <form method="post" class="border-t border-white/10 p-4 sm:p-5 space-y-3">
+    <input type="hidden" name="akcja" value="generuj">
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div>
+        <label for="data_od" class="block text-sm font-medium text-slate-200 mb-1">Od daty</label>
+        <input type="date" id="data_od" name="data_od" value="{{ wybrana_data }}" required
+          class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
+      </div>
+      <div>
+        <label for="data_do" class="block text-sm font-medium text-slate-200 mb-1">Do daty</label>
+        <input type="date" id="data_do" name="data_do" value="{{ wybrana_data }}" required
+          class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
+      </div>
+      <div>
+        <label for="od_godziny" class="block text-sm font-medium text-slate-200 mb-1">Od godziny</label>
+        <input type="time" id="od_godziny" name="od_godziny" value="09:00" required
+          class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
+      </div>
+      <div>
+        <label for="do_godziny" class="block text-sm font-medium text-slate-200 mb-1">Do godziny</label>
+        <input type="time" id="do_godziny" name="do_godziny" value="17:00" required
+          class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
+      </div>
+    </div>
+    <div class="flex flex-col lg:flex-row lg:items-center gap-3">
+      <div class="w-full lg:w-48">
+        <label for="interwal" class="block text-sm font-medium text-slate-200 mb-1">Co ile minut</label>
+        <select id="interwal" name="interwal"
+          class="w-full rounded-xl border border-white/20 bg-white px-3 py-2.5 text-slate-900 focus:ring-2 focus:ring-brand-300 outline-none">
+          <option value="15">15 min</option>
+          <option value="30" selected>30 min</option>
+          <option value="45">45 min</option>
+          <option value="60">60 min</option>
+        </select>
+      </div>
+      <label class="inline-flex items-center gap-2 text-sm text-slate-200 lg:mt-6">
+        <input type="checkbox" name="nadpisz" class="rounded border-white/30 text-brand-600">
+        Nadpisz istniejące sloty w wybranych dniach
+      </label>
+      <button type="submit" class="lg:ml-auto lg:mt-6 rounded-xl bg-white text-slate-900 font-semibold px-5 py-2.5 hover:bg-brand-50">
+        Wygeneruj
+      </button>
+    </div>
+  </form>
+</details>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% if scroll_do_panelu %}
+    var panel = document.getElementById('wybrany-dzien');
+    if (panel) {
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      var godzina = document.getElementById('godzina');
+      if (godzina && !godzina.value) godzina.focus();
+    }
+    {% endif %}
+  });
+</script>
 {% endblock %}
