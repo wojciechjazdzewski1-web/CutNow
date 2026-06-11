@@ -5,16 +5,16 @@
 {% include "_panel_subnav_kalendarz.html" %}
 
 <h1 class="text-2xl font-bold text-slate-900 mb-2">Terminy dla klientów</h1>
-<p class="text-slate-600 mb-4 text-sm">Kliknij dzień w kalendarzu — poniżej od razu zobaczysz sloty i dodasz godzinę.</p>
+<p class="text-slate-600 mb-4 text-sm">Kliknij dzień w kalendarzu — poniżej pojawi się panel z godzinami.</p>
 
 <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-4">
   <div>
     <h2 class="text-xl font-bold text-slate-900">{{ miesiac_label }}</h2>
   </div>
   <div class="flex flex-wrap gap-2">
-    <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=poprzedni_miesiac) }}" class="glo-cal-nav rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">← Poprzedni miesiąc</a>
-    <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug) }}" class="glo-cal-nav is-today rounded-xl border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-800">Dzisiaj</a>
-    <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=nastepny_miesiac) }}" class="glo-cal-nav rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Następny miesiąc →</a>
+    <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, m=poprzedni_miesiac) }}" class="glo-cal-nav rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">← Poprzedni miesiąc</a>
+    <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=dzisiaj_iso) }}#wybrany-dzien" class="glo-cal-nav is-today rounded-xl border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-800">Dzisiaj</a>
+    <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, m=nastepny_miesiac) }}" class="glo-cal-nav rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Następny miesiąc →</a>
   </div>
 </div>
 
@@ -44,6 +44,67 @@
   </div>
 </div>
 
+<details class="group rounded-2xl border border-slate-200 bg-white shadow-sm mb-4 overflow-hidden">
+  <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 sm:px-5 hover:bg-slate-50 transition-colors [&::-webkit-details-marker]:hidden">
+    <div class="flex items-center gap-3">
+      <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-700 text-lg leading-none">⊘</span>
+      <div>
+        <p class="font-semibold text-slate-900">Zablokuj terminy</p>
+        <p class="text-xs text-slate-500">Urlop, przerwa, szkolenie — klienci nie zobaczą tych godzin</p>
+      </div>
+    </div>
+    <span class="text-slate-400 text-sm group-open:rotate-180 transition-transform">▼</span>
+  </summary>
+  <form method="post" class="border-t border-slate-100 p-4 sm:p-5 space-y-3">
+    <input type="hidden" name="akcja" value="blokuj">
+    <input type="hidden" name="data" value="{{ data_domyslna }}">
+    <div class="grid sm:grid-cols-2 gap-3">
+      <div>
+        <label for="blokada_data_od" class="block text-sm font-medium text-slate-700 mb-1">Od daty</label>
+        <input type="date" id="blokada_data_od" name="blokada_data_od" value="{{ data_domyslna }}" required
+          class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+      </div>
+      <div>
+        <label for="blokada_data_do" class="block text-sm font-medium text-slate-700 mb-1">Do daty</label>
+        <input type="date" id="blokada_data_do" name="blokada_data_do" value="{{ data_domyslna }}" required
+          class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+      </div>
+    </div>
+    <div class="grid sm:grid-cols-3 gap-3">
+      <div>
+        <label for="powod" class="block text-sm font-medium text-slate-700 mb-1">Powód</label>
+        <select id="powod" name="powod" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+          <option>Przerwa</option><option>Urlop</option><option>Choroba</option><option>Szkolenie</option><option>Inne</option>
+        </select>
+      </div>
+      <div>
+        <label for="blokada_od_godziny" class="block text-sm font-medium text-slate-700 mb-1">Od godziny</label>
+        <input type="time" id="blokada_od_godziny" name="blokada_od_godziny" value="12:00"
+          class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+      </div>
+      <div>
+        <label for="blokada_do_godziny" class="block text-sm font-medium text-slate-700 mb-1">Do godziny</label>
+        <input type="time" id="blokada_do_godziny" name="blokada_do_godziny" value="13:00"
+          class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+      </div>
+    </div>
+    <div>
+      <label for="opis_blokady" class="block text-sm font-medium text-slate-700 mb-1">Notatka (opcjonalnie)</label>
+      <input id="opis_blokady" name="opis_blokady" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none" placeholder="np. szkolenie">
+    </div>
+    <div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
+      <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+        <input type="checkbox" name="caly_dzien" class="rounded border-slate-300 text-brand-600">
+        Cały dzień / całe dni
+      </label>
+      <button type="submit" class="sm:ml-auto rounded-xl bg-slate-900 text-white font-semibold px-5 py-2.5 hover:bg-slate-800">
+        Dodaj blokadę
+      </button>
+    </div>
+  </form>
+</details>
+
+{% if pokaz_panel_dnia %}
 <section id="wybrany-dzien" class="scroll-mt-24 rounded-2xl bg-white border border-brand-200 shadow-sm mb-4 overflow-hidden">
   <div class="border-b border-brand-100 bg-gradient-to-r from-brand-50 to-white px-4 py-3 sm:px-5">
     <div class="flex flex-wrap items-center justify-between gap-2">
@@ -52,7 +113,7 @@
         <h2 class="text-lg font-bold text-slate-900">{{ wybrany_dzien_label }}, {{ wybrana_data[8:10] }}.{{ wybrana_data[5:7] }}.{{ wybrana_data[:4] }}</h2>
       </div>
       {% if inne_dni_z_terminami %}
-        <div class="flex flex-wrap items-center gap-1.5 text-xs">
+        <div class="flex flex-wrap items-center gap-1.5 text-xs max-w-full">
           <span class="text-slate-500 shrink-0">Inne dni:</span>
           {% for data_key, lista in inne_dni_z_terminami[:8] %}
             <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug, data=data_key) }}#wybrany-dzien"
@@ -150,65 +211,11 @@
     {% endif %}
   </div>
 </section>
-
-<details class="group rounded-2xl border border-slate-200 bg-white shadow-sm mb-4 overflow-hidden">
-  <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 sm:px-5 hover:bg-slate-50 transition-colors [&::-webkit-details-marker]:hidden">
-    <div class="flex items-center gap-3">
-      <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-700 text-lg leading-none">⊘</span>
-      <div>
-        <p class="font-semibold text-slate-900">Zablokuj terminy</p>
-        <p class="text-xs text-slate-500">Urlop, przerwa, szkolenie — klienci nie zobaczą tych godzin</p>
-      </div>
-    </div>
-    <span class="text-slate-400 text-sm group-open:rotate-180 transition-transform">▼</span>
-  </summary>
-  <form method="post" class="border-t border-slate-100 p-4 sm:p-5 space-y-3">
-    <input type="hidden" name="akcja" value="blokuj">
-    <div class="grid sm:grid-cols-2 gap-3">
-      <div>
-        <label for="blokada_data_od" class="block text-sm font-medium text-slate-700 mb-1">Od daty</label>
-        <input type="date" id="blokada_data_od" name="blokada_data_od" value="{{ wybrana_data }}" required
-          class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
-      </div>
-      <div>
-        <label for="blokada_data_do" class="block text-sm font-medium text-slate-700 mb-1">Do daty</label>
-        <input type="date" id="blokada_data_do" name="blokada_data_do" value="{{ wybrana_data }}" required
-          class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
-      </div>
-    </div>
-    <div class="grid sm:grid-cols-3 gap-3">
-      <div>
-        <label for="powod" class="block text-sm font-medium text-slate-700 mb-1">Powód</label>
-        <select id="powod" name="powod" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
-          <option>Przerwa</option><option>Urlop</option><option>Choroba</option><option>Szkolenie</option><option>Inne</option>
-        </select>
-      </div>
-      <div>
-        <label for="blokada_od_godziny" class="block text-sm font-medium text-slate-700 mb-1">Od godziny</label>
-        <input type="time" id="blokada_od_godziny" name="blokada_od_godziny" value="12:00"
-          class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
-      </div>
-      <div>
-        <label for="blokada_do_godziny" class="block text-sm font-medium text-slate-700 mb-1">Do godziny</label>
-        <input type="time" id="blokada_do_godziny" name="blokada_do_godziny" value="13:00"
-          class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
-      </div>
-    </div>
-    <div>
-      <label for="opis_blokady" class="block text-sm font-medium text-slate-700 mb-1">Notatka (opcjonalnie)</label>
-      <input id="opis_blokady" name="opis_blokady" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none" placeholder="np. szkolenie">
-    </div>
-    <div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
-      <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-        <input type="checkbox" name="caly_dzien" class="rounded border-slate-300 text-brand-600">
-        Cały dzień / całe dni
-      </label>
-      <button type="submit" class="sm:ml-auto rounded-xl bg-slate-900 text-white font-semibold px-5 py-2.5 hover:bg-slate-800">
-        Dodaj blokadę
-      </button>
-    </div>
-  </form>
-</details>
+{% else %}
+<div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center mb-4">
+  <p class="text-sm text-slate-600">Wybierz dzień w kalendarzu, aby dodać lub usunąć godziny dla klientów.</p>
+</div>
+{% endif %}
 
 <details class="group rounded-2xl bg-gradient-to-br from-slate-900 to-brand-900 text-white shadow-lg mb-6 overflow-hidden">
   <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 sm:px-5 hover:bg-white/5 transition-colors [&::-webkit-details-marker]:hidden">
@@ -223,15 +230,16 @@
   </summary>
   <form method="post" class="border-t border-white/10 p-4 sm:p-5 space-y-3">
     <input type="hidden" name="akcja" value="generuj">
+    <input type="hidden" name="data" value="{{ data_domyslna }}">
     <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
       <div>
         <label for="data_od" class="block text-sm font-medium text-slate-200 mb-1">Od daty</label>
-        <input type="date" id="data_od" name="data_od" value="{{ wybrana_data }}" required
+        <input type="date" id="data_od" name="data_od" value="{{ data_domyslna }}" required
           class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
       </div>
       <div>
         <label for="data_do" class="block text-sm font-medium text-slate-200 mb-1">Do daty</label>
-        <input type="date" id="data_do" name="data_do" value="{{ wybrana_data }}" required
+        <input type="date" id="data_do" name="data_do" value="{{ data_domyslna }}" required
           class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-white [color-scheme:dark] focus:ring-2 focus:ring-brand-300 outline-none">
       </div>
       <div>
@@ -267,16 +275,16 @@
   </form>
 </details>
 
+{% if pokaz_panel_dnia %}
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    {% if scroll_do_panelu %}
     var panel = document.getElementById('wybrany-dzien');
     if (panel) {
-      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
       var godzina = document.getElementById('godzina');
-      if (godzina && !godzina.value) godzina.focus();
+      if (godzina && !godzina.value) godzina.focus({ preventScroll: true });
     }
-    {% endif %}
   });
 </script>
+{% endif %}
 {% endblock %}

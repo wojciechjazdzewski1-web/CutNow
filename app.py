@@ -2776,7 +2776,7 @@ def panel_wyloguj(salon_slug: str | None = None):
     return redirect(url_for("strona_glowna"))
 
 
-BUILD_ID = "2026-05-27-favicon-transparent"
+BUILD_ID = "2026-05-29-terminy-panel"
 
 
 @app.context_processor
@@ -3513,9 +3513,10 @@ def godziny_pracy(salon_slug: str):
 
 @app.route("/panel/<salon_slug>/terminy", methods=["GET", "POST"])
 def wolne_terminy(salon_slug: str):
-    wybrana_data = request.args.get("data") or request.form.get("data") or date.today().isoformat()
+    dzisiaj_iso = date.today().isoformat()
+    wybrana_data = request.args.get("data") or request.form.get("data") or dzisiaj_iso
     if not waliduj_date_iso(wybrana_data):
-        wybrana_data = date.today().isoformat()
+        wybrana_data = dzisiaj_iso
         flash("Nieprawidłowa data — pokazuję dzisiejszy dzień.", "error")
 
     if request.method == "POST":
@@ -3646,7 +3647,24 @@ def wolne_terminy(salon_slug: str):
         flash(komunikat, kategoria)
         return redirect(url_for("wolne_terminy", salon_slug=salon_slug, data=data_redirect))
 
-    data_od, data_do = zakres_miesiaca(wybrana_data)
+    pokaz_panel_dnia = bool(request.args.get("data"))
+    miesiac_q = request.args.get("m", "")
+    if request.args.get("data"):
+        data_kontekstu = request.args.get("data")
+        if not waliduj_date_iso(data_kontekstu):
+            data_kontekstu = dzisiaj_iso
+    elif len(miesiac_q) == 7 and waliduj_date_iso(f"{miesiac_q}-01"):
+        data_kontekstu = f"{miesiac_q}-01"
+    else:
+        data_kontekstu = dzisiaj_iso
+
+    if pokaz_panel_dnia:
+        wybrana_data = request.args.get("data")
+        if not waliduj_date_iso(wybrana_data):
+            wybrana_data = dzisiaj_iso
+            pokaz_panel_dnia = False
+
+    data_od, data_do = zakres_miesiaca(data_kontekstu)
     salon = wczytaj_salon_bezposrednio(
         salon_slug,
         data_od=data_od,
@@ -3660,7 +3678,7 @@ def wolne_terminy(salon_slug: str):
         flash("Nie znaleziono takiego salonu.", "error")
         return redirect(url_for("panel_lista"))
 
-    data_wybrana = datetime.strptime(wybrana_data, "%Y-%m-%d").date()
+    data_wybrana = datetime.strptime(data_kontekstu, "%Y-%m-%d").date()
     pierwszy_dzien_miesiaca = data_wybrana.replace(day=1)
     liczba_dni = calendar.monthrange(data_wybrana.year, data_wybrana.month)[1]
     dni_kalendarza = []
@@ -3680,7 +3698,7 @@ def wolne_terminy(salon_slug: str):
                 "wizyty": wizyty_dnia,
                 "blokady": blokady,
                 "zamkniety": harmonogram_dnia(salon, data_iso).get("zamkniety", False),
-                "aktywny": data_iso == wybrana_data,
+                "aktywny": pokaz_panel_dnia and data_iso == wybrana_data,
             }
         )
 
@@ -3702,18 +3720,20 @@ def wolne_terminy(salon_slug: str):
         dane=salon,
         salon_slug=salon_slug,
         wybrana_data=wybrana_data,
+        dzisiaj_iso=dzisiaj_iso,
         wybrany_dzien_label=wybrany_dzien_label,
-        scroll_do_panelu=bool(request.args.get("data")),
-        terminy=dostepne_terminy(salon, wybrana_data),
-        zajete=sorted(zajete_godziny(salon, wybrana_data)),
-        wizyty=wizyty_dnia_panelu(salon, wybrana_data),
-        blokady=blokady_dnia(salon, wybrana_data),
-        inne_dni_z_terminami=inne_dni_z_terminami,
+        pokaz_panel_dnia=pokaz_panel_dnia,
+        terminy=dostepne_terminy(salon, wybrana_data) if pokaz_panel_dnia else [],
+        zajete=sorted(zajete_godziny(salon, wybrana_data)) if pokaz_panel_dnia else [],
+        wizyty=wizyty_dnia_panelu(salon, wybrana_data) if pokaz_panel_dnia else [],
+        blokady=blokady_dnia(salon, wybrana_data) if pokaz_panel_dnia else [],
+        inne_dni_z_terminami=inne_dni_z_terminami if pokaz_panel_dnia else [],
+        data_domyslna=wybrana_data if pokaz_panel_dnia else dzisiaj_iso,
         dni_kalendarza=dni_kalendarza,
         puste_przed=pierwszy_dzien_miesiaca.weekday(),
         miesiac_label=f"{MIESIACE[data_wybrana.month]} {data_wybrana.year}",
-        poprzedni_miesiac=poprzedni_miesiac_data.isoformat(),
-        nastepny_miesiac=nastepny_miesiac_data.isoformat(),
+        poprzedni_miesiac=poprzedni_miesiac_data.strftime("%Y-%m"),
+        nastepny_miesiac=nastepny_miesiac_data.strftime("%Y-%m"),
     )
 
 
