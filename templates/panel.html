@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_panel_icons.html" import icon %}
 {% block title %}Panel — Glovaro{% endblock %}
 
 {% block content %}
@@ -89,22 +90,24 @@
   </div>
 </div>
 
-<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-  <div class="client-panel-card rounded-2xl p-5">
-    <p class="text-sm text-slate-500 mb-1">Aktywne rezerwacje</p>
-    <p class="text-2xl font-bold text-slate-900">{{ statystyki.wszystkie_rezerwacje }}</p>
+<div class="grid sm:grid-cols-2 gap-4 mb-10">
+  <div class="client-panel-card rounded-2xl p-5 flex items-start gap-4">
+    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+    </span>
+    <div>
+      <p class="text-sm text-slate-500 mb-1">Aktywne rezerwacje</p>
+      <p class="text-2xl font-bold text-slate-900">{{ statystyki.wszystkie_rezerwacje }}</p>
+    </div>
   </div>
-  <div class="client-panel-card rounded-2xl p-5">
-    <p class="text-sm text-slate-500 mb-1">Unikalni klienci</p>
-    <p class="text-2xl font-bold text-slate-900">{{ statystyki.unikalni_klienci }}</p>
-  </div>
-  <div class="client-panel-card rounded-2xl p-5">
-    <p class="text-sm text-slate-500 mb-1">Najpopularniejszy dzień</p>
-    <p class="text-2xl font-bold text-slate-900">{{ statystyki.najpopularniejszy_dzien }}</p>
-  </div>
-  <div class="client-panel-card rounded-2xl p-5">
-    <p class="text-sm text-slate-500 mb-1">Następne 7 dni</p>
-    <p class="text-2xl font-bold text-slate-900">{{ statystyki.rezerwacje_7_dni }}</p>
+  <div class="client-panel-card rounded-2xl p-5 flex items-start gap-4">
+    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    </span>
+    <div>
+      <p class="text-sm text-slate-500 mb-1">Następne 7 dni</p>
+      <p class="text-2xl font-bold text-slate-900">{{ statystyki.rezerwacje_7_dni }}</p>
+    </div>
   </div>
 </div>
 
@@ -140,36 +143,42 @@
   </div>
   <ol class="space-y-2 text-sm">
     <li>
-      <a href="{{ url_for('ustawienia_salonu', salon_slug=salon_slug) }}" data-tour="profil" class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-brand-300 transition-colors">
-        <span><span class="font-semibold text-slate-900">1. Profil i usługi</span> — nazwa, logo, cennik</span>
+      <a href="{{ url_for('ustawienia_salonu', salon_slug=salon_slug) }}" data-tour="profil" class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-brand-300 hover:shadow-sm transition-all">
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-600">{{ icon('profil', 'w-4 h-4') }}</span>
+        <span class="flex-1"><span class="font-semibold text-slate-900">1. Profil i usługi</span><span class="block text-slate-500 text-xs mt-0.5">Nazwa, logo, cennik</span></span>
         <span class="text-brand-600">→</span>
       </a>
     </li>
     <li>
-      <a href="{{ url_for('godziny_pracy', salon_slug=salon_slug) }}" data-tour="godziny" class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-brand-300 transition-colors">
-        <span><span class="font-semibold text-slate-900">2. Godziny pracy</span> — kiedy firma jest otwarta</span>
+      <a href="{{ url_for('godziny_pracy', salon_slug=salon_slug) }}" data-tour="godziny" class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-brand-300 hover:shadow-sm transition-all">
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600">{{ icon('godziny', 'w-4 h-4') }}</span>
+        <span class="flex-1"><span class="font-semibold text-slate-900">2. Godziny pracy</span><span class="block text-slate-500 text-xs mt-0.5">Kiedy firma jest otwarta</span></span>
         <span class="text-brand-600">→</span>
       </a>
     </li>
     <li>
-      <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug) }}" data-tour="wolne-terminy" class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-brand-300 transition-colors">
-        <span><span class="font-semibold text-slate-900">3. Terminy dla klientów</span> — {{ liczba_dni_z_terminami }} dni z wolnymi slotami</span>
+      <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug) }}" data-tour="wolne-terminy" class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-brand-300 hover:shadow-sm transition-all">
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">{{ icon('terminy', 'w-4 h-4') }}</span>
+        <span class="flex-1"><span class="font-semibold text-slate-900">3. Terminy dla klientów</span><span class="block text-slate-500 text-xs mt-0.5">{{ liczba_dni_z_terminami }} dni z wolnymi slotami</span></span>
         <span class="text-brand-600">→</span>
       </a>
     </li>
     <li>
-      <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" target="_blank" rel="noopener noreferrer" data-tour="podglad" class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-brand-300 transition-colors">
-        <span><span class="font-semibold text-slate-900">4. Sprawdź stronę klienta</span> — podgląd rezerwacji</span>
+      <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" target="_blank" rel="noopener noreferrer" data-tour="podglad" class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-brand-300 hover:shadow-sm transition-all">
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600">{{ icon('external', 'w-4 h-4') }}</span>
+        <span class="flex-1"><span class="font-semibold text-slate-900">4. Sprawdź stronę klienta</span><span class="block text-slate-500 text-xs mt-0.5">Podgląd rezerwacji</span></span>
         <span class="text-brand-600">↗</span>
       </a>
     </li>
   </ol>
   <div class="mt-4 grid sm:grid-cols-2 gap-2 text-sm">
-    <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug) }}" data-tour="terminarz" class="rounded-xl bg-slate-50 px-4 py-3 text-slate-700 hover:bg-slate-100">
-      <span class="font-semibold text-slate-900">Kalendarz wizyt</span> — terminarz i ręczne wpisy
+    <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug) }}" data-tour="terminarz" class="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-slate-700 hover:bg-slate-100">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-brand-600 shadow-sm">{{ icon('kalendarz', 'w-4 h-4') }}</span>
+      <span><span class="font-semibold text-slate-900">Kalendarz wizyt</span><span class="block text-xs text-slate-500">Terminarz i ręczne wpisy</span></span>
     </a>
-    <a href="{{ url_for('panel_rezerwacje', salon_slug=salon_slug) }}" data-tour="rezerwacje" class="rounded-xl bg-slate-50 px-4 py-3 text-slate-700 hover:bg-slate-100">
-      <span class="font-semibold text-slate-900">Rezerwacje online</span> — {{ liczba_rezerwacji }} nadchodzących{% if liczba_listy_rezerwowej %}, {{ liczba_listy_rezerwowej }} na liście{% endif %}
+    <a href="{{ url_for('panel_rezerwacje', salon_slug=salon_slug) }}" data-tour="rezerwacje" class="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-slate-700 hover:bg-slate-100">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-brand-600 shadow-sm">{{ icon('rezerwacje', 'w-4 h-4') }}</span>
+      <span><span class="font-semibold text-slate-900">Rezerwacje online</span><span class="block text-xs text-slate-500">{{ liczba_rezerwacji }} nadchodzących{% if liczba_listy_rezerwowej %}, {{ liczba_listy_rezerwowej }} na liście{% endif %}</span></span>
     </a>
   </div>
 </div>

@@ -874,9 +874,16 @@
         padding-bottom: 3rem;
       }
     }
-    .glo-panel-nav-link:focus-visible {
+    .glo-panel-nav-link:focus-visible,
+    .glo-subnav-link:focus-visible {
       outline: 2px solid #e11d74;
       outline-offset: 2px;
+    }
+    .glo-subnav {
+      scrollbar-width: none;
+    }
+    .glo-subnav::-webkit-scrollbar {
+      display: none;
     }
   </style>
   {% endif %}

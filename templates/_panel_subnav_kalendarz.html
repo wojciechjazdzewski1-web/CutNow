@@ -1,10 +1,17 @@
-<nav class="flex gap-1 mb-6 overflow-x-auto pb-1 border-b border-slate-200" aria-label="Sekcje kalendarza">
+{% from "_panel_icons.html" import icon %}
+<nav class="glo-subnav mb-6 flex gap-1.5 overflow-x-auto p-1.5 rounded-2xl bg-slate-100/80 border border-slate-200/60 dark:bg-slate-800/50 dark:border-slate-700" aria-label="Sekcje kalendarza">
   <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug) }}"
-    class="shrink-0 px-4 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors {% if request.endpoint == 'panel_terminarz' %}border-brand-600 text-brand-700{% else %}border-transparent text-slate-500 hover:text-slate-800{% endif %}">
+    class="glo-subnav-link inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all {% if request.endpoint == 'panel_terminarz' %}bg-white text-brand-700 shadow-sm ring-1 ring-brand-200 dark:bg-slate-900 dark:text-brand-300 dark:ring-brand-800{% else %}text-slate-600 hover:bg-white/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900/60{% endif %}">
+    <span class="flex h-7 w-7 items-center justify-center rounded-lg {% if request.endpoint == 'panel_terminarz' %}bg-brand-100 text-brand-600 dark:bg-brand-950/50{% else %}bg-white text-slate-500 dark:bg-slate-700{% endif %}">
+      {{ icon('wizyty', 'w-4 h-4') }}
+    </span>
     Wizyty
   </a>
   <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug) }}"
-    class="shrink-0 px-4 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors {% if request.endpoint == 'wolne_terminy' %}border-brand-600 text-brand-700{% else %}border-transparent text-slate-500 hover:text-slate-800{% endif %}">
+    class="glo-subnav-link inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all {% if request.endpoint == 'wolne_terminy' %}bg-white text-brand-700 shadow-sm ring-1 ring-brand-200 dark:bg-slate-900 dark:text-brand-300 dark:ring-brand-800{% else %}text-slate-600 hover:bg-white/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900/60{% endif %}">
+    <span class="flex h-7 w-7 items-center justify-center rounded-lg {% if request.endpoint == 'wolne_terminy' %}bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40{% else %}bg-white text-slate-500 dark:bg-slate-700{% endif %}">
+      {{ icon('terminy', 'w-4 h-4') }}
+    </span>
     Terminy dla klientów
   </a>
 </nav>

@@ -3280,14 +3280,6 @@ def panel(salon_slug: str):
         for r in aktywne
         if r.get("status", "potwierdzona") not in {"zakonczona"}
     ]
-    klienci = {normalizuj_telefon(r.get("telefon", "")) for r in aktywne if r.get("telefon")}
-    dni_count: dict[str, int] = {}
-    for r in aktywne:
-        data_rezerwacji = r.get("data", "")
-        if waliduj_date_iso(data_rezerwacji):
-            dzien = dict(DNI_TYGODNIA)[klucz_dnia_tygodnia(data_rezerwacji)]
-            dni_count[dzien] = dni_count.get(dzien, 0) + 1
-    najpopularniejszy_dzien = max(dni_count.items(), key=lambda item: item[1])[0] if dni_count else "-"
     za_7_dni = (date.today() + timedelta(days=7)).isoformat()
     rezerwacje_7_dni = [r for r in nadchodzace if r.get("data", "") <= za_7_dni]
     lista_rezerwowa = aktywne_zgloszenia_listy_rezerwowej(salon)
@@ -3305,8 +3297,6 @@ def panel(salon_slug: str):
         liczba_listy_rezerwowej=len(lista_rezerwowa),
         statystyki={
             "wszystkie_rezerwacje": len(aktywne),
-            "unikalni_klienci": len([k for k in klienci if k]),
-            "najpopularniejszy_dzien": najpopularniejszy_dzien,
             "rezerwacje_7_dni": len(rezerwacje_7_dni),
         },
     )
