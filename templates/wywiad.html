@@ -2,12 +2,9 @@
 {% block title %}Wywiad zdrowotny — Glovaro{% endblock %}
 
 {% block content %}
-<a href="{{ url_for('panel', salon_slug=salon_slug) }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6">
-  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-  Wróć do panelu
-</a>
+{% include "_panel_subnav_klienci.html" %}
 
-<h1 class="text-2xl font-bold text-slate-900 mb-2">Wywiad zdrowotne</h1>
+<h1 class="text-2xl font-bold text-slate-900 mb-2">Wywiad zdrowotny</h1>
 <p class="text-slate-600 mb-8 leading-relaxed">
   Klient <strong>przegląda treść</strong> i zaznacza akceptację — bez odpowiadania na każde pytanie osobno.
   Zapis trafia do kartoteki i historii wizyt.

@@ -2,34 +2,23 @@
 {% block title %}Rezerwacje — Glovaro{% endblock %}
 
 {% block content %}
-<a href="{{ url_for('panel', salon_slug=salon_slug) }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6">
-  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-  Wróć do panelu
-</a>
-
-<div class="flex flex-wrap items-center justify-between gap-3 mb-2">
-  <h1 class="text-2xl font-bold text-slate-900">Rezerwacje klientów</h1>
-  <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug) }}" class="rounded-xl bg-brand-600 text-white text-sm font-semibold px-4 py-2 hover:bg-brand-700">Terminarz</a>
+<div class="mb-2">
+  <h1 class="text-2xl font-bold text-slate-900">Rezerwacje i zapytania</h1>
+  <p class="text-slate-600 mt-1 text-sm leading-relaxed">
+    {% if widok == 'lista' %}
+      Klienci, którzy nie znaleźli wolnego terminu i proszą o kontakt.
+    {% else %}
+      Potwierdzaj, odrzucaj lub anuluj wizyty online. Po terminie wpis trafia do archiwum (ok. {{ dni_archiwum }} dni).
+    {% endif %}
+  </p>
 </div>
-<p class="text-slate-600 mb-6 leading-relaxed">
-  Potwierdzaj, odrzucaj lub anuluj wizyty. Po terminie wpis trafia do <strong>archiwum</strong> (ok. godzinę po wizycie).
-  W archiwum zostaje <strong>{{ dni_archiwum }} dni</strong>, potem jest usuwany automatycznie. Opinie klientów zostają na stronie salonu.
-</p>
 
-<nav class="flex gap-2 mb-8 border-b border-slate-200">
-  <a href="{{ url_for('panel_rezerwacje', salon_slug=salon_slug, widok='nadchodzace') }}"
-    class="px-4 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors {% if widok == 'nadchodzace' %}border-brand-600 text-brand-700{% else %}border-transparent text-slate-500 hover:text-slate-800{% endif %}">
-    Nadchodzące
-    <span class="ml-1 rounded-full bg-brand-100 text-brand-800 px-2 py-0.5 text-xs">{{ nadchodzace|length }}</span>
-  </a>
-  <a href="{{ url_for('panel_rezerwacje', salon_slug=salon_slug, widok='archiwum') }}"
-    class="px-4 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors {% if widok == 'archiwum' %}border-brand-600 text-brand-700{% else %}border-transparent text-slate-500 hover:text-slate-800{% endif %}">
-    Archiwum
-    <span class="ml-1 rounded-full bg-slate-100 text-slate-700 px-2 py-0.5 text-xs">{{ archiwum|length }}</span>
-  </a>
-</nav>
+{% include "_panel_subnav_rezerwacje.html" %}
 
-{% if widok == 'nadchodzace' %}
+{% if widok == 'lista' %}
+  {% include "_lista_rezerwowa_tresc.html" %}
+
+{% elif widok == 'nadchodzace' %}
   {% if nadchodzace %}
     <div class="space-y-3">
       {% for r in nadchodzace %}
@@ -81,11 +70,13 @@
               <form method="post">
                 <input type="hidden" name="akcja" value="potwierdz">
                 <input type="hidden" name="id" value="{{ r.id }}">
+                <input type="hidden" name="widok" value="nadchodzace">
                 <button type="submit" class="text-sm text-emerald-700 font-medium px-4 py-2 rounded-lg border border-emerald-200 hover:bg-emerald-50">Potwierdź</button>
               </form>
               <form method="post" onsubmit="return confirm('Odrzucić tę rezerwację? Termin wróci do wolnych.');">
                 <input type="hidden" name="akcja" value="odrzuc">
                 <input type="hidden" name="id" value="{{ r.id }}">
+                <input type="hidden" name="widok" value="nadchodzace">
                 <button type="submit" class="text-sm text-amber-700 font-medium px-4 py-2 rounded-lg border border-amber-200 hover:bg-amber-50">Odrzuć</button>
               </form>
             {% endif %}
@@ -94,12 +85,14 @@
                 <form method="post">
                   <input type="hidden" name="akcja" value="cofnij_oplacone">
                   <input type="hidden" name="id" value="{{ r.id }}">
+                  <input type="hidden" name="widok" value="nadchodzace">
                   <button type="submit" class="text-sm text-slate-600 font-medium px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50">Cofnij „opłacone”</button>
                 </form>
               {% else %}
                 <form method="post">
                   <input type="hidden" name="akcja" value="oznacz_oplacone">
                   <input type="hidden" name="id" value="{{ r.id }}">
+                  <input type="hidden" name="widok" value="nadchodzace">
                   <button type="submit" class="text-sm text-emerald-800 font-medium px-4 py-2 rounded-lg border border-emerald-200 hover:bg-emerald-50">Oznacz jako opłacone</button>
                 </form>
               {% endif %}
@@ -107,6 +100,7 @@
             <form method="post" onsubmit="return confirm('Anulować tę rezerwację? Termin wróci do wolnych.');">
               <input type="hidden" name="akcja" value="anuluj">
               <input type="hidden" name="id" value="{{ r.id }}">
+              <input type="hidden" name="widok" value="nadchodzace">
               <button type="submit" class="text-sm text-red-600 hover:text-red-800 font-medium px-4 py-2 rounded-lg border border-red-200 hover:bg-red-50">
                 Anuluj
               </button>

@@ -2,19 +2,11 @@
 {% block title %}Kartoteka klientów — Glovaro{% endblock %}
 
 {% block content %}
-<a href="{{ url_for('panel', salon_slug=salon_slug) }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6">
-  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-  Wróć do panelu
-</a>
+{% include "_panel_subnav_klienci.html" %}
 
-<div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
-  <div>
-    <h1 class="text-2xl font-bold text-slate-900">Kartoteka klientów</h1>
-    <p class="text-slate-600 mt-1">{{ liczba_klientow }} klientów · historia wizyt i wywiady zdrowotne</p>
-  </div>
-  <a href="{{ url_for('panel_wywiad', salon_slug=salon_slug) }}" class="inline-flex justify-center rounded-xl border border-brand-300 bg-brand-50 px-4 py-2.5 text-sm font-semibold text-brand-800 hover:bg-brand-100">
-    Ustaw wywiad zdrowotny
-  </a>
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Kartoteka klientów</h1>
+  <p class="text-slate-600 mt-1 text-sm">{{ liczba_klientow }} klientów · historia wizyt i notatki</p>
 </div>
 
 <form method="get" class="mb-6 flex flex-col sm:flex-row gap-3">

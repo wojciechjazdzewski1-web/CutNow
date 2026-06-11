@@ -1,0 +1,17 @@
+<nav class="flex gap-1 mb-6 overflow-x-auto pb-1 border-b border-slate-200" aria-label="Sekcje rezerwacji">
+  <a href="{{ url_for('panel_rezerwacje', salon_slug=salon_slug, widok='nadchodzace') }}"
+    class="shrink-0 px-4 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors {% if widok == 'nadchodzace' %}border-brand-600 text-brand-700{% else %}border-transparent text-slate-500 hover:text-slate-800{% endif %}">
+    Nadchodzące
+    {% if nadchodzace is defined %}<span class="ml-1 rounded-full bg-brand-100 text-brand-800 px-2 py-0.5 text-xs">{{ nadchodzace|length }}</span>{% endif %}
+  </a>
+  <a href="{{ url_for('panel_rezerwacje', salon_slug=salon_slug, widok='archiwum') }}"
+    class="shrink-0 px-4 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors {% if widok == 'archiwum' %}border-brand-600 text-brand-700{% else %}border-transparent text-slate-500 hover:text-slate-800{% endif %}">
+    Archiwum
+    {% if archiwum is defined %}<span class="ml-1 rounded-full bg-slate-100 text-slate-700 px-2 py-0.5 text-xs">{{ archiwum|length }}</span>{% endif %}
+  </a>
+  <a href="{{ url_for('panel_rezerwacje', salon_slug=salon_slug, widok='lista') }}"
+    class="shrink-0 px-4 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors {% if widok == 'lista' %}border-brand-600 text-brand-700{% else %}border-transparent text-slate-500 hover:text-slate-800{% endif %}">
+    Lista rezerwowa
+    {% if zgloszenia is defined %}<span class="ml-1 rounded-full bg-fuchsia-100 text-fuchsia-800 px-2 py-0.5 text-xs">{{ zgloszenia|length }}</span>{% endif %}
+  </a>
+</nav>

@@ -191,6 +191,41 @@ WIDOK_KLIENTA_ENDPOINTS = {
     "opinia_klienta",
 }
 
+PANEL_FIRMY_ENDPOINTS = frozenset(
+    {
+        "panel",
+        "panel_instrukcja",
+        "ustawienia_salonu",
+        "godziny_pracy",
+        "wolne_terminy",
+        "panel_terminarz",
+        "panel_rezerwacje",
+        "panel_lista_rezerwowa",
+        "panel_klienci",
+        "panel_klient_szczegoly",
+        "panel_wywiad",
+        "panel_opinie",
+    }
+)
+
+PANEL_SEKCJA_ENDPOINTS = {
+    "pulpit": frozenset({"panel", "panel_instrukcja"}),
+    "kalendarz": frozenset({"panel_terminarz", "wolne_terminy"}),
+    "rezerwacje": frozenset({"panel_rezerwacje", "panel_lista_rezerwowa"}),
+    "klienci": frozenset({"panel_klienci", "panel_klient_szczegoly", "panel_wywiad"}),
+    "ustawienia": frozenset({"ustawienia_salonu", "godziny_pracy", "panel_opinie"}),
+}
+
+
+def aktywna_sekcja_panelu(endpoint: str | None) -> str | None:
+    if not endpoint:
+        return None
+    for sekcja, endpoints in PANEL_SEKCJA_ENDPOINTS.items():
+        if endpoint in endpoints:
+            return sekcja
+    return None
+
+
 MOTYW_ROZOWY_ENDPOINTS = WIDOK_KLIENTA_ENDPOINTS | {
     "strona_glowna",
     "dolacz_firma",
@@ -2260,7 +2295,7 @@ def wyslij_email_lista_rezerwowa(salon: dict, zgloszenie: dict, salon_slug: str)
     if not odbiorca or not email_skonfigurowany():
         return False
 
-    link_panelu = url_for("panel_lista_rezerwowa", salon_slug=salon_slug, _external=True)
+    link_panelu = url_for("panel_rezerwacje", salon_slug=salon_slug, widok="lista", _external=True)
     temat = f"Lista rezerwowa: {zgloszenie['imie']}"
     tresc = f"""Nowe zgłoszenie na listę rezerwową
 
@@ -2652,6 +2687,8 @@ def inject_globals():
         },
         "legal_skonfigurowany": legal_skonfigurowany(),
         "dni_archiwum_rezerwacji": DNI_W_ARCHIWUM_PRZED_USUNIECIEM,
+        "widok_panelu_firmy": request.endpoint in PANEL_FIRMY_ENDPOINTS,
+        "panel_sekcja_aktywna": aktywna_sekcja_panelu(request.endpoint),
     }
 
 
@@ -4167,57 +4204,41 @@ def panel_terminarz(salon_slug: str):
     )
 
 
+def _obsluz_akcje_listy_rezerwowej(salon_atomowy: dict | None, zgloszenie_id: str, akcja: str) -> tuple[str, str]:
+    if not salon_atomowy:
+        return "Nie znaleziono takiej firmy.", "error"
+    zgloszenie = next(
+        (z for z in salon_atomowy.get("lista_rezerwowa", []) if z.get("id") == zgloszenie_id),
+        None,
+    )
+    if not zgloszenie:
+        return "Nie znaleziono zgłoszenia z listy rezerwowej.", "error"
+    if akcja == "kontakt":
+        zgloszenie["status"] = "kontakt"
+        zgloszenie["kontakt_at"] = datetime.now().isoformat(timespec="minutes")
+        return f"Oznaczono kontakt: {zgloszenie.get('imie', '')}.", "success"
+    if akcja == "nowe":
+        zgloszenie["status"] = "nowe"
+        zgloszenie.pop("kontakt_at", None)
+        return f"Przywrócono jako nowe: {zgloszenie.get('imie', '')}.", "success"
+    if akcja == "usun":
+        zgloszenie["status"] = "usuniete"
+        zgloszenie["usunieto_at"] = datetime.now().isoformat(timespec="minutes")
+        return "Usunięto zgłoszenie z listy rezerwowej.", "success"
+    return "Nieznana akcja listy rezerwowej.", "error"
+
+
 @app.route("/panel/<salon_slug>/lista-rezerwowa", methods=["GET", "POST"])
 def panel_lista_rezerwowa(salon_slug: str):
     if request.method == "POST":
         zgloszenie_id = request.form.get("id", "")
         akcja = request.form.get("akcja", "")
-
-        def zmien_liste_rezerwowa_atomowo(salon_atomowy: dict | None):
-            if not salon_atomowy:
-                return "Nie znaleziono takiej firmy.", "error"
-            zgloszenie = next(
-                (z for z in salon_atomowy.get("lista_rezerwowa", []) if z.get("id") == zgloszenie_id),
-                None,
-            )
-            if not zgloszenie:
-                return "Nie znaleziono zgłoszenia z listy rezerwowej.", "error"
-            if akcja == "kontakt":
-                zgloszenie["status"] = "kontakt"
-                zgloszenie["kontakt_at"] = datetime.now().isoformat(timespec="minutes")
-                return f"Oznaczono kontakt: {zgloszenie.get('imie', '')}.", "success"
-            if akcja == "nowe":
-                zgloszenie["status"] = "nowe"
-                zgloszenie.pop("kontakt_at", None)
-                return f"Przywrócono jako nowe: {zgloszenie.get('imie', '')}.", "success"
-            if akcja == "usun":
-                zgloszenie["status"] = "usuniete"
-                zgloszenie["usunieto_at"] = datetime.now().isoformat(timespec="minutes")
-                return "Usunięto zgłoszenie z listy rezerwowej.", "success"
-            return "Nieznana akcja listy rezerwowej.", "error"
-
-        komunikat, kategoria = aktualizuj_salon_atomowo(salon_slug, zmien_liste_rezerwowa_atomowo)
+        komunikat, kategoria = aktualizuj_salon_atomowo(
+            salon_slug,
+            lambda salon: _obsluz_akcje_listy_rezerwowej(salon, zgloszenie_id, akcja),
+        )
         flash(komunikat, kategoria)
-        return redirect(url_for("panel_lista_rezerwowa", salon_slug=salon_slug))
-
-    salon = wczytaj_salon_bezposrednio(
-        salon_slug,
-        include_clients=False,
-        include_reservations=False,
-        include_free_slots=False,
-        include_waitlist=True,
-    )
-    if not salon:
-        flash("Nie znaleziono takiej firmy.", "error")
-        return redirect(url_for("panel_lista"))
-
-    zgloszenia = aktywne_zgloszenia_listy_rezerwowej(salon)
-    return render_template(
-        "lista_rezerwowa.html",
-        dane=salon,
-        salon_slug=salon_slug,
-        zgloszenia=zgloszenia,
-    )
+    return redirect(url_for("panel_rezerwacje", salon_slug=salon_slug, widok="lista"))
 
 
 @app.route("/panel/<salon_slug>/rezerwacje", methods=["GET", "POST"])
@@ -4225,6 +4246,14 @@ def panel_rezerwacje(salon_slug: str):
     if request.method == "POST":
         akcja = request.form.get("akcja")
         rezerwacja_id = request.form.get("id", "")
+        widok_po_akcji = request.form.get("widok") or request.args.get("widok", "nadchodzace")
+        if akcja in {"kontakt", "nowe", "usun"}:
+            komunikat, kategoria = aktualizuj_salon_atomowo(
+                salon_slug,
+                lambda salon: _obsluz_akcje_listy_rezerwowej(salon, rezerwacja_id, akcja),
+            )
+            flash(komunikat, kategoria)
+            return redirect(url_for("panel_rezerwacje", salon_slug=salon_slug, widok="lista"))
 
         def zmien_rezerwacje_atomowo(salon_atomowy: dict | None):
             if not salon_atomowy:
@@ -4259,12 +4288,38 @@ def panel_rezerwacje(salon_slug: str):
 
         komunikat, kategoria = aktualizuj_salon_atomowo(salon_slug, zmien_rezerwacje_atomowo)
         flash(komunikat, kategoria)
-        widok = request.args.get("widok", "nadchodzace")
-        return redirect(url_for("panel_rezerwacje", salon_slug=salon_slug, widok=widok))
+        if widok_po_akcji not in {"nadchodzace", "archiwum", "lista"}:
+            widok_po_akcji = "nadchodzace"
+        return redirect(url_for("panel_rezerwacje", salon_slug=salon_slug, widok=widok_po_akcji))
 
     widok = request.args.get("widok", "nadchodzace")
-    if widok not in {"nadchodzace", "archiwum"}:
+    if widok not in {"nadchodzace", "archiwum", "lista"}:
         widok = "nadchodzace"
+
+    if widok == "lista":
+        salon = wczytaj_salon_bezposrednio(
+            salon_slug,
+            include_clients=False,
+            include_reservations=False,
+            include_free_slots=False,
+            include_waitlist=True,
+        )
+        if not salon:
+            flash("Nie znaleziono takiego salonu.", "error")
+            return redirect(url_for("panel_lista"))
+        zgloszenia = aktywne_zgloszenia_listy_rezerwowej(salon)
+        return render_template(
+            "rezerwacje.html",
+            dane=salon,
+            salon_slug=salon_slug,
+            widok=widok,
+            nadchodzace=[],
+            archiwum=[],
+            zgloszenia=zgloszenia,
+            dni_tygodnia=dict(DNI_TYGODNIA),
+            dni_archiwum=DNI_W_ARCHIWUM_PRZED_USUNIECIEM,
+            tryb_platnosci_wizyty=tryb_platnosci_wizyty_salonu(salon),
+        )
 
     data_od, data_do = zakres_panelu_rezerwacji(widok)
     salon = wczytaj_salon_bezposrednio(
@@ -4272,6 +4327,7 @@ def panel_rezerwacje(salon_slug: str):
         data_od=data_od,
         data_do=data_do,
         include_clients=False,
+        include_waitlist=True,
     )
     if not salon:
         flash("Nie znaleziono takiego salonu.", "error")
@@ -4292,6 +4348,7 @@ def panel_rezerwacje(salon_slug: str):
         key=lambda r: (r.get("zarchiwizowano_at", ""), r.get("data", ""), r.get("godzina", "")),
         reverse=True,
     )
+    zgloszenia = aktywne_zgloszenia_listy_rezerwowej(salon)
 
     return render_template(
         "rezerwacje.html",
@@ -4300,6 +4357,7 @@ def panel_rezerwacje(salon_slug: str):
         widok=widok,
         nadchodzace=nadchodzace,
         archiwum=archiwum[:200],
+        zgloszenia=zgloszenia,
         dni_tygodnia=dict(DNI_TYGODNIA),
         dni_archiwum=DNI_W_ARCHIWUM_PRZED_USUNIECIEM,
         tryb_platnosci_wizyty=tryb_platnosci_wizyty_salonu(salon),

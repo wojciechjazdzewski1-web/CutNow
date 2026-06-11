@@ -865,11 +865,24 @@
       background: #4b5563 !important;
       border-color: #d1d5db !important;
     }
+
+    body.glo-panel-mobile-nav main {
+      padding-bottom: 5.5rem;
+    }
+    @media (min-width: 640px) {
+      body.glo-panel-mobile-nav main {
+        padding-bottom: 3rem;
+      }
+    }
+    .glo-panel-nav-link:focus-visible {
+      outline: 2px solid #e11d74;
+      outline-offset: 2px;
+    }
   </style>
   {% endif %}
   {% block head_extra %}{% endblock %}
 </head>
-<body class="h-full min-h-screen font-sans antialiased {% if motyw_klienta %}client-theme {% if motyw_neutralny %}client-theme-neutral{% else %}client-theme-rose{% endif %}{% else %}app-theme-default bg-slate-50 text-slate-800{% endif %}">
+<body class="h-full min-h-screen font-sans antialiased {% if widok_panelu_firmy and salon_slug %}glo-panel-mobile-nav {% endif %}{% if motyw_klienta %}client-theme {% if motyw_neutralny %}client-theme-neutral{% else %}client-theme-rose{% endif %}{% else %}app-theme-default bg-slate-50 text-slate-800{% endif %}">
   <nav class="sticky top-0 z-50 border-b backdrop-blur-md {% if motyw_klienta %}client-nav{% else %}border-slate-200 bg-white/80 dark:border-slate-700 dark:bg-slate-900/90{% endif %}">
     <div class="max-w-5xl mx-auto px-4 sm:px-6">
       <div class="flex items-center justify-between h-16">
@@ -882,7 +895,10 @@
             <span id="theme-toggle-label">Tryb nocny</span>
           </button>
           {% if widok_klienta %}
-            <span class="hidden sm:inline px-3 py-2 text-sm font-medium text-brand-800 dark:text-brand-200 bg-brand-100 dark:bg-brand-950/40 rounded-lg border border-brand-200 dark:border-brand-900">Rezerwacja wizyty</span>
+            <span class="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-brand-800 dark:text-brand-200 bg-brand-100 dark:bg-brand-950/40 rounded-lg border border-brand-200 dark:border-brand-900">Rezerwacja</span>
+            {% if zalogowany_do_panelu and aktywny_salon_slug %}
+              <a href="{{ url_for('panel', salon_slug=aktywny_salon_slug) }}" class="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Panel</a>
+            {% endif %}
           {% else %}
             <a href="{{ url_for('strona_glowna') }}" class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.endpoint == 'strona_glowna' %}text-brand-800 bg-brand-100 dark:text-brand-200 dark:bg-brand-950/50{% elif motyw_klienta %}client-heading hover:bg-white/70 dark:hover:bg-white/10{% else %}text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800{% endif %}">Znajdź termin</a>
             <a href="{{ url_for('dolacz_firma') }}" class="hidden sm:inline-flex px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.endpoint == 'dolacz_firma' %}text-brand-800 bg-brand-100 dark:text-brand-200 dark:bg-brand-950/50{% elif motyw_klienta %}client-heading hover:bg-white/70 dark:hover:bg-white/10{% else %}text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800{% endif %}">Dla firm</a>
@@ -895,7 +911,7 @@
             {% else %}
               {% set panel_href = url_for('panel_login') %}
             {% endif %}
-            <a href="{{ panel_href }}" class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.endpoint in ['panel', 'panel_instrukcja', 'panel_lista', 'ustawienia_salonu', 'godziny_pracy', 'wolne_terminy', 'panel_rezerwacje', 'panel_lista_rezerwowa', 'panel_klienci', 'panel_klient_szczegoly', 'panel_wywiad', 'podglad_klienta', 'panel_login'] %}text-brand-800 bg-brand-100 dark:text-brand-200 dark:bg-brand-950/50{% elif motyw_klienta %}client-heading hover:bg-white/70 dark:hover:bg-white/10{% else %}text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800{% endif %}">Panel</a>
+            <a href="{{ panel_href }}" class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {% if request.endpoint in ['panel', 'panel_instrukcja', 'panel_lista', 'ustawienia_salonu', 'godziny_pracy', 'wolne_terminy', 'panel_terminarz', 'panel_rezerwacje', 'panel_lista_rezerwowa', 'panel_klienci', 'panel_klient_szczegoly', 'panel_wywiad', 'panel_opinie', 'podglad_klienta', 'panel_login'] %}text-brand-800 bg-brand-100 dark:text-brand-200 dark:bg-brand-950/50{% elif motyw_klienta %}client-heading hover:bg-white/70 dark:hover:bg-white/10{% else %}text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800{% endif %}">Panel</a>
             {% if zalogowany_do_panelu %}
               <a href="{{ url_for('panel_wyloguj', salon_slug=aktywny_salon_slug) if aktywny_salon_slug else (url_for('panel_wyloguj', salon_slug=zalogowany_salon_slug) if zalogowany_salon_slug else url_for('panel_wyloguj')) }}" class="px-3 py-2 text-sm font-medium rounded-lg {% if motyw_klienta %}client-muted hover:bg-white/70 dark:hover:bg-white/10{% else %}text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800{% endif %}">Wyloguj</a>
             {% endif %}
@@ -917,7 +933,10 @@
     {% endif %}
   {% endwith %}
 
-  <main class="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+    {% if widok_panelu_firmy and salon_slug %}
+      {% include "_panel_nav.html" %}
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
 

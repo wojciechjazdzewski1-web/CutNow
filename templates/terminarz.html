@@ -2,16 +2,12 @@
 {% block title %}Terminarz — Glovaro{% endblock %}
 
 {% block content %}
-<a href="{{ url_for('panel', salon_slug=salon_slug) }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600 mb-6 transition-colors">
-  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-  Wróć do panelu
-</a>
+{% include "_panel_subnav_kalendarz.html" %}
 
 <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6">
   <div>
-    <h1 class="text-2xl font-bold text-slate-900">Terminarz</h1>
-    <p class="text-slate-600 mt-1">{{ dane.nazwa_salonu }} — podgląd wizyt i ręczne wpisy</p>
-    <p class="text-xs text-slate-500 mt-2">Prosty kalendarz miesiąca. Klienci widzą tylko terminy z sekcji Wolne terminy.</p>
+    <h1 class="text-2xl font-bold text-slate-900">Wizyty w terminarzu</h1>
+    <p class="text-slate-600 mt-1 text-sm">{{ dane.nazwa_salonu }} — kalendarz wizyt i ręczne wpisy</p>
   </div>
   <div class="flex flex-wrap gap-2">
     <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug, data=poprzedni_miesiac) }}" class="glo-cal-nav rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">← Poprzedni miesiąc</a>

@@ -128,86 +128,50 @@
   </div>
 {% endif %}
 
-<div class="grid sm:grid-cols-2 gap-4">
-  <button type="button" data-start-panel-tour class="group rounded-2xl bg-white border border-brand-200 p-6 shadow-sm hover:border-brand-400 hover:shadow-md transition-all sm:col-span-2 text-left">
-    <div class="h-12 w-12 rounded-xl bg-brand-100 text-brand-700 flex items-center justify-center mb-4">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+<div class="client-panel-card rounded-2xl p-5 sm:p-6">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+    <div>
+      <h2 class="font-semibold text-lg text-slate-900">Szybki start</h2>
+      <p class="text-sm text-slate-600 mt-1">Użyj menu u góry (lub na dole ekranu na telefonie). Poniżej najważniejsze kroki konfiguracji.</p>
     </div>
-    <h2 class="font-semibold text-lg text-slate-900">Instrukcja krok po kroku</h2>
-    <p class="text-sm text-slate-600 mt-1">Uruchom wyskakujące chmurki z podpowiedziami, gdzie kliknąć i co uzupełnić.</p>
-  </button>
-
-  <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug) }}" class="client-panel-card group rounded-2xl border-2 border-brand-200 p-6 hover:border-brand-400 hover:shadow-md transition-all sm:col-span-2" data-tour="terminarz">
-    <div class="h-12 w-12 rounded-xl bg-brand-100 text-brand-700 flex items-center justify-center mb-4">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-    </div>
-    <h2 class="font-semibold text-lg text-slate-900">Terminarz</h2>
-    <p class="text-sm text-slate-600 mt-1">Kalendarz wizyt, wolne godziny i ręczne dodawanie klientów.</p>
-  </a>
-
-  <a href="{{ url_for('ustawienia_salonu', salon_slug=salon_slug) }}" class="client-panel-card group rounded-2xl p-6 hover:border-brand-300 hover:shadow-md transition-all" data-tour="profil">
-    <div class="h-12 w-12 rounded-xl bg-slate-100 text-slate-600 group-hover:bg-brand-100 group-hover:text-brand-700 flex items-center justify-center mb-4 transition-colors">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-    </div>
-    <h2 class="font-semibold text-lg text-slate-900">Nazwa salonu</h2>
-    <p class="text-sm text-slate-600 mt-1">Zmień nazwę wyświetlaną w panelu i podglądzie klienta.</p>
-  </a>
-
-  <a href="{{ url_for('godziny_pracy', salon_slug=salon_slug) }}" class="group client-panel-card rounded-2xl p-6 hover:border-brand-300 hover:shadow-md transition-all" data-tour="godziny">
-    <div class="h-12 w-12 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center mb-4">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-    </div>
-    <h2 class="font-semibold text-lg text-slate-900">Godziny pracy</h2>
-    <p class="text-sm text-slate-600 mt-1">Ustaw harmonogram na każdy dzień tygodnia.</p>
-  </a>
-
-  <a href="{{ url_for('panel_rezerwacje', salon_slug=salon_slug) }}" class="group client-panel-card rounded-2xl p-6 hover:border-brand-300 hover:shadow-md transition-all" data-tour="rezerwacje">
-    <div class="h-12 w-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-    </div>
-    <h2 class="font-semibold text-lg text-slate-900">Rezerwacje</h2>
-    <p class="text-sm text-slate-600 mt-1">{{ liczba_rezerwacji }} nadchodzących wizyt zarezerwowanych online.</p>
-  </a>
-
-  <a href="{{ url_for('panel_lista_rezerwowa', salon_slug=salon_slug) }}" class="group client-panel-card rounded-2xl p-6 hover:border-brand-300 hover:shadow-md transition-all">
-    <div class="h-12 w-12 rounded-xl bg-fuchsia-100 text-fuchsia-600 flex items-center justify-center mb-4">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 8a6 6 0 00-12 0v3.586l-.707.707A1 1 0 006 14h12a1 1 0 00.707-1.707L18 11.586V8zM8 18h8m-4 3v-3"/></svg>
-    </div>
-    <h2 class="font-semibold text-lg text-slate-900">Lista rezerwowa</h2>
-    <p class="text-sm text-slate-600 mt-1">{{ liczba_listy_rezerwowej }} zgłoszeń od klientów czekających na wolny termin.</p>
-  </a>
-
-  <a href="{{ url_for('panel_klienci', salon_slug=salon_slug) }}" class="group client-panel-card rounded-2xl p-6 hover:border-brand-300 hover:shadow-md transition-all">
-    <div class="h-12 w-12 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center mb-4">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-    </div>
-    <h2 class="font-semibold text-lg text-slate-900">Kartoteka klientów</h2>
-    <p class="text-sm text-slate-600 mt-1">Historia wizyt, wywiady zdrowotne i notatki.</p>
-  </a>
-
-  <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug) }}" class="group client-panel-card rounded-2xl p-6 hover:border-brand-300 hover:shadow-md transition-all" data-tour="wolne-terminy">
-    <div class="h-12 w-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-    </div>
-    <h2 class="font-semibold text-lg text-slate-900">Wolne terminy</h2>
-    <p class="text-sm text-slate-600 mt-1">Dodatkowe sloty i blokady ({{ liczba_dni_z_terminami }} dni z wolnymi terminami).</p>
-  </a>
-
-  <a href="{{ url_for('panel_opinie', salon_slug=salon_slug) }}" class="group client-panel-card rounded-2xl p-6 hover:border-brand-300 hover:shadow-md transition-all">
-    <div class="h-12 w-12 rounded-xl bg-yellow-100 text-yellow-600 flex items-center justify-center mb-4">
-      <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.539 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.783.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81H7.03a1 1 0 00.95-.69l1.07-3.292z"/></svg>
-    </div>
-    <h2 class="font-semibold text-lg text-slate-900">Opinie klientów</h2>
-    <p class="text-sm text-slate-600 mt-1">Zobacz oceny po wizytach i decyduj, które opinie pokazać publicznie.</p>
-  </a>
-
-  <a href="{{ url_for('podglad_klienta', salon_slug=salon_slug) }}" class="group client-panel-card rounded-2xl p-6 hover:border-brand-300 hover:shadow-md transition-all" data-tour="podglad">
-    <div class="h-12 w-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mb-4">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-    </div>
-    <h2 class="font-semibold text-lg text-slate-900">Podgląd klienta</h2>
-    <p class="text-sm text-slate-600 mt-1">Zobacz stronę tak, jak ją zobaczy klient szukający terminu.</p>
-  </a>
+    <button type="button" data-start-panel-tour class="shrink-0 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-semibold text-brand-800 hover:bg-brand-100">
+      Instrukcja krok po kroku
+    </button>
+  </div>
+  <ol class="space-y-2 text-sm">
+    <li>
+      <a href="{{ url_for('ustawienia_salonu', salon_slug=salon_slug) }}" data-tour="profil" class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-brand-300 transition-colors">
+        <span><span class="font-semibold text-slate-900">1. Profil i usługi</span> — nazwa, logo, cennik</span>
+        <span class="text-brand-600">→</span>
+      </a>
+    </li>
+    <li>
+      <a href="{{ url_for('godziny_pracy', salon_slug=salon_slug) }}" data-tour="godziny" class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-brand-300 transition-colors">
+        <span><span class="font-semibold text-slate-900">2. Godziny pracy</span> — kiedy firma jest otwarta</span>
+        <span class="text-brand-600">→</span>
+      </a>
+    </li>
+    <li>
+      <a href="{{ url_for('wolne_terminy', salon_slug=salon_slug) }}" data-tour="wolne-terminy" class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-brand-300 transition-colors">
+        <span><span class="font-semibold text-slate-900">3. Terminy dla klientów</span> — {{ liczba_dni_z_terminami }} dni z wolnymi slotami</span>
+        <span class="text-brand-600">→</span>
+      </a>
+    </li>
+    <li>
+      <a href="{{ url_for('rezerwacja_publiczna', salon_slug=salon_slug) }}" target="_blank" rel="noopener noreferrer" data-tour="podglad" class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-brand-300 transition-colors">
+        <span><span class="font-semibold text-slate-900">4. Sprawdź stronę klienta</span> — podgląd rezerwacji</span>
+        <span class="text-brand-600">↗</span>
+      </a>
+    </li>
+  </ol>
+  <div class="mt-4 grid sm:grid-cols-2 gap-2 text-sm">
+    <a href="{{ url_for('panel_terminarz', salon_slug=salon_slug) }}" data-tour="terminarz" class="rounded-xl bg-slate-50 px-4 py-3 text-slate-700 hover:bg-slate-100">
+      <span class="font-semibold text-slate-900">Kalendarz wizyt</span> — terminarz i ręczne wpisy
+    </a>
+    <a href="{{ url_for('panel_rezerwacje', salon_slug=salon_slug) }}" data-tour="rezerwacje" class="rounded-xl bg-slate-50 px-4 py-3 text-slate-700 hover:bg-slate-100">
+      <span class="font-semibold text-slate-900">Rezerwacje online</span> — {{ liczba_rezerwacji }} nadchodzących{% if liczba_listy_rezerwowej %}, {{ liczba_listy_rezerwowej }} na liście{% endif %}
+    </a>
+  </div>
 </div>
 
 <div id="panel-tour-overlay" class="fixed inset-0 z-[60] hidden bg-slate-950/60"></div>
@@ -250,7 +214,7 @@
         selector: '[data-tour="podglad"]',
         title: '4. Podgląd klienta',
         text: 'Tutaj firma sprawdza, jak strona wygląda dla klienta: opis, logo, usługi, zdjęcia, lokalizacja i dostępne godziny.',
-        actionUrl: '{{ url_for("podglad_klienta", salon_slug=salon_slug) }}'
+        actionUrl: '{{ url_for("rezerwacja_publiczna", salon_slug=salon_slug) }}'
       },
       {
         selector: '[data-tour="terminarz"]',
