@@ -43,6 +43,7 @@ def api_slots():
     from app import (
         dostepne_terminy,
         salon_wstrzymany,
+        uslugi_salonu,
         waliduj_date_iso,
         wczytaj_salon_bezposrednio,
         zakres_publicznej_rezerwacji,
@@ -69,6 +70,7 @@ def api_slots():
         return jsonify({"error": "unavailable", "message": "Rezerwacje dla tego salonu są chwilowo niedostępne."}), 403
 
     sloty = dostepne_terminy(salon, data_iso)
+    uslugi = uslugi_salonu(salon)
     return jsonify(
         {
             "salon_id": salon_id,
@@ -76,6 +78,7 @@ def api_slots():
             "date": data_iso,
             "slots": sloty,
             "count": len(sloty),
+            "services": [{"index": i, "name": u["nazwa"]} for i, u in enumerate(uslugi)],
         }
     )
 
@@ -168,14 +171,21 @@ def api_book():
 
     uslugi = uslugi_salonu(salon)
     mapa_uslug = {u["nazwa"]: u for u in uslugi}
+    if uslugi and body.get("service_index") is not None:
+        try:
+            indeks = int(body.get("service_index"))
+            if 0 <= indeks < len(uslugi):
+                usluga_nazwa = uslugi[indeks]["nazwa"]
+        except (TypeError, ValueError):
+            return jsonify({"error": "bad_request", "message": "Pole service_index musi być liczbą."}), 400
     if uslugi and not usluga_nazwa and len(uslugi) == 1:
         usluga_nazwa = uslugi[0]["nazwa"]
     if uslugi and usluga_nazwa not in mapa_uslug:
         return jsonify(
             {
                 "error": "bad_request",
-                "message": "Wybierz usługę z listy salonu.",
-                "available_services": [u["nazwa"] for u in uslugi],
+                "message": "Wybierz usługę z listy salonu (service_name lub service_index).",
+                "available_services": [{"index": i, "name": u["nazwa"]} for i, u in enumerate(uslugi)],
             }
         ), 400
 
