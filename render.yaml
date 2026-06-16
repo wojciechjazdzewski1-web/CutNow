@@ -22,6 +22,8 @@ services:
         sync: false
       - key: REMINDER_SECRET
         sync: false
+      - key: INSTAGRAM_BOT_API_KEY
+        sync: false
       - key: FLASK_DEBUG
         value: "false"
       - key: DATABASE_URL

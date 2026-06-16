@@ -4597,6 +4597,11 @@ def panel_wywiad(salon_slug: str):
     )
 
 
+from api_v1 import api_v1_bp
+
+app.register_blueprint(api_v1_bp)
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     debug = os.environ.get("FLASK_DEBUG", "true").lower() == "true"
