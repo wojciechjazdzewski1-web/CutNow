@@ -30,3 +30,33 @@ services:
         fromDatabase:
           name: glovaro-db
           property: connectionString
+
+  - type: web
+    name: glovaro-instagram-bot
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node instagramBot.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: INSTAGRAM_VERIFY_TOKEN
+        sync: false
+      - key: INSTAGRAM_PAGE_ACCESS_TOKEN
+        sync: false
+      - key: META_APP_SECRET
+        sync: false
+      - key: META_GRAPH_API_VERSION
+        value: "v21.0"
+      - key: INSTAGRAM_BOT_API_KEY
+        sync: false
+      - key: INSTAGRAM_SALON_ID
+        sync: false
+      - key: GLOVARO_API_HOST
+        fromService:
+          name: glovaro
+          type: web
+          property: host

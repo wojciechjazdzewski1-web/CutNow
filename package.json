@@ -1,0 +1,19 @@
+{
+  "name": "glovaro-instagram-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Instagram DM bot for Glovaro salon bookings",
+  "main": "instagramBot.js",
+  "scripts": {
+    "start": "node instagramBot.js",
+    "dev": "node --watch instagramBot.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "openai": "^4.77.0"
+  }
+}
