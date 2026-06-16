@@ -147,12 +147,24 @@ def api_book():
     if salon_wstrzymany(salon):
         return jsonify({"error": "unavailable", "message": "Rezerwacje dla tego salonu są chwilowo niedostępne."}), 403
     if wywiad_przy_rezerwacji_wlaczony(salon):
-        return jsonify(
-            {
-                "error": "health_survey_required",
-                "message": "Ten salon wymaga wywiadu zdrowotnego — rezerwacja przez API nie jest dostępna.",
-            }
-        ), 409
+        if not body.get("health_survey_accepted"):
+            return jsonify(
+                {
+                    "error": "health_survey_required",
+                    "message": "Salon wymaga akceptacji oświadczenia zdrowotnego. Ustaw health_survey_accepted: true w body.",
+                }
+            ), 409
+        from datetime import datetime
+
+        teraz = datetime.now().isoformat(timespec="minutes")
+        wywiad_odpowiedzi = {
+            "_typ": "oswiadczenie",
+            "zaakceptowano": teraz,
+            "zgoda_rodo": "tak",
+            "zrodlo": "instagram_api",
+        }
+    else:
+        wywiad_odpowiedzi = None
 
     uslugi = uslugi_salonu(salon)
     mapa_uslug = {u["nazwa"]: u for u in uslugi}
@@ -227,6 +239,7 @@ def api_book():
             usluga_nazwa=usluga_formularz,
             status="oczekuje",
             zrodlo="instagram",
+            wywiad_odpowiedzi=wywiad_odpowiedzi,
         )
         return rezerwacja_atomowa, blad_atomowy, None
 
